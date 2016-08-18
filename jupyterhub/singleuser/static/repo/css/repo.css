@@ -5,3 +5,8 @@
 .fa.pull-right {
     margin-left: 14px;
 }
+
+.repo-icon {
+    float: left;
+    font-size: 40px;
+}

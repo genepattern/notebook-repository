@@ -1,8 +1,14 @@
-var repo_events_init = false;
+// Initialize GenePattern global variables
+var GenePattern = GenePattern || {};
+GenePattern.repo = GenePattern.repo || {};
+GenePattern.repo.events_init = GenePattern.repo.events_init || false;
+GenePattern.repo.public_notebooks = GenePattern.repo.public_notebooks || [];
+GenePattern.repo.my_nb_paths = GenePattern.repo.my_nb_paths || [];
 
-require([
-    'base/js/namespace',
-    'jquery'], function(IPython, $) {
+// TODO: FIXME get the real username
+var username = 'thorin';
+
+require(['base/js/namespace', 'jquery'], function(Jupyter, $) {
     "use strict";
 
     // Load css
@@ -17,9 +23,6 @@ require([
     function share_selected() {
         alert("WORKS!");
     }
-
-    // Bind events for action buttons.
-    $('.share-button').click($.proxy(share_selected, this));
 
     // Function to call when the file list selection has changed
     function selection_changed() {
@@ -59,26 +62,72 @@ require([
         }
     }
 
-    $(document).click(function() {
-        selection_changed();
-    });
+    // Function builds a path list from the public notebooks
+    function nb_path_list() {
+        GenePattern.repo.my_nb_paths = [];
+        GenePattern.repo.public_notebooks.forEach(function(nb) {
+            if (nb['owner'] === username) {
+                GenePattern.repo.my_nb_paths.push(nb['api_path']);
+            }
+        });
+    }
 
-    // TODO: FIXME hard-coded sharing list for testing purposes
-    var public_notebooks = ['/notebooks/CKEditor.ipynb', '/notebooks/GenePattern%20Files%20in%20Python.ipynb', '/notebooks/GenePattern%20Python%20Tutorial.ipynb'];
+    // Builds the repository tab
+    function build_repo_tab() {
+        var list_div = $("#repository-list");
+        GenePattern.repo.public_notebooks.forEach(function(nb) {
+            list_div.append(
+                $("<div></div>")
+                    .addClass("list_item row")
+                    .append(
+                        $("<div></div>")
+                            .addClass("col-md-12")
+                            .append(
+                                $('<i class="item_icon notebook_icon icon-fixed-width repo-icon"></i>')
+                            )
+                            .append(nb['owner'])
+                            .append(' / ')
+                            .append(nb['name'])
+                            .append('<br/>')
+                            .append(nb['description'])
+                    )
+            );
+        });
+    }
+
+    // Bind events for action buttons.
+    $('.share-button')
+        .click($.proxy(share_selected, this))
+        .hide();
+    $(document).click($.proxy(selection_changed, this));
 
     // Attach the repository events if they haven't already been initialized
-    if (!repo_events_init) {
+    if (!GenePattern.repo.events_init) {
         // Mark repo events as initialized
-        repo_events_init = true;
+        GenePattern.repo.events_init = true;
+
+        // Get the list of public notebooks
+        $.ajax({
+            url: "http://127.0.0.1:8000/notebooks/",
+            crossDomain: true,
+            success: function(response) {
+                GenePattern.repo.public_notebooks = response['results'];
+                nb_path_list(); // Build the path list for displaying share icons
+                build_repo_tab(); // Populate the repository tab
+            },
+            error: function() {
+                console.log("ERROR: Could not obtain list of public notebooks");
+            }
+        });
 
         // When the files list is refreshed
         $([Jupyter.events]).on('draw_notebook_list.NotebookList', function() {
             $("a.item_link").each(function(i, element) {
                 // If a notebook matches a path in the shared list
-                if (public_notebooks.indexOf($(element).attr("href")) >= 0) {
+                if (GenePattern.repo.my_nb_paths.indexOf($(element).attr("href")) >= 0) {
                     // Add a shared icon to it
                     $(element).parent().find('.item_buttons').append(
-                        $('<i class="item_icon icon-fixed-width fa fa-share-square pull-right"></i>')
+                        $('<i title="Shared to Repository" class="item_icon icon-fixed-width fa fa-share-square pull-right"></i>')
                     )
                 }
             })

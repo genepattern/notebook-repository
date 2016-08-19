@@ -19,3 +19,5 @@ class NotebookSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Notebook
         fields = ('url', 'name', 'description', 'author', 'quality', 'publication', 'owner', 'file_path', 'api_path')
+
+

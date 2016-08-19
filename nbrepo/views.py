@@ -27,3 +27,15 @@ class NotebookViewSet(viewsets.ModelViewSet):
     queryset = Notebook.objects.all()
     serializer_class = NotebookSerializer
     filter_fields = ('name', 'author', 'quality', 'owner', 'file_path', 'api_path')
+
+    def create(self, request, *args, **kwargs):
+        print("CREATE NOTEBOOK")
+        return super(NotebookViewSet, self).create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        print("UPDATE NOTEBOOK")
+        return super(NotebookViewSet, self).update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        print("DESTROY NOTEBOOK")
+        return super(NotebookViewSet, self).destroy(request, *args, **kwargs)

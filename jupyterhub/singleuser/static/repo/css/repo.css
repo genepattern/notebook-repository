@@ -6,7 +6,31 @@
     margin-left: 14px;
 }
 
-.repo-icon {
+.repo-nb-icon {
     float: left;
-    font-size: 40px;
+    height: 40px;
+}
+
+.repo-nb-description {
+    color: #808080;
+}
+
+.repo-header {
+    padding-top: 5px;
+    padding-right: 5px;
+    padding-bottom: 5px;
+    padding-left: 13px;
+}
+
+#repository-search {
+    float: right;
+    font-weight: normal;
+}
+
+.repo-label {
+    font-weight: bold;
+}
+
+#publish-quality {
+    margin-left: 0;
 }

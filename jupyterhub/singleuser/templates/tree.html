@@ -30,7 +30,7 @@ data-terminals-available="{{terminals_available}}"
                 Select items to perform actions on them.
               </div>
               <div class="dynamic-buttons">
-                  <button title="Share selected" class="share-button btn btn-default btn-xs">Share</button>
+                  <button title="Publish selected" class="share-button btn btn-default btn-xs">Publish</button>
                   <button title="Duplicate selected" class="duplicate-button btn btn-default btn-xs">Duplicate</button>
                   <button title="Rename selected" class="rename-button btn btn-default btn-xs">Rename</button>
                   <button title="Shutdown selected notebook(s)" class="shutdown-button btn btn-default btn-xs btn-warning">Shutdown</button>
@@ -161,7 +161,12 @@ data-terminals-available="{{terminals_available}}"
           See <a href="https://github.com/ipython/ipyparallel">IPython parallel</a> for installation details.
         </div>
         <div id="repository" class="tab-pane">
-          <div id="repository-list" class="list_container"></div>
+          <div id="repository-list" class="list_container">
+              <div id="repository-list-header" class="row list_header repo-header">
+                  Published Notebooks
+                  <input id="repository-search" type="search" placeholder="Search Repository" />
+              </div>
+          </div>
         </div>
       </div><!-- class:tab-content -->
     </div><!-- id:tab_content --> 

@@ -18,6 +18,6 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
 class NotebookSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Notebook
-        fields = ('url', 'name', 'description', 'author', 'quality', 'publication', 'owner', 'file_path', 'api_path')
+        fields = ('id', 'url', 'name', 'description', 'author', 'quality', 'publication', 'owner', 'file_path', 'api_path')
 
 

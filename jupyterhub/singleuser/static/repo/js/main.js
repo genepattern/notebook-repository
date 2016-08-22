@@ -66,12 +66,45 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         return null;
     }
 
+    // Returns today in a date string readable by the REST API
+    function today() {
+        var today = new Date();
+        var month = ("0" + (today.getMonth() + 1)).slice(-2);
+        var date = ("0" + today.getDate()).slice(-2);
+        var year = today.getFullYear();
+        return month + '/' + date + '/' + year;
+    }
+
+    // Returns a notebook json object based off of the current notebook and form
+    function make_nb_json(notebook, nb_path) {
+        var pub_nb = notebook ? notebook : {
+            "owner": username,
+            "file_path": '', // Will be filled in server-side
+            "api_path": nb_path
+        };
+
+        // Set values based on form
+        pub_nb['name'] = $("#publish-name").val();
+        pub_nb['description'] = $("#publish-description").val();
+        pub_nb['author'] = $("#publish-author").val();
+        pub_nb['quality'] = $("#publish-quality").val();
+
+        // Set current date as publication date
+        pub_nb['publication'] = today();
+
+        // Return the updated notebook
+        return pub_nb;
+    }
+
     // Function to call when sharing a notebook
     function share_selected() {
         var nb_path = get_selected_path();
-        var nb_name = get_selected_name();
         var shared = is_nb_shared(nb_path);
         var notebook = get_shared(nb_path);
+        var nb_name = notebook ? notebook['name'] : get_selected_name();
+        var nb_description = notebook ? notebook['description'] : '';
+        var nb_author = notebook ? notebook['author'] : '';
+        var nb_quality = notebook ? notebook['quality'] : 'Development';
 
         // Create buttons list
         var buttons = {};
@@ -81,7 +114,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             buttons["Update"] = {"class" : "btn-primary"};
         }
         else {
-            buttons["Publish"] = {"class" : "btn-primary"};
+            buttons["Publish"] = {"class" : "btn-primary", "click" : function() {
+                var pub_nb = make_nb_json(notebook, nb_path);
+            }};
         }
 
         // Create the dialog body
@@ -95,82 +130,83 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                         "repository or update to the latest version in your workspace.")
             );
         }
-        else {
-            body.append(
-                $("<form/>")
-                    .append(
-                        $("<div/>")
-                            .addClass("form-group")
-                            .append(
-                                $("<label/>")
-                                    .addClass("repo-label")
-                                    .attr("for", "publish-name")
-                                    .append("Notebook Name")
-                            )
-                            .append(
-                                $("<input/>")
-                                    .attr("id", "publish-name")
-                                    .addClass("form-control")
-                                    .attr("type", "text")
-                                    .attr("maxlength", 64)
-                                    .attr("value", nb_name)
-                            )
-                    )
-                    .append(
-                        $("<div/>")
-                            .addClass("form-group")
-                            .append(
-                                $("<label/>")
-                                    .addClass("repo-label")
-                                    .attr("for", "publish-description")
-                                    .append("Description")
-                            )
-                            .append(
-                                $("<input/>")
-                                    .attr("id", "publish-description")
-                                    .addClass("form-control")
-                                    .attr("type", "text")
-                                    .attr("maxlength", 256)
-                            )
-                    )
-                    .append(
-                        $("<div/>")
-                            .addClass("form-group")
-                            .append(
-                                $("<label/>")
-                                    .addClass("repo-label")
-                                    .attr("for", "publish-author")
-                                    .append("Authors")
-                            )
-                            .append(
-                                $("<input/>")
-                                    .attr("id", "publish-author")
-                                    .addClass("form-control")
-                                    .attr("type", "text")
-                                    .attr("maxlength", 128)
-                            )
-                    )
-                    .append(
-                        $("<div/>")
-                            .addClass("form-group")
-                            .append(
-                                $("<label/>")
-                                    .addClass("repo-label")
-                                    .attr("for", "publish-quality")
-                                    .append("Quality")
-                            )
-                            .append(
-                                $("<select/>")
-                                    .attr("id", "publish-quality")
-                                    .addClass("form-control")
-                                    .append($("<option>Development</option>"))
-                                    .append($("<option>Beta</option>"))
-                                    .append($("<option>Release</option>"))
-                            )
-                    )
+        body.append(
+            $("<form/>")
+                .append(
+                    $("<div/>")
+                        .addClass("form-group")
+                        .append(
+                            $("<label/>")
+                                .addClass("repo-label")
+                                .attr("for", "publish-name")
+                                .append("Notebook Name")
+                        )
+                        .append(
+                            $("<input/>")
+                                .attr("id", "publish-name")
+                                .addClass("form-control")
+                                .attr("type", "text")
+                                .attr("maxlength", 64)
+                                .attr("value", nb_name)
+                        )
+                )
+                .append(
+                    $("<div/>")
+                        .addClass("form-group")
+                        .append(
+                            $("<label/>")
+                                .addClass("repo-label")
+                                .attr("for", "publish-description")
+                                .append("Description")
+                        )
+                        .append(
+                            $("<input/>")
+                                .attr("id", "publish-description")
+                                .addClass("form-control")
+                                .attr("type", "text")
+                                .attr("maxlength", 256)
+                                .attr("value", nb_description)
+                        )
+                )
+                .append(
+                    $("<div/>")
+                        .addClass("form-group")
+                        .append(
+                            $("<label/>")
+                                .addClass("repo-label")
+                                .attr("for", "publish-author")
+                                .append("Authors")
+                        )
+                        .append(
+                            $("<input/>")
+                                .attr("id", "publish-author")
+                                .addClass("form-control")
+                                .attr("type", "text")
+                                .attr("maxlength", 128)
+                                .attr("value", nb_author)
+                        )
+                )
+                .append(
+                    $("<div/>")
+                        .addClass("form-group")
+                        .append(
+                            $("<label/>")
+                                .addClass("repo-label")
+                                .attr("for", "publish-quality")
+                                .append("Quality")
+                        )
+                        .append(
+                            $("<select/>")
+                                .attr("id", "publish-quality")
+                                .addClass("form-control")
+                                .append($("<option>Development</option>"))
+                                .append($("<option>Beta</option>"))
+                                .append($("<option>Release</option>"))
+                                .val(nb_quality)
+                        )
+                )
 
-            );
-        }
+        );
 
         // Show the modal dialog
         dialog.modal({

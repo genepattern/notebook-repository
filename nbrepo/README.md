@@ -6,6 +6,7 @@ GenePattern Notebook Repository.
 ## Requirements
 * django == 1.10
 * markdown
+* djangorestframework == 3.4.4
 * django-filter
 * django-crispy-forms
 * django-cors-middleware == master (https://github.com/zestedesavoir/django-cors-middleware)

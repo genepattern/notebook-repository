@@ -159,7 +159,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
     ],
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 1000,
     'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
 }
 
@@ -168,3 +168,4 @@ CORS_ORIGIN_ALLOW_ALL = True
 # Notebook Repository
 
 BASE_REPO_PATH = '/Users/tabor/repository'
+BASE_USER_PATH = '/Users/tabor/PycharmProjects/GenePatternNotebook/Notebooks'

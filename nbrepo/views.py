@@ -1,6 +1,10 @@
+import os
+import urllib
+import urllib.parse
 from django.contrib.auth.models import User, Group
 from django.conf import settings
 from rest_framework import viewsets
+import shutil
 from nbrepo.models import Notebook
 from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer
 import logging
@@ -34,13 +38,39 @@ class NotebookViewSet(viewsets.ModelViewSet):
     serializer_class = NotebookSerializer
     filter_fields = ('name', 'author', 'quality', 'owner', 'file_path', 'api_path')
 
-    def _copy_to_file_path(self, id, api_path):
-        base_file_path = settings.BASE_REPO_PATH
+    @staticmethod
+    def _copy_to_file_path(username, model_id, api_path):
+        base_repo_path = settings.BASE_REPO_PATH
+        base_user_path = settings.BASE_USER_PATH
 
-        return '/fake/file/path'
+        # Get the file name
+        api_path_parts = api_path.split('/')
+        file_name = urllib.parse.unquote(api_path_parts[len(api_path_parts)-1])
 
-    def _remove_notebook_file(self, file_path):
-        return True
+        # Path to the user's notebook file
+        user_nb_path = urllib.parse.unquote(api_path).replace('/notebooks', base_user_path, 1)
+
+        # Path to the repo's notebook file
+        repo_nb_path = os.path.join(base_repo_path, username, str(model_id), file_name)
+
+        # Lazily create directories and copy the file
+        os.makedirs(os.path.dirname(repo_nb_path), exist_ok=True)
+        shutil.copy(user_nb_path, repo_nb_path)
+
+        return repo_nb_path
+
+    @staticmethod
+    def _remove_notebook_file(file_path):
+        id_dir = os.path.dirname(file_path)
+
+        # Safety check: We don't want a badly formatted file path to tell the repository to
+        # recursively delete the root directory!!! Make sure that the path we're going to
+        # delete starts with the base repo bath. Otherwise error.
+
+        if id_dir.startswith(settings.BASE_REPO_PATH):
+            shutil.rmtree(id_dir, ignore_errors=True)
+        else:
+            logger.debug("ERROR: Trying to delete stuff it shouldn't! " + id_dir)
 
     def create(self, request, *args, **kwargs):
         logger.debug("CREATE NOTEBOOK")
@@ -49,11 +79,12 @@ class NotebookViewSet(viewsets.ModelViewSet):
         response = super(NotebookViewSet, self).create(request, *args, **kwargs)
 
         # Get the model ID and API path
+        username = response.data['owner']
         new_id = response.data['id']
         api_path = response.data['api_path']
 
         # Copy the notebook to the file path
-        response.data['file_path'] = self._copy_to_file_path(new_id, api_path)
+        response.data['file_path'] = self._copy_to_file_path(username, new_id, api_path)
 
         # Update notebook model with the real file path
         notebook = Notebook.objects.get(id=new_id)
@@ -70,21 +101,25 @@ class NotebookViewSet(viewsets.ModelViewSet):
         response = super(NotebookViewSet, self).update(request, *args, **kwargs)
 
         # Get the model ID and API path
+        username = response.data['owner']
         old_id = response.data['id']
         api_path = response.data['api_path']
 
         # Copy the notebook to the file path
-        self._copy_to_file_path(old_id, api_path)
+        self._copy_to_file_path(username, old_id, api_path)
 
         # Return response
         return response
 
     def destroy(self, request, *args, **kwargs):
         logger.debug("DESTROY NOTEBOOK")
-        response = super(NotebookViewSet, self).destroy(request, *args, **kwargs)
 
-        # Get the model ID and API path
-        file_path = response.data['file_path']
+        # Get the model file path
+        notebook = self.get_object()
+        file_path = notebook.file_path
+
+        # Delete the model
+        response = super(NotebookViewSet, self).destroy(request, *args, **kwargs)
 
         # Remove the notebook from the file system
         self._remove_notebook_file(file_path)

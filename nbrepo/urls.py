@@ -16,6 +16,7 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
+from rest_framework.authtoken import views
 from nbrepo.views import UserViewSet, GroupViewSet, NotebookViewSet
 
 
@@ -30,5 +31,6 @@ urlpatterns = [
 
     # Django Rest Framework
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^api-token-auth/', views.obtain_auth_token),
     url(r'^', include(router.urls)),
 ]

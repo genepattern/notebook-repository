@@ -34,3 +34,25 @@
 #publish-quality {
     margin-left: 0;
 }
+
+.repo-modal-cover {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    /*background-color: #000000;*/
+    opacity: 0.5;
+    text-align: center;
+    margin: auto;
+    padding-top: 55px;
+}
+
+.repo-modal-spinner {
+    font-size: 200px;
+    float: none;
+}
+
+input.repo-input:invalid, select.repo-input:invalid {
+  border: 1px solid red;
+}

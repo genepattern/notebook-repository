@@ -5,8 +5,11 @@ GenePattern.repo.events_init = GenePattern.repo.events_init || false;
 GenePattern.repo.public_notebooks = GenePattern.repo.public_notebooks || [];
 GenePattern.repo.my_nb_paths = GenePattern.repo.my_nb_paths || [];
 
-// TODO: FIXME get the real username
+// TODO: FIXME get the real username & url
 var username = 'thorin';
+var repo_url = 'http://127.0.0.1:8000';
+var token = '90173ccf7db50b42ee3cdd3cfa90723cd41c1b19';
+//var token = '3de7d03171e37756e14938eb64f75eb815dfc6b4';
 
 require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, dialog) {
     "use strict";
@@ -72,14 +75,26 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         var month = ("0" + (today.getMonth() + 1)).slice(-2);
         var date = ("0" + today.getDate()).slice(-2);
         var year = today.getFullYear();
-        return month + '/' + date + '/' + year;
+        return year + '-' + month + '-' + date;
+    }
+
+    function modal_loading_screen() {
+        var to_cover = $(".modal-body");
+        var cover = $("<div></div>")
+            .addClass("repo-modal-cover")
+            .append($('<i class="fa fa-spinner fa-spin fa-3x fa-fw repo-modal-spinner"></i>'));
+        to_cover.append(cover);
+    }
+
+    function close_modal() {
+        $(".modal-footer").find("button:contains('Cancel')").click();
     }
 
     // Returns a notebook json object based off of the current notebook and form
     function make_nb_json(notebook, nb_path) {
         var pub_nb = notebook ? notebook : {
             "owner": username,
-            "file_path": '', // Will be filled in server-side
+            "file_path": nb_path, // Will be replaced server-side
             "api_path": nb_path
         };
 
@@ -96,6 +111,153 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         return pub_nb;
     }
 
+    function form_valid() {
+        var is_valid = true;
+
+        // Check name
+        if (!$("#publish-name").is(":valid")) {
+            is_valid = false;
+        }
+
+        // Check description
+        if (!$("#publish-description").is(":valid")) {
+            is_valid = false;
+        }
+
+        // Check author
+        if (!$("#publish-author").is(":valid")) {
+            is_valid = false;
+        }
+
+        // Check quality
+        if (!$("#publish-quality").is(":valid")) {
+            is_valid = false;
+        }
+
+        return is_valid;
+    }
+
+    // Clean the notebook repo state so it can be refreshed
+    function clean_nb_state() {
+        // Clean the variables
+        GenePattern.repo.public_notebooks = [];
+        GenePattern.repo.my_nb_paths = [];
+
+        // Clean the UI
+        $("#repository").find(".list_item").remove();
+        $("#notebook_list").find(".repo-share-icon").remove();
+    }
+
+    // Send a notebook to the repo to publish or update it
+    function publish_or_update(notebook, nb_path, shared) {
+        // Get the notebook data structure
+        var pub_nb = make_nb_json(notebook, nb_path);
+
+        // Show the loading screen
+        modal_loading_screen();
+
+        // Call the repo service to publish the notebook
+        $.ajax({
+            url: (shared ? notebook['url'] : repo_url + "/notebooks/"),
+            method: (shared ? "PUT" : "POST"),
+            crossDomain: true,
+            data: pub_nb,
+            dataType: 'json',
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + token);
+            },
+            success: function(responseData, textStatus, jqXHR) {
+                // Close the modal
+                close_modal();
+
+                // Refresh the list of notebooks
+                clean_nb_state();
+                get_notebooks(function() {
+                    // Trigger a UI refresh
+                    $([Jupyter.events]).trigger('draw_notebook_list.NotebookList');
+                });
+
+                // Display a success dialog
+                dialog.modal({
+                    title : "Notebook Published to Repository",
+                    body : $("<div></div>")
+                        .addClass("alert alert-success")
+                        .append(
+                            (shared ?
+                                "Your notebook was successfully updated in the GenePattern Notebook Repository." :
+                                "Your notebook was successfully published to the GenePattern Notebook Repository.")
+
+                        ),
+                    buttons: {"OK": function() {}}
+                });
+            },
+            error: function(responseData, textStatus, errorThrown) {
+                // Close the modal
+                close_modal();
+
+                // Show error dialog
+                console.log("ERROR: Failed to publish to repository");
+                dialog.modal({
+                    title : "Failed to Publish Notebook",
+                    body : $("<div></div>")
+                        .addClass("alert alert-danger")
+                        .append("The GenePattern Notebook Repository encountered an error when attempting to publish the notebook."),
+                    buttons: {"OK": function() {}}
+                });
+            }
+        });
+    }
+
+    // Removes the notebook from the repository
+    function remove_notebook(notebook) {
+        // Show the loading screen
+        modal_loading_screen();
+
+        // Call the repo service to publish the notebook
+        $.ajax({
+            url: notebook['url'],
+            method: "DELETE",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + token);
+            },
+            success: function(responseData, textStatus, jqXHR) {
+                // Close the modal
+                close_modal();
+
+                // Refresh the list of notebooks
+                clean_nb_state();
+                get_notebooks(function() {
+                    // Trigger a UI refresh
+                    $([Jupyter.events]).trigger('draw_notebook_list.NotebookList');
+                });
+
+                // Display a success dialog
+                dialog.modal({
+                    title : "Notebook Unpublished from Repository",
+                    body : $("<div></div>")
+                        .addClass("alert alert-success")
+                        .append("Your notebook was successfully removed from the GenePattern Notebook Repository."),
+                    buttons: {"OK": function() {}}
+                });
+            },
+            error: function(responseData, textStatus, errorThrown) {
+                // Close the modal
+                close_modal();
+
+                // Show error dialog
+                console.log("ERROR: Failed to unpublish notebook in repository");
+                dialog.modal({
+                    title : "Failed to Unpublish Notebook",
+                    body : $("<div></div>")
+                        .addClass("alert alert-danger")
+                        .append("The GenePattern Notebook Repository encountered an error when attempting to unpublish the notebook."),
+                    buttons: {"OK": function() {}}
+                });
+            }
+        });
+    }
+
     // Function to call when sharing a notebook
     function share_selected() {
         var nb_path = get_selected_path();
@@ -110,13 +272,48 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         var buttons = {};
         buttons["Cancel"] = {"class" : "btn-default"};
         if (shared) {
-            buttons["Remove"] = {"class" : "btn-danger"};
-            buttons["Update"] = {"class" : "btn-primary"};
+            buttons["Unpublish"] = {
+                "class": "btn-danger",
+                "click": function() {
+                    dialog.modal({
+                        title : "Remove Notebook From Repository",
+                        body : $("<div></div>")
+                            .addClass("alert alert-warning")
+                            .append("Are you sure that you want to remove this notebook from the GenePattern Notebook Repository?"),
+                        buttons: {"Yes": {
+                            "class" : "btn-danger",
+                            "click": function() {
+                                remove_notebook(notebook);
+                                return false;
+                            }
+                        }, "Cancel": {}}
+                    });
+
+                    return true;
+                }
+            };
+            buttons["Update"] = {
+                "class" : "btn-primary",
+                "click": function() {
+                    // Make sure the form is filled out correctly
+                    if (!form_valid()) return false;
+
+                    publish_or_update(notebook, nb_path, shared);
+
+                    return false;
+                }};
         }
         else {
-            buttons["Publish"] = {"class" : "btn-primary", "click" : function() {
-                var pub_nb = make_nb_json(notebook, nb_path);
-            }};
+            buttons["Publish"] = {
+                "class" : "btn-primary",
+                "click": function() {
+                    // Make sure the form is filled out correctly
+                    if (!form_valid()) return false;
+
+                    publish_or_update(notebook, nb_path, shared);
+
+                    return false;
+                }};
         }
 
         // Create the dialog body
@@ -144,8 +341,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                         .append(
                             $("<input/>")
                                 .attr("id", "publish-name")
-                                .addClass("form-control")
+                                .addClass("form-control repo-input")
                                 .attr("type", "text")
+                                .attr("required", "required")
                                 .attr("maxlength", 64)
                                 .attr("value", nb_name)
                         )
@@ -162,8 +360,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                         .append(
                             $("<input/>")
                                 .attr("id", "publish-description")
-                                .addClass("form-control")
+                                .addClass("form-control repo-input")
                                 .attr("type", "text")
+                                .attr("required", "required")
                                 .attr("maxlength", 256)
                                 .attr("value", nb_description)
                         )
@@ -180,8 +379,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                         .append(
                             $("<input/>")
                                 .attr("id", "publish-author")
-                                .addClass("form-control")
+                                .addClass("form-control repo-input")
                                 .attr("type", "text")
+                                .attr("required", "required")
                                 .attr("maxlength", 128)
                                 .attr("value", nb_author)
                         )
@@ -198,7 +398,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                         .append(
                             $("<select/>")
                                 .attr("id", "publish-quality")
-                                .addClass("form-control")
+                                .addClass("form-control repo-input")
+                                .attr("required", "required")
                                 .append($("<option>Development</option>"))
                                 .append($("<option>Beta</option>"))
                                 .append($("<option>Release</option>"))
@@ -290,6 +491,27 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    // Get the list of notebooks
+    function get_notebooks(success_callback) {
+        $.ajax({
+            url: repo_url + "/notebooks/",
+            method: "GET",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + token);
+            },
+            success: function(response) {
+                GenePattern.repo.public_notebooks = response['results'];
+                nb_path_list(); // Build the path list for displaying share icons
+                build_repo_tab(); // Populate the repository tab
+                if (success_callback) success_callback();
+            },
+            error: function() {
+                console.log("ERROR: Could not obtain list of public notebooks");
+            }
+        });
+    }
+
     // Bind events for action buttons.
     $('.share-button')
         .click($.proxy(share_selected, this))
@@ -302,18 +524,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         GenePattern.repo.events_init = true;
 
         // Get the list of public notebooks
-        $.ajax({
-            url: "http://127.0.0.1:8000/notebooks/",
-            crossDomain: true,
-            success: function(response) {
-                GenePattern.repo.public_notebooks = response['results'];
-                nb_path_list(); // Build the path list for displaying share icons
-                build_repo_tab(); // Populate the repository tab
-            },
-            error: function() {
-                console.log("ERROR: Could not obtain list of public notebooks");
-            }
-        });
+        get_notebooks();
 
         // When the files list is refreshed
         $([Jupyter.events]).on('draw_notebook_list.NotebookList', function() {
@@ -322,7 +533,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                 if (GenePattern.repo.my_nb_paths.indexOf($(element).attr("href")) >= 0) {
                     // Add a shared icon to it
                     $(element).parent().find('.item_buttons').append(
-                        $('<i title="Published to Repository" class="item_icon icon-fixed-width fa fa-share-square pull-right"></i>')
+                        $('<i title="Published to Repository" class="item_icon icon-fixed-width fa fa-share-square pull-right repo-share-icon"></i>')
                     )
                 }
             })

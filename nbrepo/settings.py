@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
 
     # Notebook Repo Custom Code
     'nbrepo',
@@ -159,6 +160,11 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
     'PAGE_SIZE': 1000,
     'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
 }

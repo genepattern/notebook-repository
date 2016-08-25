@@ -1,10 +1,19 @@
+import ntpath
 import os
 import urllib
 import urllib.parse
 from django.contrib.auth.models import User, Group
 from django.conf import settings
+import json
+from django.db.models import ObjectDoesNotExist
+from rest_framework import permissions
+from rest_framework import status
 from rest_framework import viewsets
 import shutil
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+
 from nbrepo.models import Notebook
 from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer
 import logging
@@ -126,3 +135,54 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         # Return response
         return response
+
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def copy(request, pk, api_path):
+    """
+    Copy a notebook from the repository to the user directory
+    """
+    try:
+        # Get the notebook
+        notebook = Notebook.objects.get(pk=pk)
+
+        # Get the user's current directory
+        base_user_path = settings.BASE_USER_PATH
+        copy_to_dir = os.path.join(base_user_path, urllib.parse.unquote(api_path))
+        if not copy_to_dir.endswith('/'):
+            copy_to_dir += '/'
+
+        # Ensure that the directory exists
+        if not (os.path.exists(copy_to_dir) and os.path.isdir(copy_to_dir)):
+            return Response("Directory does not exist", status=status.HTTP_400_BAD_REQUEST)
+
+        # Handle file name collisions
+        file_name = ntpath.basename(notebook.file_path)
+        file_name_used = file_name
+        copy_to_file = os.path.join(copy_to_dir, file_name)
+        if os.path.exists(copy_to_file):
+            count = 1
+            file_name_used = 'copy' + str(count) + '_' + file_name
+            copy_to_file = os.path.join(copy_to_dir, file_name_used)
+            while os.path.exists(copy_to_file):
+                count += 1
+                file_name_used = 'copy' + str(count) + '_' + file_name
+                copy_to_file = os.path.join(copy_to_dir, file_name_used)
+
+        # Copy the notebook to the current directory
+        shutil.copyfile(notebook.file_path, copy_to_file)
+
+        # Get the URL to the new copy of the notebook file
+        copy_url = "/notebooks/" + api_path
+        if not copy_url.endswith('/'):
+            copy_url += '/'
+        copy_url += urllib.parse.quote(file_name_used)
+
+        # Return a JSON object containing the file name and new URL
+        return_obj = {"filename": file_name_used, "url": copy_url}
+        return Response(json.dumps(return_obj))
+
+    except ObjectDoesNotExist:
+        return Response("Notebook does not exist", status=status.HTTP_400_BAD_REQUEST)
+

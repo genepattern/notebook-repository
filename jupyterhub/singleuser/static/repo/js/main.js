@@ -465,6 +465,65 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    // Show a dialog with details about the notebook
+    function repo_nb_dialog(notebook) {
+        // Declare the buttons
+        var buttons = {};
+        buttons["Cancel"] = {"class" : "btn-default"};
+        buttons["Get a Copy"] = {
+            "class": "btn-primary",
+            "click": function() {
+                ;
+            }};
+
+        // Sanitize the title
+        var title = notebook['name'];
+        if (title.length > 32) {
+            title = title.substring(0,32) + "..."
+        }
+
+        // Build the body
+        var body = $("<div></div>")
+            .append(
+                $("<div></div>")
+                    .addClass("repo-dialog-labels")
+                    .append("Authors")
+                    .append($("<br/>"))
+                    .append("Quality")
+                    .append($("<br/>"))
+                    .append("Filename")
+                    .append($("<br/>"))
+                    .append("Owner")
+                    .append($("<br/>"))
+                    .append("Updated")
+            )
+            .append(
+                $("<div></div>")
+                    .addClass("repo-dialog-values")
+                    .append(notebook['author'])
+                    .append($("<br/>"))
+                    .append(notebook['quality'])
+                    .append($("<br/>"))
+                    .append(notebook['file_path'].replace(/^.*[\\\/]/, ''))
+                    .append($("<br/>"))
+                    .append(notebook['owner'])
+                    .append($("<br/>"))
+                    .append(notebook['publication'])
+            )
+            .append(
+                $("<div></div>")
+                    .addClass("repo-dialog-description")
+                    .append(notebook['description'])
+            );
+
+        // Show the modal dialog
+        dialog.modal({
+            title : title,
+            body : body,
+            buttons: buttons
+        });
+    }
+
     // Builds the repository tab
     function build_repo_tab() {
         var list_div = $("#repository-list");
@@ -474,18 +533,28 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                     .addClass("list_item row")
                     .append(
                         $("<div></div>")
-                            .addClass("col-md-12")
+                            .addClass("col-md-12 repo-list")
+                            .append($('<i class="item_icon notebook_icon icon-fixed-width repo-nb-icon"></i>'))
                             .append(
-                                $('<i class="item_icon notebook_icon icon-fixed-width repo-nb-icon"></i>')
+                                $("<div></div>")
+                                    .addClass("pull-right repo-list-author")
+                                    .append(nb['author'])
+
                             )
-                            .append(nb['owner'])
-                            .append(' / ')
-                            .append(nb['name'])
+                            .append(
+                                $("<div></div>")
+                                    .addClass("repo-list-name")
+                                    .append(nb['name'])
+
+                            )
                             .append(
                                 $("<div></div>")
                                     .addClass("repo-nb-description")
                                     .append(nb['description'])
                             )
+                            .click(function() {
+                                repo_nb_dialog(nb);
+                            })
                     )
             );
         });

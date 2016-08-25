@@ -11,8 +11,52 @@
     height: 40px;
 }
 
+.repo-list {
+    cursor:pointer;
+}
+
+.repo-list-name {
+    width: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.repo-list-author {
+    font-size: 0.9em;
+    width: 40%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+}
+
+.repo-dialog-labels {
+    width: 75px;
+    font-weight: bold;
+    float: left;
+}
+
+.repo-dialog-values {
+    width: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.repo-dialog-description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    margin-top: 10px;
+}
+
 .repo-nb-description {
     color: #808080;
+    width: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .repo-header {

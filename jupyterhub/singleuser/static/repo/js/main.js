@@ -323,7 +323,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         var nb_name = notebook ? notebook['name'] : get_selected_name();
         var nb_description = notebook ? notebook['description'] : '';
         var nb_author = notebook ? notebook['author'] : '';
-        var nb_quality = notebook ? notebook['quality'] : 'Development';
+        var nb_quality = notebook ? notebook['quality'] : '';
 
         // Create buttons list
         var buttons = {};
@@ -457,6 +457,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                                 .attr("id", "publish-quality")
                                 .addClass("form-control repo-input")
                                 .attr("required", "required")
+                                .append($("<option></option>"))
                                 .append($("<option>Development</option>"))
                                 .append($("<option>Beta</option>"))
                                 .append($("<option>Release</option>"))

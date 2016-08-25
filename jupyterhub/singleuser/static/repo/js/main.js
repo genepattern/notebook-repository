@@ -208,6 +208,63 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    function copy_notebook(notebook, current_directory) {
+        // Show the loading screen
+        modal_loading_screen();
+
+        // Call the repo service to publish the notebook
+        $.ajax({
+            url: repo_url + "/notebooks/" + notebook['id'] + "/copy/" + current_directory,
+            method: "POST",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + token);
+            },
+            success: function(responseData, textStatus, jqXHR) {
+                // Close the modal
+                close_modal();
+
+                // Refresh the file list
+                $("#refresh_notebook_list").trigger("click");
+
+                // Parse the data
+                var response = JSON.parse(responseData);
+
+                // Display a success dialog
+                dialog.modal({
+                    title : " Copied Notebook From Repository",
+                    body : $("<div></div>")
+                        .addClass("alert alert-success")
+                        .append(
+                            $("<p></p>")
+                                .append("This notebook was successfully copied from the GenePattern Notebook Repository as " +
+                                    response['filename'] + ".")
+                        )
+                        .append(
+                            $("<p></p>")
+                                .append("<a target='_blank' href='" + response['url'] +
+                                    "' class='alert-link'>Click here</a> if you would like to open this notebook.")
+                        ),
+                    buttons: {"OK": function() {}}
+                });
+            },
+            error: function(responseData, textStatus, errorThrown) {
+                // Close the modal
+                close_modal();
+
+                // Show error dialog
+                console.log("ERROR: Failed to copy from repository");
+                dialog.modal({
+                    title : "Failed to Copy Notebook",
+                    body : $("<div></div>")
+                        .addClass("alert alert-danger")
+                        .append("The GenePattern Notebook Repository encountered an error when attempting to copy the notebook."),
+                    buttons: {"OK": function() {}}
+                });
+            }
+        });
+    }
+
     // Removes the notebook from the repository
     function remove_notebook(notebook) {
         // Show the loading screen
@@ -473,7 +530,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         buttons["Get a Copy"] = {
             "class": "btn-primary",
             "click": function() {
-                ;
+                var current_dir = Jupyter.notebook_list.notebook_path;
+                copy_notebook(notebook, current_dir);
             }};
 
         // Sanitize the title

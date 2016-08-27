@@ -61,22 +61,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'nbrepo.urls'
 
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
 WSGI_APPLICATION = 'nbrepo.wsgi.application'
 
 
@@ -161,6 +145,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'nbrepo.auth.GenePatternAuthentication',
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
@@ -172,6 +157,7 @@ REST_FRAMEWORK = {
 CORS_ORIGIN_ALLOW_ALL = True
 
 # Notebook Repository
-
+BASE_GENEPATTERN_URL = 'https://genepattern.broadinstitute.org/gp'
 BASE_REPO_PATH = '/Users/tabor/repository'
 BASE_USER_PATH = '/Users/tabor/PycharmProjects/GenePatternNotebook/Notebooks'
+BASE_AUTH_PATH = '/Users/tabor/repository/auth'

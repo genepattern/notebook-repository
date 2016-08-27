@@ -379,9 +379,18 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             body.append(
                 $("<div/>")
                     .addClass("alert alert-info")
-                    .append("A version of this notebook has already been published to the " +
-                        "GenePattern Notebook Repository. You may remove this notebook from the " +
+                    .append("A version of this notebook was published to the GenePattern Notebook Repository" +
+                        " on " + notebook['publication'] + ". You may remove this notebook from the " +
                         "repository or update to the latest version in your workspace.")
+            );
+        }
+        else {
+            body.append(
+                $("<div/>")
+                    .addClass("alert alert-info")
+                    .append("This will make a copy of the notebook available to anyone. A published notebook " +
+                        "does not update automatically when you save it again in the future. To update the " +
+                        "published copy you will have to click publish again after making any changes and saving.")
             );
         }
         body.append(

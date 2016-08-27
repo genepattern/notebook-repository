@@ -6,16 +6,20 @@ from django.contrib.auth.models import User, Group
 from django.conf import settings
 import json
 from django.db.models import ObjectDoesNotExist
+from rest_framework import parsers
 from rest_framework import permissions
+from rest_framework import renderers
 from rest_framework import status
 from rest_framework import viewsets
 import shutil
 
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from nbrepo.models import Notebook
-from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer
+from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer
 import logging
 
 
@@ -186,3 +190,20 @@ def copy(request, pk, api_path):
     except ObjectDoesNotExist:
         return Response("Notebook does not exist", status=status.HTTP_400_BAD_REQUEST)
 
+
+class ObtainAuthToken(APIView):
+    throttle_classes = ()
+    permission_classes = ()
+    parser_classes = (parsers.FormParser, parsers.MultiPartParser, parsers.JSONParser,)
+    renderer_classes = (renderers.JSONRenderer,)
+    serializer_class = AuthTokenSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key})
+
+
+obtain_auth_token = ObtainAuthToken.as_view()

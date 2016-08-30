@@ -534,6 +534,16 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         // Declare the buttons
         var buttons = {};
         buttons["Cancel"] = {"class" : "btn-default"};
+
+        if (GenePattern.repo.username == notebook['owner']) {
+            buttons["Unpublish"] = {
+                "class": "btn-danger",
+                "click": function() {
+                    remove_notebook(notebook);
+                    return false;
+                }};
+        }
+
         buttons["Get a Copy"] = {
             "class": "btn-primary",
             "click": function() {
@@ -593,6 +603,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
     function build_repo_tab() {
         var list_div = $("#repository-list");
         GenePattern.repo.public_notebooks.forEach(function(nb) {
+            var owner = GenePattern.repo.username == nb['owner'];
             list_div.append(
                 $("<div></div>")
                     .addClass("list_item row")
@@ -609,6 +620,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                             .append(
                                 $("<div></div>")
                                     .addClass("repo-list-name")
+                                    .append(owner ? '<span class="label label-primary">Owner<span>' : '')
+                                    .append(owner ? '&nbsp;' : '')
                                     .append(nb['name'])
 
                             )

@@ -529,13 +529,25 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    function build_dir_url(notebook) {
+        return notebook['api_path'].match(/^(.*[\\\/])/)[1].replace("/notebooks/", "/tree/", 1);
+    }
+
     // Show a dialog with details about the notebook
     function repo_nb_dialog(notebook) {
         // Declare the buttons
         var buttons = {};
         buttons["Cancel"] = {"class" : "btn-default"};
 
+        // If this is your notebook
         if (GenePattern.repo.username == notebook['owner']) {
+            buttons["Go to Directory"] = {
+                "class": "btn-info",
+                "click": function() {
+                    var url = build_dir_url(notebook) + "#notebook_list";
+                    window.location.href = url;
+                }};
+
             buttons["Unpublish"] = {
                 "class": "btn-danger",
                 "click": function() {
@@ -667,11 +679,70 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    // Reads the cookie string and returns a resulting map
+    function cookie_to_map() {
+        var cookie_map = {};
+
+        document.cookie.split(';').forEach(function(cookie_str) {
+            var pair = cookie_str.split('=');
+            var key = pair[0].trim();
+            var value = pair.length > 1 ? pair[1].trim() : '';
+            cookie_map[key] = value;
+        });
+
+        return cookie_map;
+    }
+
+    // Gets the username from a vairety of possible sources
+    function extract_username() {
+        var username = null;
+
+        // Try to get username from GPNB cookie
+        var cookie_map = cookie_to_map();
+        if (cookie_map['gpnb-username'] !== undefined &&
+            cookie_map['gpnb-username'] !== null &&
+            cookie_map['gpnb-username'] !== 'undefined' &&
+            cookie_map['gpnb-username'] !== 'null') {
+            username = cookie_map['gpnb-username'];
+        }
+
+        // Try to get username from JupyterHub cookie
+        if (username === null) {
+            $.each(cookie_map, function(i) {
+                if (i.startsWith("jupyter-hub-token-")) {
+                    username = decodeURIComponent(i.match(/^jupyter-hub-token-(.*)/)[1]);
+                }
+            });
+        }
+
+        // Try to get the username from the URL
+        if (username === null) {
+            var url_parts = window.location.href.split('/');
+            if (url_parts.length >= 5 &&
+                url_parts[0] === window.location.protocol &&
+                url_parts[1] === '' &&
+                url_parts[2] === window.location.host &&
+                url_parts[3] === 'user') {
+                username = decodeURI(url_parts[4])
+            }
+        }
+
+        // If all else fails, prompt the user
+        if (username === null) {
+            username = prompt("What is your username?", "");
+        }
+
+        // Set a GPNB cookie
+        document.cookie = 'gpnb-username' + '=' + username;
+
+        return username;
+    }
+
     // Authenticate with the GPNB Repo
     function do_authentication(success_callback) {
         // Set top-level variables
         GenePattern.repo.repo_url = window.location.protocol + '//' + window.location.hostname + ':8000';
-        GenePattern.repo.username = window.location.pathname.split('/')[2] ? window.location.pathname.split('/')[2] : prompt("What is your username?", "tabor");
+        GenePattern.repo.username = extract_username();
 
         $.ajax({
             url: GenePattern.repo.repo_url + "/api-token-auth/",

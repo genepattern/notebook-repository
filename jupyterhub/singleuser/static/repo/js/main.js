@@ -19,7 +19,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             .attr('href', '/static/repo/css/repo.css')
     );
 
-    // Get the api path to the selected notebook
+    /**
+     * Get the api path to the selected notebook
+     *
+     * @returns {string|null}
+     */
     function get_selected_path() {
         var checkbox = $("#notebook_list").find("input:checked");
 
@@ -32,7 +36,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         return checkbox.parent().find("a.item_link").attr("href");
     }
 
-    // Get the name of the selected notebook
+    /**
+     * Get the name of the selected notebook
+     *
+     * @returns {string|null}
+     */
     function get_selected_name() {
         var checkbox = $("#notebook_list").find("input:checked");
 
@@ -49,12 +57,22 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         return raw_name.replace(/\.[^/.]+$/, "");
     }
 
-    // Determine if the given api path is one of my shared notebooks
+    /**
+     * Determine if the given api path is one of my shared notebooks
+     *
+     * @param api_path
+     * @returns {boolean}
+     */
     function is_nb_shared(api_path) {
         return GenePattern.repo.my_nb_paths.indexOf(api_path) >= 0;
     }
 
-    // Get the JSON info for the shared notebook, return null otherwise
+    /**
+     * Get the JSON info for the shared notebook, return null otherwise
+     *
+     * @param api_path
+     * @returns {object|null}
+     */
     function get_shared(api_path) {
         for (var i = 0; i < GenePattern.repo.public_notebooks.length; i++) {
             var nb = GenePattern.repo.public_notebooks[i];
@@ -66,7 +84,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         return null;
     }
 
-    // Returns today in a date string readable by the REST API
+    /**
+     * Returns today in a date string readable by the REST API
+     *
+     * @returns {string}
+     */
     function today() {
         var today = new Date();
         var month = ("0" + (today.getMonth() + 1)).slice(-2);
@@ -75,6 +97,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         return year + '-' + month + '-' + date;
     }
 
+    /**
+     * Display the loading screen for the modal dialog
+     */
     function modal_loading_screen() {
         var to_cover = $(".modal-body");
         var cover = $("<div></div>")
@@ -83,11 +108,20 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         to_cover.append(cover);
     }
 
+    /**
+     * Close the model dialog
+     */
     function close_modal() {
         $(".modal-footer").find("button:contains('Cancel')").click();
     }
 
-    // Returns a notebook json object based off of the current notebook and form
+    /**
+     * Returns a notebook json object based off of the current notebook and form
+     *
+     * @param notebook
+     * @param nb_path
+     * @returns {{owner: (*|Document.username|string|null), file_path: (string|null), api_path: (string|null)}}
+     */
     function make_nb_json(notebook, nb_path) {
         var pub_nb = notebook ? notebook : {
             "owner": GenePattern.repo.username,
@@ -108,6 +142,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         return pub_nb;
     }
 
+    /**
+     * Returns whether the form has valid values or not
+     *
+     * @returns {boolean}
+     */
     function form_valid() {
         var is_valid = true;
 
@@ -134,7 +173,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         return is_valid;
     }
 
-    // Clean the notebook repo state so it can be refreshed
+    /**
+     * Clean the notebook repo state so it can be refreshed
+     */
     function clean_nb_state() {
         // Clean the variables
         GenePattern.repo.public_notebooks = [];
@@ -145,7 +186,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         $("#notebook_list").find(".repo-share-icon").remove();
     }
 
-    // Send a notebook to the repo to publish or update it
+    /**
+     * Send a notebook to the repo to publish or update it
+     *
+     * @param notebook
+     * @param nb_path
+     * @param shared
+     */
     function publish_or_update(notebook, nb_path, shared) {
         // Get the notebook data structure
         var pub_nb = make_nb_json(notebook, nb_path);
@@ -163,7 +210,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             beforeSend: function (xhr) {
                 xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
             },
-            success: function(responseData, textStatus, jqXHR) {
+            success: function() {
                 // Close the modal
                 close_modal();
 
@@ -188,7 +235,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                     buttons: {"OK": function() {}}
                 });
             },
-            error: function(responseData, textStatus, errorThrown) {
+            error: function() {
                 // Close the modal
                 close_modal();
 
@@ -205,6 +252,12 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    /**
+     * Copy a notebook from the repo to the user's current directory
+     *
+     * @param notebook
+     * @param current_directory
+     */
     function copy_notebook(notebook, current_directory) {
         // Show the loading screen
         modal_loading_screen();
@@ -217,7 +270,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             beforeSend: function (xhr) {
                 xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
             },
-            success: function(responseData, textStatus, jqXHR) {
+            success: function(responseData) {
                 // Close the modal
                 close_modal();
 
@@ -245,7 +298,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                     buttons: {"OK": function() {}}
                 });
             },
-            error: function(responseData, textStatus, errorThrown) {
+            error: function() {
                 // Close the modal
                 close_modal();
 
@@ -262,7 +315,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
-    // Removes the notebook from the repository
+    /**
+     * Removes the notebook from the repository
+     *
+     * @param notebook
+     */
     function remove_notebook(notebook) {
         // Show the loading screen
         modal_loading_screen();
@@ -275,7 +332,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             beforeSend: function (xhr) {
                 xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
             },
-            success: function(responseData, textStatus, jqXHR) {
+            success: function() {
                 // Close the modal
                 close_modal();
 
@@ -295,7 +352,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                     buttons: {"OK": function() {}}
                 });
             },
-            error: function(responseData, textStatus, errorThrown) {
+            error: function() {
                 // Close the modal
                 close_modal();
 
@@ -312,7 +369,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
-    // Function to call when sharing a notebook
+    /**
+     * Function to call when sharing a notebook
+     */
     function share_selected() {
         var nb_path = get_selected_path();
         var shared = is_nb_shared(nb_path);
@@ -481,10 +540,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
-    // Function to call when the file list selection has changed
+    /**
+     * Function to call when the file list selection has changed
+     */
     function selection_changed() {
         var selected = [];
-        var has_running_notebook = false;
         var has_directory = false;
         var has_file = false;
         var checked = 0;
@@ -519,7 +579,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         }
     }
 
-    // Function builds a path list from the public notebooks
+    /**
+     * Function builds a path list from the public notebooks
+     */
     function nb_path_list() {
         GenePattern.repo.my_nb_paths = [];
         GenePattern.repo.public_notebooks.forEach(function(nb) {
@@ -529,11 +591,21 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    /**
+     * Construct the URL for the notebook's containing directory
+     *
+     * @param notebook
+     * @returns {string|null}
+     */
     function build_dir_url(notebook) {
         return notebook['api_path'].match(/^(.*[\\\/])/)[1].replace("/notebooks/", "/tree/", 1);
     }
 
-    // Show a dialog with details about the notebook
+    /**
+     * Show a dialog with details about the notebook
+     *
+     * @param notebook
+     */
     function repo_nb_dialog(notebook) {
         // Declare the buttons
         var buttons = {};
@@ -544,8 +616,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             buttons["Go to Directory"] = {
                 "class": "btn-info",
                 "click": function() {
-                    var url = build_dir_url(notebook) + "#notebook_list";
-                    window.location.href = url;
+                    window.location.href = build_dir_url(notebook) + "#notebook_list";
                 }};
 
             buttons["Unpublish"] = {
@@ -611,7 +682,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
-    // Builds the repository tab
+    /**
+     * Builds the repository tab
+     */
     function build_repo_tab() {
         var list_div = $("#repository-list");
         GenePattern.repo.public_notebooks.forEach(function(nb) {
@@ -658,7 +731,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
-    // Get the list of notebooks
+    /**
+     * Get the list of notebooks
+     *
+     * @param success_callback
+     */
     function get_notebooks(success_callback) {
         $.ajax({
             url: GenePattern.repo.repo_url + "/notebooks/",
@@ -679,21 +756,28 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
-    // Reads the cookie string and returns a resulting map
+    /**
+     * Reads the cookie string and returns a resulting map
+     *
+     * @returns {object}
+     */
     function cookie_to_map() {
         var cookie_map = {};
 
         document.cookie.split(';').forEach(function(cookie_str) {
             var pair = cookie_str.split('=');
             var key = pair[0].trim();
-            var value = pair.length > 1 ? pair[1].trim() : '';
-            cookie_map[key] = value;
+            cookie_map[key] = pair.length > 1 ? pair[1].trim() : '';
         });
 
         return cookie_map;
     }
 
-    // Gets the username from a vairety of possible sources
+    /**
+     * Gets the username from a variety of possible sources
+     *
+     * @returns {string}
+     */
     function extract_username() {
         var username = null;
 
@@ -738,7 +822,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         return username;
     }
 
-    // Authenticate with the GPNB Repo
+    /**
+     * Authenticate with the GPNB Repo
+     *
+     * @param success_callback
+     */
     function do_authentication(success_callback) {
         // Set top-level variables
         GenePattern.repo.repo_url = window.location.protocol + '//' + window.location.hostname + ':8000';
@@ -763,6 +851,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    /**
+     * Add the published icons to the user's notebooks
+     */
     function add_published_icons() {
         $("a.item_link").each(function(i, element) {
             // If a notebook matches a path in the shared list
@@ -775,6 +866,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         })
     }
 
+    /**
+     * Initialize the repo search box
+     */
     function init_search() {
         $("#repository-search")
             .keydown(function(event) {
@@ -794,13 +888,17 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             });
     }
 
-    // Bind events for action buttons.
+    /*
+     * Bind events for action buttons.
+     */
     $('.share-button')
         .click($.proxy(share_selected, this))
         .hide();
     $(document).click($.proxy(selection_changed, this));
 
-    // Attach the repository events if they haven't already been initialized
+    /*
+     * Attach the repository events if they haven't already been initialized
+     */
     if (!GenePattern.repo.events_init) {
         // Mark repo events as initialized
         GenePattern.repo.events_init = true;

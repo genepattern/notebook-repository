@@ -25,7 +25,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
      * @returns {string|null}
      */
     function get_selected_path() {
-        var checkbox = $("#notebook_list").find("input:checked");
+        var checkbox = $('#notebook_list').find('input:checked');
 
         // Handle errors
         if (checkbox.length < 1) {
@@ -42,7 +42,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
      * @returns {string|null}
      */
     function get_selected_name() {
-        var checkbox = $("#notebook_list").find("input:checked");
+        var checkbox = $('#notebook_list').find('input:checked');
 
         // Handle errors
         if (checkbox.length < 1) {
@@ -867,9 +867,30 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
     }
 
     /**
-     * Initialize the repo search box
+     * Initialize the repo tab and search box
      */
-    function init_search() {
+    function init_repo_tab() {
+        // Create the public notebooks tab
+        $("#tabs").append(
+            $('<li></li>')
+                .append($('<a href="#repository" data-toggle="tab" class="repository_tab_link" >Public Notebooks</a>'))
+        );
+
+        // Add the contents of the public notebooks tab
+        $("#tab_content").find(".tab-content")
+            .append(
+                $('<div id="repository" class="tab-pane"></div>')
+                    .append(
+                        $('<div id="repository-list" class="list_container">')
+                            .append(
+                                $('<div id="repository-list-header" class="row list_header repo-header"></div>')
+                                    .append("Public Notebooks")
+                                    .append($('<input id="repository-search" type="search" placeholder="Search Repository" />'))
+                            )
+                    )
+            );
+
+        // Initialize the search box
         $("#repository-search")
             .keydown(function(event) {
                 event.stopPropagation();
@@ -904,7 +925,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         GenePattern.repo.events_init = true;
 
         // Initialize repo search
-        init_search();
+        init_repo_tab();
 
         // Authenticate and the list of public notebooks
         do_authentication(function() {

@@ -4,11 +4,9 @@ GenePattern.repo = GenePattern.repo || {};
 GenePattern.repo.events_init = GenePattern.repo.events_init || false;
 GenePattern.repo.public_notebooks = GenePattern.repo.public_notebooks || [];
 GenePattern.repo.my_nb_paths = GenePattern.repo.my_nb_paths || [];
-
-// TODO: FIXME get the real username & url
-var username = null;
-var repo_url = null;
-var token = null;
+GenePattern.repo.username = GenePattern.repo.username || null;
+GenePattern.repo.repo_url = GenePattern.repo.repo_url || null;
+GenePattern.repo.token = GenePattern.repo.token || null;
 
 require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, dialog) {
     "use strict";
@@ -92,7 +90,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
     // Returns a notebook json object based off of the current notebook and form
     function make_nb_json(notebook, nb_path) {
         var pub_nb = notebook ? notebook : {
-            "owner": username,
+            "owner": GenePattern.repo.username,
             "file_path": nb_path, // Will be replaced server-side
             "api_path": nb_path
         };
@@ -157,13 +155,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
 
         // Call the repo service to publish the notebook
         $.ajax({
-            url: (shared ? notebook['url'] : repo_url + "/notebooks/"),
+            url: (shared ? notebook['url'] : GenePattern.repo.repo_url + "/notebooks/"),
             method: (shared ? "PUT" : "POST"),
             crossDomain: true,
             data: pub_nb,
             dataType: 'json',
             beforeSend: function (xhr) {
-                xhr.setRequestHeader("Authorization", "Token " + token);
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
             },
             success: function(responseData, textStatus, jqXHR) {
                 // Close the modal
@@ -213,11 +211,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
 
         // Call the repo service to publish the notebook
         $.ajax({
-            url: repo_url + "/notebooks/" + notebook['id'] + "/copy/" + current_directory,
+            url: GenePattern.repo.repo_url + "/notebooks/" + notebook['id'] + "/copy/" + current_directory,
             method: "POST",
             crossDomain: true,
             beforeSend: function (xhr) {
-                xhr.setRequestHeader("Authorization", "Token " + token);
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
             },
             success: function(responseData, textStatus, jqXHR) {
                 // Close the modal
@@ -275,7 +273,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             method: "DELETE",
             crossDomain: true,
             beforeSend: function (xhr) {
-                xhr.setRequestHeader("Authorization", "Token " + token);
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
             },
             success: function(responseData, textStatus, jqXHR) {
                 // Close the modal
@@ -525,7 +523,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
     function nb_path_list() {
         GenePattern.repo.my_nb_paths = [];
         GenePattern.repo.public_notebooks.forEach(function(nb) {
-            if (nb['owner'] === username) {
+            if (nb['owner'] === GenePattern.repo.username) {
                 GenePattern.repo.my_nb_paths.push(nb['api_path']);
             }
         });
@@ -630,11 +628,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
     // Get the list of notebooks
     function get_notebooks(success_callback) {
         $.ajax({
-            url: repo_url + "/notebooks/",
+            url: GenePattern.repo.repo_url + "/notebooks/",
             method: "GET",
             crossDomain: true,
             beforeSend: function (xhr) {
-                xhr.setRequestHeader("Authorization", "Token " + token);
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
             },
             success: function(response) {
                 GenePattern.repo.public_notebooks = response['results'];
@@ -651,20 +649,20 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
     // Authenticate with the GPNB Repo
     function do_authentication(success_callback) {
         // Set top-level variables
-        repo_url = window.location.protocol + '//' + window.location.hostname + ':8000';
-        username = window.location.pathname.split('/')[2] ? window.location.pathname.split('/')[2] : prompt("What is your username?", "tabor");
+        GenePattern.repo.repo_url = window.location.protocol + '//' + window.location.hostname + ':8000';
+        GenePattern.repo.username = window.location.pathname.split('/')[2] ? window.location.pathname.split('/')[2] : prompt("What is your username?", "tabor");
 
         $.ajax({
-            url: repo_url + "/api-token-auth/",
+            url: GenePattern.repo.repo_url + "/api-token-auth/",
             method: "POST",
             data: {
-                'username': username,
+                'username': GenePattern.repo.username,
                 'password': 'FROM_AUTHENTICATOR'
             },
             crossDomain: true,
             success: function(data) {
                 // Set token and make callback
-                token = data['token'];
+                GenePattern.repo.token = data['token'];
                 if (success_callback) success_callback();
             },
             error: function() {

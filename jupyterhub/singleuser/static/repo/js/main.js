@@ -617,6 +617,14 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                                     .addClass("repo-nb-description")
                                     .append(nb['description'])
                             )
+                            .append(
+                                $("<div></div>")
+                                    .addClass("repo-nb-metadata hidden")
+                                    .append(nb['quality'])
+                                    .append(' ' + nb['owner'])
+                                    .append(' ' + nb['publication'])
+                                    .append(' ' + nb['api_path'])
+                            )
                             .click(function() {
                                 repo_nb_dialog(nb);
                             })
@@ -671,6 +679,37 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    function add_published_icons() {
+        $("a.item_link").each(function(i, element) {
+            // If a notebook matches a path in the shared list
+            if (GenePattern.repo.my_nb_paths.indexOf($(element).attr("href")) >= 0) {
+                // Add a shared icon to it
+                $(element).parent().find('.item_buttons').append(
+                    $('<i title="Published to Repository" class="item_icon icon-fixed-width fa fa-share-square pull-right repo-share-icon"></i>')
+                )
+            }
+        })
+    }
+
+    function init_search() {
+        $("#repository-search")
+            .keydown(function(event) {
+                event.stopPropagation();
+            })
+            .keyup(function(event) {
+                var search = $(event.target).val().toLowerCase();
+                $.each($("#repository-list").find(".list_item"), function(index, element) {
+                    var raw = $(element).text().toLowerCase();
+                    if (raw.indexOf(search) === -1) {
+                        $(element).hide();
+                    }
+                    else {
+                        $(element).show();
+                    }
+                });
+            });
+    }
+
     // Bind events for action buttons.
     $('.share-button')
         .click($.proxy(share_selected, this))
@@ -682,22 +721,19 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         // Mark repo events as initialized
         GenePattern.repo.events_init = true;
 
+        // Initialize repo search
+        init_search();
+
         // Authenticate and the list of public notebooks
         do_authentication(function() {
-            get_notebooks();
+            get_notebooks(function() {
+                add_published_icons();
+            });
         });
 
         // When the files list is refreshed
         $([Jupyter.events]).on('draw_notebook_list.NotebookList', function() {
-            $("a.item_link").each(function(i, element) {
-                // If a notebook matches a path in the shared list
-                if (GenePattern.repo.my_nb_paths.indexOf($(element).attr("href")) >= 0) {
-                    // Add a shared icon to it
-                    $(element).parent().find('.item_buttons').append(
-                        $('<i title="Published to Repository" class="item_icon icon-fixed-width fa fa-share-square pull-right repo-share-icon"></i>')
-                    )
-                }
-            })
+            add_published_icons();
         });
     }
 });

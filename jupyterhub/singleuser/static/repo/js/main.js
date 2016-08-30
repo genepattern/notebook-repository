@@ -6,10 +6,9 @@ GenePattern.repo.public_notebooks = GenePattern.repo.public_notebooks || [];
 GenePattern.repo.my_nb_paths = GenePattern.repo.my_nb_paths || [];
 
 // TODO: FIXME get the real username & url
-var username = 'thorin';
-var repo_url = 'http://127.0.0.1:8000';
-var token = '90173ccf7db50b42ee3cdd3cfa90723cd41c1b19';
-//var token = '3de7d03171e37756e14938eb64f75eb815dfc6b4';
+var username = null;
+var repo_url = null;
+var token = null;
 
 require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, dialog) {
     "use strict";
@@ -649,6 +648,31 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         });
     }
 
+    // Authenticate with the GPNB Repo
+    function do_authentication(success_callback) {
+        // Set top-level variables
+        repo_url = window.location.protocol + '//' + window.location.hostname + ':8000';
+        username = window.location.pathname.split('/')[2] ? window.location.pathname.split('/')[2] : prompt("What is your username?", "tabor");
+
+        $.ajax({
+            url: repo_url + "/api-token-auth/",
+            method: "POST",
+            data: {
+                'username': username,
+                'password': 'FROM_AUTHENTICATOR'
+            },
+            crossDomain: true,
+            success: function(data) {
+                // Set token and make callback
+                token = data['token'];
+                if (success_callback) success_callback();
+            },
+            error: function() {
+                console.log("ERROR: Could not authenticate with GenePattern Notebook Repository.");
+            }
+        });
+    }
+
     // Bind events for action buttons.
     $('.share-button')
         .click($.proxy(share_selected, this))
@@ -660,8 +684,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         // Mark repo events as initialized
         GenePattern.repo.events_init = true;
 
-        // Get the list of public notebooks
-        get_notebooks();
+        // Authenticate and the list of public notebooks
+        do_authentication(function() {
+            get_notebooks();
+        });
 
         // When the files list is refreshed
         $([Jupyter.events]).on('draw_notebook_list.NotebookList', function() {

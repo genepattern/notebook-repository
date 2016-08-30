@@ -4,7 +4,7 @@ import os
 
 from django.contrib.auth.models import User
 import requests
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import TokenAuthentication, get_authorization_header
 from rest_framework import exceptions
 from rest_framework.authtoken.models import Token
 
@@ -15,6 +15,13 @@ class GenePatternAuthentication(TokenAuthentication):
     supports_inactive_user = False
 
     def authenticate(self, request):
+        # If the token is attached to the request, verify the inbuilt way
+        auth_header = get_authorization_header(request).split()
+        if auth_header and auth_header[0].lower() == self.keyword.lower().encode():
+            return super(GenePatternAuthentication, self).authenticate(request)
+
+        # Otherwise, assume username & password authentication through GenePattern
+
         # Get the username from the post
         if 'username' in request.POST:
             username = request.POST['username']
@@ -98,9 +105,6 @@ class GenePatternAuthentication(TokenAuthentication):
             token_model.save()
         except BaseException as e:
             raise exceptions.AuthenticationFailed(e)
-
-        # Call the base TokenAuthentcation.authenticate_credentials() method and return
-        # return self.authenticate_credentials(token)
 
         # Return the user object and token.key
         return (user_model, token)

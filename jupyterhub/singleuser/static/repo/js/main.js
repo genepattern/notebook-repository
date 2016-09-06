@@ -11,14 +11,6 @@ GenePattern.repo.token = GenePattern.repo.token || null;
 require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, dialog) {
     "use strict";
 
-    // Load css
-    $('head').append(
-        $('<link rel="stylesheet" type="text/css" />')
-            .attr("rel", "stylesheet")
-            .attr("type", "text/css")
-            .attr('href', '/static/repo/css/repo.css')
-    );
-
     /**
      * Get the api path to the selected notebook
      *
@@ -910,19 +902,31 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
     }
 
     /*
-     * Bind events for action buttons.
-     */
-    $('.share-button')
-        .click($.proxy(share_selected, this))
-        .hide();
-    $(document).click($.proxy(selection_changed, this));
-
-    /*
+     * If we are currently viewing the notebook list
      * Attach the repository events if they haven't already been initialized
      */
-    if (!GenePattern.repo.events_init) {
+    if (Jupyter.notebook_list !== undefined && Jupyter.notebook_list !== null && !GenePattern.repo.events_init) {
         // Mark repo events as initialized
         GenePattern.repo.events_init = true;
+
+        // Load the necessary CSS
+        $('head').append(
+            $('<link rel="stylesheet" type="text/css" />')
+                .attr("rel", "stylesheet")
+                .attr("type", "text/css")
+                .attr('href', '/static/repo/css/repo.css')
+        );
+
+        // Add publish button and bind events
+        $(".dynamic-buttons").prepend(
+            $("<button></button>")
+                .addClass("share-button btn btn-default btn-xs")
+                .attr("title", "Publish selected")
+                .append("Publish")
+                .click($.proxy(share_selected, this))
+                .hide()
+        );
+        $(document).click($.proxy(selection_changed, this));
 
         // Initialize repo search
         init_repo_tab();

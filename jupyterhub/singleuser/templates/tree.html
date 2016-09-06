@@ -29,7 +29,6 @@ data-terminals-available="{{terminals_available}}"
                 Select items to perform actions on them.
               </div>
               <div class="dynamic-buttons">
-                  <button title="Publish selected" class="share-button btn btn-default btn-xs">Publish</button>
                   <button title="Duplicate selected" class="duplicate-button btn btn-default btn-xs">Duplicate</button>
                   <button title="Rename selected" class="rename-button btn btn-default btn-xs">Rename</button>
                   <button title="Shutdown selected notebook(s)" class="shutdown-button btn btn-default btn-xs btn-warning">Shutdown</button>
@@ -173,5 +172,5 @@ data-terminals-available="{{terminals_available}}"
 {% else %}
     <script src="{{ static_url("tree/js/main.min.js") }}" type="text/javascript" charset="utf-8"></script>
 {% endif %}
-<script src="{{ static_url("repo/js/main.js") }}" type="text/javascript" charset="utf-8"></script>
+{#<script src="{{ static_url("repo/js/main.js") }}" type="text/javascript" charset="utf-8"></script>#}
 {% endblock %}

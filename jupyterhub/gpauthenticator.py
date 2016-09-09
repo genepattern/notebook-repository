@@ -3,6 +3,9 @@ Custom Authenticator to use GenePattern OAuth2 with JupyterHub
 @author Thorin Tabor
 Adapted from OAuthenticator code
 """
+import datetime
+import json
+import os
 
 from tornado import gen, web
 from tornado.httputil import url_concat
@@ -13,6 +16,14 @@ from jupyterhub.auth import Authenticator, LocalAuthenticator
 class GenePatternAuthenticator(Authenticator):
     # URL of the GenePattern server you are authenticating with
     GENEPATTERN_URL = "https://genepattern.broadinstitute.org/gp"
+
+    # Path to write authentication files to, for use with repo service authentication
+    # Set to None to turn off writing authentication files
+    REPO_AUTH_PATH = "/path/to/auth"
+
+    # Path to the directory containing user notebook files
+    # Set to None to turn off lazily creating user directories on authentication
+    USERS_DIR_PATH = "/path/to/users"
 
     @gen.coroutine
     def authenticate(self, handler, data):
@@ -35,7 +46,7 @@ class GenePatternAuthenticator(Authenticator):
             client_id="GenePatternNotebook"
         )
 
-        url = url_concat(self.GENEPATTERN_URL + "/gp/rest/v1/oauth2/token", params)
+        url = url_concat(self.GENEPATTERN_URL + "/rest/v1/oauth2/token", params)
 
         req = HTTPRequest(url,
                           method="POST",
@@ -43,7 +54,6 @@ class GenePatternAuthenticator(Authenticator):
                           body=''  # Body is required for a POST...
                           )
 
-        resp = None
         try:
             resp = yield http_client.fetch(req)
         except HTTPError as e:
@@ -51,6 +61,27 @@ class GenePatternAuthenticator(Authenticator):
             return
 
         if resp is not None and resp.code == 200:
+            # If REPO_AUTH_PATH is set, write the authentication file
+            if self.REPO_AUTH_PATH is not None:
+                response_payload = json.loads(resp.body.decode("utf-8"))
+                auth_dict = {
+                    "username": username,
+                    "token": response_payload['access_token'],
+                    "timestamp": datetime.datetime.now().timestamp(),
+                }
+                auth_file = os.path.join(self.REPO_AUTH_PATH, username + '.json')
+                f = open(auth_file, 'w')
+                f.write(json.dumps(auth_dict))
+                f.close()
+
+            # If USERS_DIR_PATH is set, lazily create user directory
+            if self.USERS_DIR_PATH is not None:
+                specific_user = os.path.join(self.USERS_DIR_PATH, username)
+                if not os.path.exists(specific_user):
+                    os.makedirs(specific_user)
+                    os.chmod(specific_user, 0o777)
+
+            # Return the username
             return username
         else:
             return

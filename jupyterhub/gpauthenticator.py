@@ -6,7 +6,7 @@ Adapted from OAuthenticator code
 import datetime
 import json
 import os
-
+import shutil
 from tornado import gen, web
 from tornado.httputil import url_concat
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient, HTTPError
@@ -24,6 +24,10 @@ class GenePatternAuthenticator(Authenticator):
     # Path to the directory containing user notebook files
     # Set to None to turn off lazily creating user directories on authentication
     USERS_DIR_PATH = "/path/to/users"
+
+    # Path to the directory containing the default notebooks to give new users
+    # Set to None to skip copying any example notebooks
+    DEFAULT_NB_DIR = "/path/to/defaults"
 
     @gen.coroutine
     def authenticate(self, handler, data):
@@ -80,6 +84,16 @@ class GenePatternAuthenticator(Authenticator):
                 if not os.path.exists(specific_user):
                     os.makedirs(specific_user)
                     os.chmod(specific_user, 0o777)
+
+                    # Copy over example notebooks if USERS_DIR_PATH is set
+                    if self.DEFAULT_NB_DIR is not None:
+                        all_files = os.listdir(self.DEFAULT_NB_DIR)
+                        for f in all_files:
+                            file_path = os.path.join(self.DEFAULT_NB_DIR, f)
+                            if os.path.isdir(file_path):
+                                shutil.copytree(file_path, os.path.join(specific_user, f))
+                            elif os.path.isfile(file_path):
+                                shutil.copy(file_path, specific_user)
 
             # Return the username
             return username

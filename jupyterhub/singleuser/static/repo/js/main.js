@@ -909,14 +909,6 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         // Mark repo events as initialized
         GenePattern.repo.events_init = true;
 
-        // Load the necessary CSS
-        $('head').append(
-            $('<link rel="stylesheet" type="text/css" />')
-                .attr("rel", "stylesheet")
-                .attr("type", "text/css")
-                .attr('href', '/static/repo/css/repo.css')
-        );
-
         // Add publish button and bind events
         $(".dynamic-buttons").prepend(
             $("<button></button>")

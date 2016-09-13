@@ -51,8 +51,8 @@ body {
 }
 
 /* Hide the clusters tab */
-#tabs li:last-of-type {
-	display:none
+.nav > li > a.clusters_tab_link {
+	display: none;
 }
 
 #save_widget {

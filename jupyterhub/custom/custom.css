@@ -12,3 +12,8 @@
  * Import the styles used by the GenePattern notebook skin
  */
  @import url("../static/theme/cssn/gp-theme.css");
+
+/*
+ * Import the styles used by the GenePattern Repository service
+ */
+ @import url("../static/repo/css/repo.css");

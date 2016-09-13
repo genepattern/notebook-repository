@@ -9,4 +9,4 @@ GenePattern Notebook Repository.
 * djangorestframework == 3.4.4
 * django-filter
 * django-crispy-forms
-* django-cors-middleware == master (https://github.com/zestedesavoir/django-cors-middleware)
+* django-cors-middleware == 1.3.1 [master (https://github.com/zestedesavoir/django-cors-middleware)]

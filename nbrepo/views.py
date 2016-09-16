@@ -54,14 +54,15 @@ class NotebookViewSet(viewsets.ModelViewSet):
     @staticmethod
     def _copy_to_file_path(username, model_id, api_path):
         base_repo_path = settings.BASE_REPO_PATH
-        base_user_path = settings.BASE_USER_PATH
+        base_user_path = os.path.join(settings.BASE_USER_PATH, username)
 
-        # Get the file name
+        # Get the file name and path
         api_path_parts = api_path.split('/')
         file_name = urllib.parse.unquote(api_path_parts[len(api_path_parts)-1])
+        file_path = urllib.parse.unquote(api_path.split('/', 4)[4])
 
         # Path to the user's notebook file
-        user_nb_path = urllib.parse.unquote(api_path).replace('/notebooks', base_user_path, 1)
+        user_nb_path = os.path.join(base_user_path, file_path)
 
         # Path to the repo's notebook file
         repo_nb_path = os.path.join(base_repo_path, username, str(model_id), file_name)
@@ -151,8 +152,11 @@ def copy(request, pk, api_path):
         # Get the notebook
         notebook = Notebook.objects.get(pk=pk)
 
+        # Get the user's username
+        username = request.user.username
+
         # Get the user's current directory
-        base_user_path = settings.BASE_USER_PATH
+        base_user_path = os.path.join(settings.BASE_USER_PATH, username)
         copy_to_dir = os.path.join(base_user_path, urllib.parse.unquote(api_path))
         if not copy_to_dir.endswith('/'):
             copy_to_dir += '/'
@@ -176,6 +180,7 @@ def copy(request, pk, api_path):
 
         # Copy the notebook to the current directory
         shutil.copyfile(notebook.file_path, copy_to_file)
+        os.chmod(copy_to_file, 0o777)
 
         # Get the URL to the new copy of the notebook file
         copy_url = "/notebooks/" + api_path

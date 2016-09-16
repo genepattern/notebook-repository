@@ -149,14 +149,14 @@ def get_disk_usage():
     disk = {}
 
     # Get the amount of general disk space used
-    cmd_out = commands.getstatusoutput('df -h | grep "/dev/sda1"')[1]
+    cmd_out = commands.getstatusoutput('df -h | grep "/dev/xvda1"')[1]
     cmd_parts = cmd_out.split()
     disk["gen_disk_used"] = cmd_parts[2]
     disk["gen_disk_total"] = cmd_parts[3]
     disk["gen_disk_percent"] = cmd_parts[4]
 
     # Get the amount of Docker disk space used
-    cmd_out = commands.getstatusoutput('df -h | grep "/dev/mapper/vg_system-docker"')[1]
+    cmd_out = commands.getstatusoutput('df -h | grep "tmpfs"')[1]
     cmd_parts = cmd_out.split()
     disk["docker_disk_used"] = cmd_parts[2]
     disk["docker_disk_total"] = cmd_parts[3]
@@ -217,11 +217,12 @@ def get_users():
     containers = []
     for line in cmd_lines:
         cmd_parts = line.split()
-        last_part = cmd_parts[len(cmd_parts)-1]
-        last_halves = last_part.split("-")
-        if len(last_halves) < 2:
-            continue  # Ignore container names we cannot parse
-        containers.append(last_halves[1])
+        if len(cmd_parts) > 0:
+            last_part = cmd_parts[len(cmd_parts)-1]
+            last_halves = last_part.split("-")
+            if len(last_halves) < 2:
+                continue  # Ignore container names we cannot parse
+            containers.append(last_halves[1])
 
     # Get the sets of users
     users['returning'] = len(set(user_list) & set(containers))
@@ -246,7 +247,7 @@ def get_logins():
     logins = {}
 
     # Count the number of logins in the weekly log
-    cmd_out = commands.getstatusoutput('cat ' + home_dir + 'nohup.out | grep -c "User logged in"')[1]
+    cmd_out = commands.getstatusoutput('cat ~/nohup.out | grep -c "User logged in"')[1]
     logins['week'] = int(cmd_out.strip())
 
     # Read the total number of logins

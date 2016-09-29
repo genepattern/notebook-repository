@@ -81,14 +81,14 @@ def get_pypi():
     return pypi
 
 
-def _poll_genepattern(gp_url):
+def _poll_genepattern(gp_url, tag):
     """
     Poll the provided GenePattern server for the number of GenePattern Notebook jobs launched in the last week
 
     :param gp_url: The URL of the GenePattern server, not including /gp...
     :return: Return the number of GenePattern Notebook jobs launched on this server
     """
-    request = urllib2.Request(gp_url + '/gp/rest/v1/jobs/?tag=GenePattern%20Notebook&pageSize=1000&includeChildren=true&includeOutputFiles=false&includePermissions=false')
+    request = urllib2.Request(gp_url + '/gp/rest/v1/jobs/?tag=' + tag + '&pageSize=1000&includeChildren=true&includeOutputFiles=false&includePermissions=false')
     base64string = base64.encodestring(bytearray(admin_login, 'utf-8')).decode('utf-8').replace('\n', '')
     request.add_header("Authorization", "Basic %s" % base64string)
     response = urllib2.urlopen(request)
@@ -119,6 +119,9 @@ def get_total_jobs(weekly_jobs):
     total_jobs['prod'] = int(jobs_list[0]) + weekly_jobs['prod']
     total_jobs['broad'] = int(jobs_list[1]) + weekly_jobs['broad']
     total_jobs['iu'] = int(jobs_list[2]) + weekly_jobs['iu']
+    total_jobs['prod-py'] = int(jobs_list[3]) + weekly_jobs['prod']
+    total_jobs['broad-py'] = int(jobs_list[4]) + weekly_jobs['broad']
+    total_jobs['iu-py'] = int(jobs_list[5]) + weekly_jobs['iu']
 
     # Write the new totals back to the file
     if not test_run:
@@ -126,6 +129,9 @@ def get_total_jobs(weekly_jobs):
         jobs_file.write("%s\n" % total_jobs['prod'])
         jobs_file.write("%s\n" % total_jobs['broad'])
         jobs_file.write("%s\n" % total_jobs['iu'])
+        jobs_file.write("%s\n" % total_jobs['prod-py'])
+        jobs_file.write("%s\n" % total_jobs['broad-py'])
+        jobs_file.write("%s\n" % total_jobs['iu-py'])
         jobs_file.close()
 
     return total_jobs
@@ -136,9 +142,13 @@ def get_weekly_jobs():
     Assemble the number of GenePattern Notebook jobs launched on each server
     """
     weekly_jobs = {}
-    weekly_jobs['prod'] = _poll_genepattern('https://genepattern.broadinstitute.org')
-    weekly_jobs['broad'] = _poll_genepattern('https://gpbroad.broadinstitute.org')
-    weekly_jobs['iu'] = _poll_genepattern('http://gp.indiana.edu')
+    weekly_jobs['prod'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Notebook')
+    weekly_jobs['broad'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Notebook')
+    weekly_jobs['iu'] = _poll_genepattern('http://gp.indiana.edu', 'GenePattern%20Notebook')
+
+    weekly_jobs['prod-py'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Python%20Client')
+    weekly_jobs['broad-py'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Python%20Client')
+    weekly_jobs['iu-py'] = _poll_genepattern('http://gp.indiana.edu', 'GenePattern%20Python%20Client')
     return weekly_jobs
 
 
@@ -376,18 +386,22 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                             <table border="1">
                                 <tr>
                                     <th>Server</th>
-                                    <th>#</th>
+                                    <th>Notebook</th>
+                                    <th>Python</th>
                                 </tr>
                                 <tr>
                                     <td>GP Prod</td>
+                                    <td>%s</td>
                                     <td>%s</td>
                                 </tr>
                                 <tr>
                                     <td>GP Broad</td>
                                     <td>%s</td>
+                                    <td>%s</td>
                                 </tr>
                                 <tr>
                                     <td>GP @ IU</td>
+                                    <td>%s</td>
                                     <td>%s</td>
                                 </tr>
                             </table>
@@ -396,18 +410,22 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                             <table border="1">
                                 <tr>
                                     <th>Server</th>
-                                    <th>#</th>
+                                    <th>Notebook</th>
+                                    <th>Python</th>
                                 </tr>
                                 <tr>
                                     <td>GP Prod</td>
+                                    <td>%s</td>
                                     <td>%s</td>
                                 </tr>
                                 <tr>
                                     <td>GP Broad</td>
                                     <td>%s</td>
+                                    <td>%s</td>
                                 </tr>
                                 <tr>
                                     <td>GP @ IU</td>
+                                    <td>%s</td>
                                     <td>%s</td>
                                 </tr>
                             </table>
@@ -485,10 +503,14 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
         disk["docker_disk_percent"],
 
         # Total jobs
-        total_jobs['prod'], total_jobs['broad'], total_jobs['iu'],
+        total_jobs['prod'], total_jobs['prod-py'],
+        total_jobs['broad'], total_jobs['broad-py'],
+        total_jobs['iu'], total_jobs['iu-py'],
 
         # Weekly jobs
-        weekly_jobs['prod'], weekly_jobs['broad'], weekly_jobs['iu'],
+        weekly_jobs['prod'], weekly_jobs['prod-py'],
+        weekly_jobs['broad'], weekly_jobs['broad-py'],
+        weekly_jobs['iu'], weekly_jobs['iu-py'],
 
         # Docker stats
         docker['notebook']['stars'], docker['notebook']['pulls'],

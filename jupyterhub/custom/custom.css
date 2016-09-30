@@ -11,7 +11,7 @@
 /*
  * Import the styles used by the GenePattern notebook skin
  */
- @import url("../static/theme/cssn/gp-theme.css");
+ @import url("../static/theme/css/gp-theme.css");
 
 /*
  * Import the styles used by the GenePattern Repository service

@@ -88,13 +88,16 @@ def _poll_genepattern(gp_url, tag):
     :param gp_url: The URL of the GenePattern server, not including /gp...
     :return: Return the number of GenePattern Notebook jobs launched on this server
     """
-    request = urllib2.Request(gp_url + '/gp/rest/v1/jobs/?tag=' + tag + '&pageSize=1000&includeChildren=true&includeOutputFiles=false&includePermissions=false')
-    base64string = base64.encodestring(bytearray(admin_login, 'utf-8')).decode('utf-8').replace('\n', '')
-    request.add_header("Authorization", "Basic %s" % base64string)
-    response = urllib2.urlopen(request)
-    json_str = response.read().decode('utf-8')
-    jobs_json = json.loads(json_str)
-    count = 0
+    try:
+        request = urllib2.Request(gp_url + '/gp/rest/v1/jobs/?tag=' + tag + '&pageSize=1000&includeChildren=true&includeOutputFiles=false&includePermissions=false')
+        base64string = base64.encodestring(bytearray(admin_login, 'utf-8')).decode('utf-8').replace('\n', '')
+        request.add_header("Authorization", "Basic %s" % base64string)
+        response = urllib2.urlopen(request)
+        json_str = response.read().decode('utf-8')
+        jobs_json = json.loads(json_str)
+        count = 0
+    except urllib2.URLError:
+        return 'ERROR'
 
     for job in jobs_json['items']:
         timestamp = job['dateSubmitted']
@@ -116,12 +119,12 @@ def get_total_jobs(weekly_jobs):
 
     # Create the total jobs object
     total_jobs = {}
-    total_jobs['prod'] = int(jobs_list[0]) + weekly_jobs['prod']
-    total_jobs['broad'] = int(jobs_list[1]) + weekly_jobs['broad']
-    total_jobs['iu'] = int(jobs_list[2]) + weekly_jobs['iu']
-    total_jobs['prod-py'] = int(jobs_list[3]) + weekly_jobs['prod']
-    total_jobs['broad-py'] = int(jobs_list[4]) + weekly_jobs['broad']
-    total_jobs['iu-py'] = int(jobs_list[5]) + weekly_jobs['iu']
+    total_jobs['prod'] = int(jobs_list[0]) + (0 if not isinstance(weekly_jobs['prod'], int) else weekly_jobs['prod'])
+    total_jobs['broad'] = int(jobs_list[1]) + (0 if not isinstance(weekly_jobs['broad'], int) else weekly_jobs['broad'])
+    total_jobs['iu'] = int(jobs_list[2]) + (0 if not isinstance(weekly_jobs['iu'], int) else weekly_jobs['iu'])
+    total_jobs['prod-py'] = int(jobs_list[3]) + (0 if not isinstance(weekly_jobs['prod-py'], int) else weekly_jobs['prod-py'])
+    total_jobs['broad-py'] = int(jobs_list[4]) + (0 if not isinstance(weekly_jobs['broad-py'], int) else weekly_jobs['broad-py'])
+    total_jobs['iu-py'] = int(jobs_list[5]) + (0 if not isinstance(weekly_jobs['iu-py'], int) else weekly_jobs['iu-py'])
 
     # Write the new totals back to the file
     if not test_run:
@@ -292,7 +295,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
     """
     today = str(datetime.date.today())
     fromaddr = "gp-dev@broadinstitute.org" if not test_run else test_email
-    toaddr = "gp-dev@broadinstitute.org" if not test_run else test_email
+    toaddr = "gp-exec@broadinstitute.org,gp-dev@broadinstitute.org" if not test_run else test_email
     msg = MIMEMultipart()
     msg['From'] = fromaddr
     msg['To'] = toaddr

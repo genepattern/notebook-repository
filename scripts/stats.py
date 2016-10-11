@@ -295,7 +295,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
     """
     today = str(datetime.date.today())
     fromaddr = "gp-dev@broadinstitute.org" if not test_run else test_email
-    toaddr = "gp-exec@broadinstitute.org,gp-dev@broadinstitute.org" if not test_run else test_email
+    toaddr = "gp-exec@broadinstitute.org, gp-dev@broadinstitute.org" if not test_run else test_email
     msg = MIMEMultipart()
     msg['From'] = fromaddr
     msg['To'] = toaddr
@@ -528,7 +528,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
 
     server = smtplib.SMTP('localhost', 25)
     text = msg.as_string()
-    server.sendmail(fromaddr, toaddr, text)
+    server.sendmail(fromaddr, toaddr.split(', '), text)
     server.quit()
 
 

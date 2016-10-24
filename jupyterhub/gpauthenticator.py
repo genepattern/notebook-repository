@@ -80,7 +80,7 @@ class GenePatternAuthenticator(Authenticator):
 
             # If USERS_DIR_PATH is set, lazily create user directory
             if self.USERS_DIR_PATH is not None:
-                specific_user = os.path.join(self.USERS_DIR_PATH, username)
+                specific_user = os.path.join(self.USERS_DIR_PATH, username.lower())
                 if not os.path.exists(specific_user):
                     os.makedirs(specific_user)
                     os.chmod(specific_user, 0o777)

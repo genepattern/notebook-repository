@@ -225,7 +225,7 @@ def get_users():
     user_list = [u.strip() for u in user_list]  # Clean new lines
 
     # Gather a list of all running containers
-    cmd_out = commands.getstatusoutput(sudo_req + 'docker ps -a | grep "jupyter-"')[1]
+    cmd_out = commands.getstatusoutput(sudo_req + 'docker ps | grep "jupyter-"')[1]
     cmd_lines = cmd_out.split('\n')
     containers = []
     for line in cmd_lines:
@@ -237,10 +237,17 @@ def get_users():
                 continue  # Ignore container names we cannot parse
             containers.append(last_halves[1])
 
+    # Create the rows list of new users
+    new_users = list(set(containers) - set(user_list))
+    new_users_rows = ''
+    for user in new_users:
+        new_users_rows = new_users_rows + '<tr><td>' + user + '</td></tr>'
+
     # Get the sets of users
     users['returning'] = len(set(user_list) & set(containers))
     users['new'] = len(set(containers) - set(user_list))
     users['total'] = len(set(user_list) | set(containers))
+    users['new_users'] = new_users_rows
 
     # Update the users file
     if not test_run:
@@ -382,6 +389,14 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                                     <td>%s</td>
                                 </tr>
                             </table>
+
+                            <h3>New Users This Week</h3>
+                            <table border="1">
+                                <tr>
+                                    <th>Username</th>
+                                </tr>
+                                %s
+                            </table>
                         </td>
                         <td width="50%%" valign="top">
                             <h2>Notebook Extension</h2>
@@ -504,6 +519,9 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
         disk["docker_disk_used"],
         disk["docker_disk_total"],
         disk["docker_disk_percent"],
+
+        # List New Users
+        users['new_users'],
 
         # Total jobs
         total_jobs['prod'], total_jobs['prod-py'],

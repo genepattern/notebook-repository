@@ -1,5 +1,18 @@
 {% extends "page.html" %}
 
+{% block meta %}
+    <script type="text/javascript">
+        require(["jquery"], function() {
+            $(document).ready(function() {
+                $("#login_form").submit(function() {
+                    document.cookie = "GenePattern=" + $("#username_input").val() + "|" +
+                            encodeURIComponent(btoa($("#password_input").val())) + ";path=/;domain=genepattern.org"
+                })
+            })
+        });
+    </script>
+{% endblock %}
+
 {% block login_widget %}
 {% endblock %}
 
@@ -16,7 +29,7 @@
   </a>
 </div>
 {% else %}
-<form action="{{login_url}}?next={{next}}" method="post" role="form" autocomplete="off">
+<form id="login_form" action="{{login_url}}?next={{next}}" method="post" role="form" autocomplete="off">
   <div class="auth-form-header" style="height:46px;">
     Sign in
   </div>

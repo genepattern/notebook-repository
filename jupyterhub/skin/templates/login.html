@@ -11,6 +11,11 @@
             })
         });
     </script>
+    <style type="text/css">
+        iframe {
+            width: 100% !important;
+        }
+    </style>
 {% endblock %}
 
 {% block login_widget %}
@@ -18,74 +23,82 @@
 
 {% block main %}
 
-{% block login %}
-<div id="login-main" class="container">
-{% if custom_html %}
-{{ custom_html }}
-{% elif login_service %}
-<div class="service-login">
-  <a class='btn btn-jupyter btn-lg' href='{{login_url}}'>
-    Sign in with {{login_service}}
-  </a>
-</div>
-{% else %}
-<form id="login_form" action="{{login_url}}?next={{next}}" method="post" role="form" autocomplete="off">
-  <div class="auth-form-header" style="height:46px;">
-    Sign in
-  </div>
-  <div class='auth-form-body' style="height:209px">
-    {% if login_error %}
-    <p class="login_error">
-      {{login_error}}
-    </p>
-    {% endif %}
-    <label for="username_input">Username:</label>
-    <input
-      id="username_input"
-      type="username"
-      autocapitalize="off"
-      autocorrect="off"
-      class="form-control"
-      name="username"
-      val="{{username}}"
-      tabindex="1"
-      autofocus="autofocus"
-    />
-    <label for='password_input'>Password:</label>
-    <input
-      type="password"
-      class="form-control"
-      name="password"
-      id="password_input"
-      tabindex="2"
-    />
+    {% block login %}
+        <div id="login-main" class="container" style="display: block;">
+            <div class="row" style="height: 80vh;">
+                {% if custom_html %}
+                    {{ custom_html }}
+                {% elif login_service %}
+                    <div class="service-login">
+                        <a class='btn btn-jupyter btn-lg' href='{{login_url}}'>
+                            Sign in with {{login_service}}
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="col-md-4" style="position: relative; height: 80vh;">
+                        <form id="login_form" action="{{login_url}}?next={{next}}" method="post" role="form" autocomplete="off" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100%; padding: 0 10px 0 10px;">
+                            <div class="auth-form-header" style="height:46px;">
+                                Sign in
+                            </div>
+                            <div class='auth-form-body' style="height:209px">
+                            {% if login_error %}
+                            <p class="login_error">
+                              {{login_error}}
+                            </p>
+                            {% endif %}
+                            <label for="username_input">Username:</label>
+                            <input
+                              id="username_input"
+                              type="username"
+                              autocapitalize="off"
+                              autocorrect="off"
+                              class="form-control"
+                              name="username"
+                              val="{{username}}"
+                              tabindex="1"
+                              autofocus="autofocus"
+                            />
+                            <label for='password_input'>Password:</label>
+                            <input
+                              type="password"
+                              class="form-control"
+                              name="password"
+                              id="password_input"
+                              tabindex="2"
+                            />
 
-    <input
-      type="submit"
-      id="login_submit"
-      class='btn btn-jupyter'
-      value='Sign In'
-      tabindex="3"
-    />
-  </div>
-</form>
+                            <input
+                              type="submit"
+                              id="login_submit"
+                              class='btn btn-jupyter'
+                              value='Sign In'
+                              tabindex="3"
+                            />
+                            </div>
+                        </form>
+                    </div>
 
-  <div style="width:0"></div>
-  <div style="display: table-cell; margin: auto auto 10%; vertical-align: middle; width: 350px;">
-  <div class="panel panel-primary" style="height:255px; margin-top: 20px;">
-    <div class="panel-heading">Welcome to the GenePattern Notebook Repository</div>
-    <div class="panel-body">Log in using your <a target="_BLANK" href="https://genepattern.broadinstitute.org">GenePattern public server</a> username and password. If you do not have an account, click the <a target="_BLANK" href="http://genepattern.broadinstitute.org/gp/pages/registerUser.jsf">Register Account</a> button below.<br><br>
-      <a target="_BLANK" href="http://genepattern.broadinstitute.org/gp/pages/registerUser.jsf"><button class="btn btn-default">Register a New GenePattern Account</button></a><br><br>       Documentation is available on the <a target="_BLANK" href="http://genepattern.org/genepattern-notebooks">GenePattern Notebook website</a>.    </div>
-  </div>
-  </div>
+                    <div class="col-md-4" style="position: relative; height: 80vh;">
+                        <div style="min-height:255px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100%; padding: 6px 10px 0 10px;">
+                            <a class="twitter-timeline" href="https://twitter.com/GenePattern" data-widget-id="312272908099649536">Tweets by @GenePattern</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+                        </div>
+                    </div>
 
-{% endif %}
-</div>
-{% endblock login %}
+                    <div class="col-md-4" style="position: relative; height: 80vh;">
+                        <div class="panel panel-primary" style="min-height:255px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100%; margin: 0 10px 0 10px;">
+                            <div class="panel-heading">Welcome to the GenePattern Notebook Repository</div>
+                            <div class="panel-body">Log in using your <a target="_BLANK" href="https://genepattern.broadinstitute.org">GenePattern public server</a> username and password. If you do not have an account, click the <a target="_BLANK" href="http://genepattern.broadinstitute.org/gp/pages/registerUser.jsf">Register Account</a> button below.<br><br>
+                                <a target="_BLANK" href="http://genepattern.broadinstitute.org/gp/pages/registerUser.jsf"><button class="btn btn-default">Register a New GenePattern Account</button></a><br><br>       Documentation is available on the <a target="_BLANK" href="http://genepattern.org/genepattern-notebooks">GenePattern Notebook website</a>.
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endblock login %}
 
 {% endblock %}
 
 {% block script %}
-{{super()}}
-
+    {{ super() }}
 {% endblock %}

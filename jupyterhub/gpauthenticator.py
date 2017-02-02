@@ -73,7 +73,7 @@ class GenePatternAuthenticator(Authenticator):
                     "token": response_payload['access_token'],
                     "timestamp": datetime.datetime.now().timestamp(),
                 }
-                auth_file = os.path.join(self.REPO_AUTH_PATH, username + '.json')
+                auth_file = os.path.join(self.REPO_AUTH_PATH, username.lower() + '.json')
                 f = open(auth_file, 'w')
                 f.write(json.dumps(auth_dict))
                 f.close()

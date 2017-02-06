@@ -60,7 +60,7 @@ class GenePatternAuthentication(TokenAuthentication):
             raise exceptions.AuthenticationFailed("authentication file expired")
 
         # Return a failure if username in file doesn't match username in request
-        if auth_data['username'] != username:
+        if auth_data['username'].lower() != username:
             raise exceptions.AuthenticationFailed("authentication username mismatch")
 
         # Make a call to the GenePattern API
@@ -82,7 +82,7 @@ class GenePatternAuthentication(TokenAuthentication):
         except ValueError:
             raise exceptions.AuthenticationFailed("error parsing response")
 
-        if response_object['result'] != username:
+        if response_object['result'].lower() != username:
             raise exceptions.AuthenticationFailed("username does not match GenePattern response")
 
         # Get the user object, lazily create one if it doesn't exist

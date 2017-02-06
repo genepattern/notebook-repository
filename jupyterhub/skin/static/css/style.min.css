@@ -8307,7 +8307,9 @@ div.error > p {
 
 #login-main {
     display: table;
-    height: 80vh
+    height: 80vh;
+    background-color: transparent;
+    box-shadow: none;
 }
 
 #login-main .service-login {
@@ -8362,15 +8364,33 @@ div.error > p {
 }
 
 #header	{
-    background-color: #5e99ab;
+    background: url("/hub/static/images/aurora5.png") center center;
     height: 45px;
 }
 
 body {
-    background: url("/hub/static/images/aurora5.png") no-repeat center center fixed;
-    background-size: cover;
-    background-color: #5e99ab;
-    background-position: 0 45px;
+    background-color: #f1f2f2;
+}
+
+.container {
+    padding: 15px;
+    background-color: #fff;
+    box-shadow: 0 0 12px 1px rgba(87, 87, 87, 0.2);
+    min-height: 0;
+    height: auto;
+}
+
+iframe {
+    border-color: #428bca !important;
+    border-style: solid !important;
+    border-width: 1px !important;
+    border-radius: 5px !important;
+}
+
+#header .container {
+    background-color: transparent;
+    box-shadow: none;
+    padding: 0 15px;
 }
 
 /*# ENDOFFILE */

@@ -178,6 +178,15 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         $("#notebook_list").find(".repo-share-icon").remove();
     }
 
+    function forceHTTPS(url) {
+        if (!url.startsWith("https://")) {
+            return url.replace("http://", "https://")
+        }
+        else {
+            return url;
+        }
+    }
+
     /**
      * Send a notebook to the repo to publish or update it
      *
@@ -194,7 +203,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
 
         // Call the repo service to publish the notebook
         $.ajax({
-            url: (shared ? notebook['url'] : GenePattern.repo.repo_url + "/notebooks/"),
+            url: (shared ? forceHTTPS(notebook['url']) : GenePattern.repo.repo_url + "/notebooks/"),
             method: (shared ? "PUT" : "POST"),
             crossDomain: true,
             data: pub_nb,
@@ -284,7 +293,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                         )
                         .append(
                             $("<p></p>")
-                                .append("<a target='_blank' href='" + response['url'] +
+                                .append("<a target='_blank' href='" + forceHTTPS(response['url']) +
                                     "' class='alert-link'>Click here</a> if you would like to open this notebook.")
                         ),
                     buttons: {"OK": function() {}}
@@ -318,7 +327,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
 
         // Call the repo service to publish the notebook
         $.ajax({
-            url: notebook['url'],
+            url: forceHTTPS(notebook['url']),
             method: "DELETE",
             crossDomain: true,
             beforeSend: function (xhr) {

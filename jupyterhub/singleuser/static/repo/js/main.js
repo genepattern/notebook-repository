@@ -187,6 +187,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
         }
     }
 
+    function force_user_path(url) {
+        return "/user/" + GenePattern.repo.username.toLowerCase() + url;
+    }
+
     /**
      * Send a notebook to the repo to publish or update it
      *
@@ -293,7 +297,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                         )
                         .append(
                             $("<p></p>")
-                                .append("<a target='_blank' href='" + forceHTTPS(response['url']) +
+                                .append("<a target='_blank' href='" + force_user_path(response['url']) +
                                     "' class='alert-link'>Click here</a> if you would like to open this notebook.")
                         ),
                     buttons: {"OK": function() {}}

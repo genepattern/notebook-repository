@@ -42,7 +42,7 @@
  * General theme styles
  */
 
-#header {
+.terminal-app #header, #header {
     background: url("../nbextensions/genepattern/resources/aurora5.png") center center;
     padding: 0 15px 5px 15px;
 }
@@ -71,7 +71,7 @@ body {
 }
 
 /* Hide the clusters tab */
-#tabs li:last-of-type {
+#tabs .clusters_tab_link {
 	display:none
 }
 

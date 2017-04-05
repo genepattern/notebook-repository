@@ -8,16 +8,15 @@ require(['base/js/namespace', 'jquery', 'repo/js/main'], function(Jupyter, $, re
     var username =  (""+ window.location).split('/')[4];
     $('#logout').html( "Logout " + username);
 
-	// Add file path shim for Jupyter 3/4
-	var base_url = Jupyter.contents ? Jupyter.contents.base_url : Jupyter.notebook_list.base_url;
-	var STATIC_PATH = location.origin + base_url + "nbextensions/genepattern/resources/";
-
 	/**
 	 * Attaches the loading screen
 	 *
 	 * @returns {*|jQuery}
 	 */
 	var loadingScreen = function() {
+	    var base_url = Jupyter.contents ? Jupyter.contents.base_url : (Jupyter.notebook_list ? Jupyter.notebook_list.base_url : Jupyter.editor.base_url);
+	    var STATIC_PATH = location.origin + base_url + "nbextensions/genepattern/resources/";
+
 		return $("<div></div>")
 			.addClass("loading-screen")
 			.append("Please wait while GenePattern Notebook is loading...")

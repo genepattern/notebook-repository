@@ -44,8 +44,7 @@
 
 #header {
     background: url("../nbextensions/genepattern/resources/aurora5.png") center center;
-    padding: 10px;
-    min-height: 130px;
+    padding: 0 15px 5px 15px;
 }
 
 /* Don't expand header on main notebook listing page */

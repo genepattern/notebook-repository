@@ -21,6 +21,7 @@ home_dir = '/home/user/'
 sudo_req = 'sudo '  # Make blank if sudo is not required
 test_email = 'user@broadinstitute.org'
 admin_login = 'username:password'
+s3_bucket = 'gpnotebook-backup'
 
 # Handle arguments
 test_run = True if (len(sys.argv) >= 2 and sys.argv[1] == '--test') else False
@@ -140,18 +141,38 @@ def get_total_jobs(weekly_jobs):
     return total_jobs
 
 
+def _read_s3_stats(log_file):
+    """
+    Read the s3 file with the logged job counts
+    """
+
+    # Copy the s3 log file to local disk
+    commands.getstatusoutput('aws s3 cp s3://' + s3_bucket + '/' + log_file + ' ' + home_dir + log_file)
+
+    # Read the log file
+    jobs_file = file(home_dir + log_file, 'r')
+    jobs_list = jobs_file.readlines()
+    jobs_list = [j.strip() for j in jobs_list]  # Clean new lines
+    jobs_file.close()
+
+    return [int(jobs_list[0]), int(jobs_list[1])]
+
+
 def get_weekly_jobs():
     """
     Assemble the number of GenePattern Notebook jobs launched on each server
     """
     weekly_jobs = {}
     weekly_jobs['prod'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Notebook')
-    weekly_jobs['broad'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Notebook')
+    # weekly_jobs['broad'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Notebook')
     weekly_jobs['iu'] = _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Notebook')
 
     weekly_jobs['prod-py'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Python%20Client')
-    weekly_jobs['broad-py'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Python%20Client')
+    # weekly_jobs['broad-py'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Python%20Client')
     weekly_jobs['iu-py'] = _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Python%20Client')
+
+    weekly_jobs['broad'], weekly_jobs['broad-py'] = _read_s3_stats('job_count.log')
+
     return weekly_jobs
 
 

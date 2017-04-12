@@ -25,7 +25,23 @@ def update_container(container_id):
     print(output[1])
 
     # Update genepattern-python for Python 2
-    output = commands.getstatusoutput("docker exec " + container_id + " pip2 install genepattern-python --target=/opt/conda/envs/python2/lib/python2.7/site-packages")
+    output = commands.getstatusoutput("docker exec " + container_id + " pip2 install genepattern-python --upgrade --target=/opt/conda/envs/python2/lib/python2.7/site-packages")
+    print(output[1])
+
+    # Update nbtools
+    output = commands.getstatusoutput("docker exec " + container_id + " pip install nbtools --upgrade --no-deps")
+    print(output[1])
+
+    # Uninstall the old Jupyter nbextension
+    output = commands.getstatusoutput("docker exec " + container_id + " jupyter nbextension uninstall --py nbtools")
+    print(output[1])
+
+    # Install the new Jupyter nbextension
+    output = commands.getstatusoutput("docker exec " + container_id + " jupyter nbextension install --py nbtools")
+    print(output[1])
+
+    # Enable the new Jupyter nbextension
+    output = commands.getstatusoutput("docker exec " + container_id + " jupyter nbextension enable nbtools --py")
     print(output[1])
 
     # Update genepattern-notebook

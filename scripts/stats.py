@@ -337,22 +337,22 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                     <tr>
                         <td width="50%%" valign="top">
                             <h2>Notebook Repository</h2>
-                            <h3>Total repository users</h3>
+                            <h3>Repository users</h3>
                             <table border="1">
                                 <tr>
                                     <th>Users</th>
                                     <th>#</th>
                                 </tr>
                                 <tr>
-                                    <td>Total</td>
+                                    <td>All-time users</td>
                                     <td>%s</td>
                                 </tr>
                                 <tr>
-                                    <td>Returning</td>
+                                    <td>Weekly returning</td>
                                     <td>%s</td>
                                 </tr>
                                 <tr>
-                                    <td>New</td>
+                                    <td>Weekly new</td>
                                     <td>%s</td>
                                 </tr>
                             </table>
@@ -364,7 +364,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                                     <th>#</th>
                                 </tr>
                                 <tr>
-                                    <td>Total</td>
+                                    <td>All-time total</td>
                                     <td>%s</td>
                                 </tr>
                                 <tr>
@@ -373,18 +373,18 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                                 </tr>
                             </table>
 
-                            <h3>Repository notebook files created</h3>
+                            <h3>Repository notebooks created</h3>
                             <table border="1">
                                 <tr>
                                     <th>Notebooks</th>
                                     <th>#</th>
                                 </tr>
                                 <tr>
-                                    <td>Total</td>
+                                    <td>Total in repository</td>
                                     <td>%s</td>
                                 </tr>
                                 <tr>
-                                    <td>Modified</td>
+                                    <td>Modified this week</td>
                                     <td>%s</td>
                                 </tr>
                             </table>

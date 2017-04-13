@@ -216,6 +216,8 @@ def get_nb_count():
     nb_count = {}
     nb_count['week'] = 0
     nb_count['total'] = 0
+    nb_count['files_week'] = 0
+    nb_count['files_total'] = 0
     for d in containers:
         # Ignore the header
         if d == "CONTAINER":
@@ -226,9 +228,20 @@ def get_nb_count():
         user_week = int(cmd_out.strip())
         nb_count['week'] += user_week
 
+        # Total query
         cmd_out = commands.getstatusoutput(sudo_req + 'docker exec ' + d + " find . -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
         user_total = int(cmd_out.strip())
         nb_count['total'] += user_total
+
+        # All files query, weekly
+        cmd_out = commands.getstatusoutput(sudo_req + 'docker exec ' + d + " find . -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
+        files_week = int(cmd_out.strip())
+        nb_count['files_week'] += files_week - user_week
+
+        # All files query, total
+        cmd_out = commands.getstatusoutput(sudo_req + 'docker exec ' + d + " find . -type f -not -path '*/\.*' | wc -l")[1]
+        files_total = int(cmd_out.strip())
+        nb_count['files_total'] += files_total - user_total
 
     return nb_count
 
@@ -389,6 +402,22 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                                 </tr>
                             </table>
 
+                            <h3>Repository non-notebook files</h3>
+                            <table border="1">
+                                <tr>
+                                    <th>Files</th>
+                                    <th>#</th>
+                                </tr>
+                                <tr>
+                                    <td>Total in repository</td>
+                                    <td>%s</td>
+                                </tr>
+                                <tr>
+                                    <td>Modified this week</td>
+                                    <td>%s</td>
+                                </tr>
+                            </table>
+
                             <h3>Repository disk space used</h3>
                             <table border="1">
                                 <tr>
@@ -532,6 +561,8 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
         # Notebook files
         nb_count['total'],
         nb_count['week'],
+        nb_count['files_total'],
+        nb_count['files_week'],
 
         # Disk Usage
         disk["gen_disk_used"],

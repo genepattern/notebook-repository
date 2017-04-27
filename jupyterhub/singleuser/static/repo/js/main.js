@@ -292,8 +292,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                         .addClass("alert alert-success")
                         .append(
                             $("<p></p>")
-                                .append("This notebook was successfully copied from the GenePattern Notebook Repository as " +
-                                    response['filename'] + ".")
+                                .append("This notebook was successfully copied from the GenePattern Notebook Repository as: ")
+                                .append($("<br/>"))
+                                .append("<samp style='font-weight: bold;'>" + response['filename'] + "</samp>.")
                         )
                         .append(
                             $("<p></p>")

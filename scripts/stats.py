@@ -17,6 +17,7 @@ else:
 
 # Environment configuration
 x = "???"
+data_dir = '/home/user/'
 home_dir = '/home/user/'
 sudo_req = 'sudo '  # Make blank if sudo is not required
 test_email = 'user@broadinstitute.org'
@@ -224,22 +225,22 @@ def get_nb_count():
             continue
 
         # Weekly query
-        cmd_out = commands.getstatusoutput(sudo_req + 'docker exec ' + d + " find . -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
+        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
         user_week = int(cmd_out.strip())
         nb_count['week'] += user_week
 
         # Total query
-        cmd_out = commands.getstatusoutput(sudo_req + 'docker exec ' + d + " find . -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
+        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
         user_total = int(cmd_out.strip())
         nb_count['total'] += user_total
 
         # All files query, weekly
-        cmd_out = commands.getstatusoutput(sudo_req + 'docker exec ' + d + " find . -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
+        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
         files_week = int(cmd_out.strip())
         nb_count['files_week'] += files_week - user_week
 
         # All files query, total
-        cmd_out = commands.getstatusoutput(sudo_req + 'docker exec ' + d + " find . -type f -not -path '*/\.*' | wc -l")[1]
+        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' | wc -l")[1]
         files_total = int(cmd_out.strip())
         nb_count['files_total'] += files_total - user_total
 
@@ -259,17 +260,8 @@ def get_users():
     user_list = [u.strip() for u in user_list]  # Clean new lines
 
     # Gather a list of all running containers
-    cmd_out = commands.getstatusoutput(sudo_req + 'docker ps | grep "jupyter-"')[1]
-    cmd_lines = cmd_out.split('\n')
-    containers = []
-    for line in cmd_lines:
-        cmd_parts = line.split()
-        if len(cmd_parts) > 0:
-            last_part = cmd_parts[len(cmd_parts)-1]
-            last_halves = last_part.split("-")
-            if len(last_halves) < 2:
-                continue  # Ignore container names we cannot parse
-            containers.append(last_halves[1])
+    cmd_out = commands.getstatusoutput("sqlite3 " + home_dir + "jupyterhub.sqlite 'select name from users;'")[1]
+    containers = cmd_out.split('\n')
 
     # Create the rows list of new users
     new_users = list(set(containers) - set(user_list))

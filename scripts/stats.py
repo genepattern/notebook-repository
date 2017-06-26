@@ -48,7 +48,7 @@ def get_docker():
     """
     docker = {}
     docker['notebook'] = _poll_docker('genepattern-notebook')
-    docker['jupyterhub'] = _poll_docker('genepattern-notebook-jupyterhub')
+    docker['jupyterhub'] = {'stars': 1, 'pulls': 180}
     return docker
 
 
@@ -503,7 +503,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                                     <td>%s</td>
                                 </tr>
                                 <tr>
-                                    <td>gp-jupyterhub</td>
+                                    <td>gp-jupyterhub (retired)</td>
                                     <td>%s</td>
                                     <td>%s</td>
                                 </tr>

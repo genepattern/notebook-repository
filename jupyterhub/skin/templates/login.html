@@ -2,11 +2,11 @@
 
 {% block meta %}
     <script type="text/javascript">
-        require(["jquery"], function() {
-            $(document).ready(function() {
-                $("#login_form").submit(function() {
+        require(["jquery"], function () {
+            $(document).ready(function () {
+                $("#login_form").submit(function () {
                     document.cookie = "GenePattern=" + $("#username_input").val() + "|" +
-                            encodeURIComponent(btoa($("#password_input").val())) + ";path=/;domain=genepattern.org"
+                        encodeURIComponent(btoa($("#password_input").val())) + ";path=/;domain=genepattern.org"
                 })
             })
         });
@@ -14,6 +14,48 @@
     <style type="text/css">
         iframe {
             width: 100% !important;
+        }
+
+        .control-group {
+            min-height: 45px;
+        }
+
+        .wait-spinner {
+            font-size: 64pt;
+            color: gray;
+            margin-top: 80px;
+        }
+
+        @media all and (min-width: 992px) {
+            .login-box {
+                height: 80vh;
+                position: relative;
+            }
+
+            .login-row {
+                height: 80vh;
+            }
+
+            .register-panel {
+                min-height: 255px;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 100%;
+                margin: 0 10px 0 10px;
+            }
+        }
+
+        @media all and (max-width: 991px) {
+            .login-box {
+                height: 50vh;
+                min-height: 300px;
+            }
+
+            .login-row {
+                height: 80vh;
+            }
         }
     </style>
 {% endblock %}
@@ -25,70 +67,64 @@
 
     {% block login %}
         <div id="login-main" class="container" style="display: block;">
-            <div class="row" style="height: 80vh;">
+            <div class="row login-row">
                 {% if custom_html %}
                     {{ custom_html }}
                 {% elif login_service %}
                     <div class="service-login">
-                        <a class='btn btn-jupyter btn-lg' href='{{login_url}}'>
-                            Sign in with {{login_service}}
+                        <a class='btn btn-jupyter btn-lg' href='{{ login_url }}'>
+                            Sign in with {{ login_service }}
                         </a>
                     </div>
                 {% else %}
-                    <div class="col-md-4" style="position: relative; height: 80vh;">
-                        <form id="login_form" action="{{login_url}}?next={{next}}" method="post" role="form" autocomplete="off" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100%; padding: 0 10px 0 10px;">
+                    <div class="login-box col-md-4">
+                        <form id="login_form" action="{{ login_url }}?next={{ next }}" method="post" role="form" autocomplete="off"
+                              style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100%; padding: 0 10px 0 10px;">
                             <div class="auth-form-header" style="height:46px;">
                                 Sign in
                             </div>
-                            <div class='auth-form-body' style="min-height: 209px">
-                            {% if login_error %}
-                            <p class="login_error">
-                              {{login_error}}
-                            </p>
-                            {% endif %}
-                            <label for="username_input">Username:</label>
-                            <input
-                              id="username_input"
-                              type="username"
-                              autocapitalize="off"
-                              autocorrect="off"
-                              class="form-control"
-                              name="username"
-                              val="{{username}}"
-                              tabindex="1"
-                              autofocus="autofocus"
-                            />
-                            <label for='password_input'>Password:</label>
-                            <input
-                              type="password"
-                              class="form-control"
-                              name="password"
-                              id="password_input"
-                              tabindex="2"
-                            />
+                            <div class='auth-form-body' style="min-height:209px">
+                                {% if login_error %}
+                                    <p class="login_error">
+                                        {{ login_error }}
+                                    </p>
+                                {% endif %}
+                                <label for="username_input">Username:</label>
+                                <input id="username_input" type="username" autocapitalize="off" autocorrect="off" class="form-control" name="username" val="{{ username }}" tabindex="1" autofocus="autofocus" />
+                                <label for='password_input'>Password:</label>
+                                <input type="password" class="form-control" name="password" id="password_input" tabindex="2" />
 
-                            <input
-                              type="submit"
-                              id="login_submit"
-                              class='btn btn-jupyter'
-                              value='Sign In'
-                              tabindex="3"
-                            />
+                                <input type="submit" id="login_submit" class='btn btn-jupyter' value='Sign In' tabindex="3" />
                             </div>
                         </form>
                     </div>
 
-                    <div class="col-md-4" style="position: relative; height: 80vh;">
+                    <div class="login-box col-md-4">
                         <div style="min-height:255px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100%; padding: 6px 10px 0 10px;">
-                            <a class="twitter-timeline" href="https://twitter.com/GenePattern" data-widget-id="312272908099649536">Tweets by @GenePattern</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+                            <a class="twitter-timeline" href="https://twitter.com/GenePattern" data-widget-id="312272908099649536">Tweets by @GenePattern</a>
+                            <script>!function (d, s, id) {
+                                var js, fjs = d.getElementsByTagName(s)[0], p = /^http:/.test(d.location) ? 'http' : 'https';
+                                if (!d.getElementById(id)) {
+                                    js = d.createElement(s);
+                                    js.id = id;
+                                    js.src = p + "://platform.twitter.com/widgets.js";
+                                    fjs.parentNode.insertBefore(js, fjs);
+                                }
+                            }(document, "script", "twitter-wjs");</script>
                         </div>
                     </div>
 
-                    <div class="col-md-4" style="position: relative; height: 80vh;">
-                        <div class="panel panel-primary" style="min-height:255px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100%; margin: 0 10px 0 10px;">
-                            <div class="panel-heading">Welcome to the GenePattern Notebook Repository</div>
-                            <div class="panel-body">Log in using your <a target="_BLANK" href="https://genepattern.broadinstitute.org">GenePattern public server</a> username and password. If you do not have an account, click the <a target="_BLANK" href="http://genepattern.broadinstitute.org/gp/pages/registerUser.jsf">Register Account</a> button below.<br><br>
-                                <a target="_BLANK" href="http://genepattern.broadinstitute.org/gp/pages/registerUser.jsf"><button class="btn btn-default">Register a New GenePattern Account</button></a><br><br>       Documentation is available on the <a target="_BLANK" href="http://genepattern.org/genepattern-notebooks">GenePattern Notebook website</a>.
+                    <div class="login-box col-md-4">
+                        <div class="panel panel-primary register-panel">
+                            <div class="panel-heading" style="font-size: large;">Register GenePattern Account</div>
+                            <div class="panel-body">Log in using your <a target="_BLANK" href="https://genepattern.broadinstitute.org">GenePattern public
+                                server</a> username and password. If you do not have an account, click the <a target="_BLANK"
+                                                                                                              href="http://genepattern.broadinstitute.org/gp/pages/registerUser.jsf">Register
+                                Account</a> button below.<br><br>
+                                <a target="_BLANK" href="http://genepattern.broadinstitute.org/gp/pages/registerUser.jsf">
+                                    <button class="btn btn-default">Register a New GenePattern Account</button>
+                                </a><br><br> Documentation is available on the <a target="_BLANK" href="http://genepattern-notebook.org">GenePattern Notebook
+                                    website</a>.
                             </div>
                         </div>
                     </div>
@@ -97,8 +133,156 @@
         </div>
     {% endblock login %}
 
+    <div id="registration-main" class="container" style="display: none;">
+        <div class="row">
+            <form id="registration_form" method="POST" class="form-horizontal col-md-8">
+                <h1>Register a GenePattern Account</h1>
+                <div id="registration_error" class="alert alert-danger" style="display: none;"></div>
+                <div class="control-group">
+                    <label class="control-label col-md-3" for="username">Username</label>
+                    <div class="col-md-9">
+                        <input type="text" name="username" class="form-control" required />
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label col-md-3" for="password">Password</label>
+                    <div class="col-md-9">
+                        <input type="password" name="password" class="form-control" required />
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label col-md-3" for="password_confirm">Password (again)</label>
+                    <div class="col-md-9">
+                        <input type="password" name="password_confirm" class="form-control" required />
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label col-md-3">Email</label>
+                    <div class="col-md-9">
+                        <input type="email" name="email" class="form-control" required />
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label col-md-3">&nbsp;</label>
+                    <div class="col-md-9">
+                        <input type="submit" class="btn btn-primary btn-lg" value="Register Account" />
+                    </div>
+                </div>
+            </form>
+            <div class="col-md-4 spinner-space">
+                <!-- Registration hints here -->
+            </div>
+        </div>
+    <div/>
+
 {% endblock %}
 
 {% block script %}
     {{ super() }}
+    <script type="text/javascript">
+        function toggle_registration() {
+            $("#registration-main").slideDown();
+            $("#login-main").slideUp();
+        }
+
+        function add_spinner() {
+            $(".spinner-space").append(
+                $('<i></i>')
+                    .addClass('wait-spinner fa fa-spinner fa-spin fa-3x fa-fw')
+            );
+        }
+
+        function remove_spinner() {
+            $(".spinner-space").empty();
+        }
+
+        function display_error(message) {
+            $("#registration_error").text(message).show();
+        }
+
+        function validate_password() {
+            var registration_form = $("#registration_form");
+            var password = registration_form.find('input[name=password]');
+            var confirm = registration_form.find("input[name='password_confirm']");
+
+            if (password.val() === confirm.val()) {
+                confirm[0].setCustomValidity('');
+                return true;
+            }
+            else {
+                confirm[0].setCustomValidity("Passwords don't match");
+                return false;
+            }
+        }
+
+        // Intercept the registration form submission and do AJAX
+        require(["jquery"], function() {
+            var registration_form = $("#registration_form");
+            registration_form.find('input[name=password]')[0].onchange = validate_password;
+            registration_form.find("input[name='password_confirm']")[0].onkeyup = validate_password;
+
+            $(document).ready(function () {
+                $("#registration_form").submit(function (event) {
+                    // Gather the form data
+                    var formData = {
+                        'username': registration_form.find('input[name=username]').val(),
+                        'password': registration_form.find('input[name=password]').val(),
+                        'email': registration_form.find('input[name=email]').val(),
+                        'client_id': 'GenePattern Notebook Repository'
+                    };
+
+                    // Submit the form
+                    add_spinner();
+                    $.ajax({
+                        beforeSend: function(xhrObj){
+                            xhrObj.setRequestHeader("Content-Type","application/json");
+                            xhrObj.setRequestHeader("Accept","application/json");
+                        },
+                        type: 'POST',
+                        url: 'http://127.0.0.1:8080/gp/rest/v1/oauth2/register',
+                        crossDomain: true,
+                        data: JSON.stringify(formData),
+                        dataType: 'json'
+                    })
+
+                    // Handle the response
+                    .done(function (data) {
+                        var username = registration_form.find('input[name=username]').val();
+                        var password = registration_form.find('input[name=password]').val();
+
+                        // Submit login form
+                        var login_form = $("#login_form");
+                        login_form.find("input[name=username]").val(username);
+                        login_form.find("input[name=password]").val(password);
+                        login_form.submit();
+                    })
+
+                    // Handle errors
+                    .error(function(xhr) {
+                        remove_spinner();
+
+                        // Print to console
+                        console.log("ERROR: " + xhr.statusText);
+                        console.log(xhr);
+
+                        // Handle errors
+                        if (xhr.status === 404) {
+                            display_error("Unable to register user. Could not contact the GenePattern server or remote registration unsupported.");
+                        }
+                        else {
+                            try {
+                                display_error(JSON.parse(xhr.responseText).error);
+                            }
+                            catch(e) {
+                                display_error(xhr.responseText);
+                            }
+                        }
+                    });
+
+                    // Prevent the normal form submission stuJSONff
+                    event.preventDefault();
+                });
+            });
+        });
+    </script>
 {% endblock %}

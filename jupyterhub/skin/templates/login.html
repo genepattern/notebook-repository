@@ -21,9 +21,10 @@
         }
 
         .wait-spinner {
-            font-size: 64pt;
+            font-size: 24pt;
             color: gray;
-            margin-top: 80px;
+            position: relative;
+            top: 7px;
         }
 
         @media all and (min-width: 992px) {
@@ -131,43 +132,51 @@
         </div>
     {% endblock login %}
 
-    <div id="registration-main" class="container" style="display: none;">
+    <div id="registration-main" class="container" style="display: none; background: transparent;">
         <div class="row">
             <form id="registration_form" method="POST" class="form-horizontal col-md-8">
-                <h1>Register a GenePattern Account</h1>
-                <div id="registration_error" class="alert alert-danger" style="display: none;"></div>
-                <div class="control-group">
-                    <label class="control-label col-md-3" for="username">Username</label>
-                    <div class="col-md-9">
-                        <input type="text" name="username" class="form-control" required />
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h1 class="panel-title">Register a GenePattern Account</h1>
                     </div>
-                </div>
-                <div class="control-group">
-                    <label class="control-label col-md-3" for="password">Password</label>
-                    <div class="col-md-9">
-                        <input type="password" name="password" class="form-control" required />
-                    </div>
-                </div>
-                <div class="control-group">
-                    <label class="control-label col-md-3" for="password_confirm">Password (again)</label>
-                    <div class="col-md-9">
-                        <input type="password" name="password_confirm" class="form-control" required />
-                    </div>
-                </div>
-                <div class="control-group">
-                    <label class="control-label col-md-3">Email</label>
-                    <div class="col-md-9">
-                        <input type="email" name="email" class="form-control" required />
-                    </div>
-                </div>
-                <div class="control-group">
-                    <label class="control-label col-md-3">&nbsp;</label>
-                    <div class="col-md-9">
-                        <input type="submit" class="btn btn-primary btn-lg" value="Register Account" />
+                    <div class="panel-body">
+                        <div id="registration_error" class="alert alert-danger" style="display: none;"></div>
+                        <div class="control-group">
+                            <label class="control-label col-md-3" for="username">Username</label>
+                            <div class="col-md-9">
+                                <input type="text" name="username" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label col-md-3" for="password">Password</label>
+                            <div class="col-md-9">
+                                <input type="password" name="password" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label col-md-3" for="password_confirm">Password (again)</label>
+                            <div class="col-md-9">
+                                <input type="password" name="password_confirm" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label col-md-3">Email</label>
+                            <div class="col-md-9">
+                                <input type="email" name="email" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label col-md-3">&nbsp;</label>
+                            <div class="col-md-9">
+                                <input type="submit" class="btn btn-primary btn-lg" value="Register Account" />
+                                <input type="submit" class="btn btn-default btn-lg login-return" onclick="JavaScript: toggle_registration()" value="Return to Login" />
+                                <span class="spinner-space"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>
-            <div class="col-md-4 spinner-space">
+            <div class="col-md-4">
                 <!-- Registration hints here -->
             </div>
         </div>
@@ -179,11 +188,21 @@
     {{ super() }}
     <script type="text/javascript">
         function toggle_registration() {
-            $("#registration-main").slideDown();
-            $("#login-main").slideUp();
+            if ($("#registration-main:visible").length) {
+                $("#registration-main").slideUp();
+                $("#login-main").slideDown();
+            }
+            else {
+                $("#registration-main").slideDown();
+                $("#login-main").slideUp();
+            }
         }
 
         function add_spinner() {
+            // Disable Return to Login Button
+            $(".login-return").prop("disabled", true);
+
+            // Add the spinner
             $(".spinner-space").append(
                 $('<i></i>')
                     .addClass('wait-spinner fa fa-spinner fa-spin fa-3x fa-fw')
@@ -191,6 +210,10 @@
         }
 
         function remove_spinner() {
+            // Disable Return to Login Button
+            $(".login-return").prop("disabled", false);
+
+            // Remove the spinner
             $(".spinner-space").empty();
         }
 

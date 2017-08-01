@@ -7,6 +7,7 @@ GenePattern.repo.my_nb_paths = GenePattern.repo.my_nb_paths || [];
 GenePattern.repo.username = GenePattern.repo.username || null;
 GenePattern.repo.repo_url = GenePattern.repo.repo_url || null;
 GenePattern.repo.token = GenePattern.repo.token || null;
+GenePattern.repo.last_refresh = GenePattern.repo.last_refresh || null;
 
 require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, dialog) {
     "use strict";
@@ -738,6 +739,31 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
     }
 
     /**
+     * Initialize the periodic refresh of the notebook repository tab
+     */
+    function init_repo_refresh() {
+        // When the repository tab is clicked
+        $(".repository_tab_link").click(function() {
+            var ONE_MINUTE = 60000;
+
+            // If the notebooks haven't been refreshed in the last minute, refresh
+            if (GenePattern.repo.last_refresh < new Date().valueOf() - ONE_MINUTE) {
+                get_notebooks(function() {
+                    // Clear the notebook search
+                    $("#repository-search").val("");
+                });
+            }
+        });
+    }
+
+    /**
+     * Empty all notebook UI elements from the list
+     */
+    function empty_notebook_list() {
+        $("#repository-list").empty();
+    }
+
+    /**
      * Get the list of notebooks
      *
      * @param success_callback
@@ -753,7 +779,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             success: function(response) {
                 GenePattern.repo.public_notebooks = response['results'];
                 nb_path_list(); // Build the path list for displaying share icons
+                empty_notebook_list(); // Empty the list of any existing state
                 build_repo_tab(); // Populate the repository tab
+                GenePattern.repo.last_refresh = new Date(); // Set the time of last refresh
                 if (success_callback) success_callback();
             },
             error: function() {
@@ -887,11 +915,14 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
             .append(
                 $('<div id="repository" class="tab-pane"></div>')
                     .append(
-                        $('<div id="repository-list" class="list_container">')
+                        $('<div class="list_container">')
                             .append(
                                 $('<div id="repository-list-header" class="row list_header repo-header"></div>')
                                     .append("Public Notebooks")
                                     .append($('<input id="repository-search" type="search" placeholder="Search Repository" />'))
+                            )
+                            .append(
+                                $('<div id="repository-list" class="row"></div>')
                             )
                     )
             );
@@ -943,6 +974,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                 add_published_icons();
             });
         });
+
+        // Refresh notebooks in the list if the tab is clicked
+        init_repo_refresh();
 
         // When the files list is refreshed
         $([Jupyter.events]).on('draw_notebook_list.NotebookList', function() {

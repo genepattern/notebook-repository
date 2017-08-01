@@ -99,3 +99,7 @@
 input.repo-input:invalid, select.repo-input:invalid {
   border: 1px solid red;
 }
+
+#repository-list > div {
+    border-bottom: 1px solid #ddd;
+}

@@ -1,3 +1,8 @@
+/**
+ * Include the DataTables CSS, which is used to display the public notebooks table
+ */
+@import url("https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css");
+
 .running-indicator {
     display: inline-block;
 }
@@ -100,6 +105,10 @@ input.repo-input:invalid, select.repo-input:invalid {
   border: 1px solid red;
 }
 
-#repository-list > div {
-    border-bottom: 1px solid #ddd;
+#repository-list {
+    padding: 10px;
+}
+
+#repository-list tbody {
+    cursor: pointer;
 }

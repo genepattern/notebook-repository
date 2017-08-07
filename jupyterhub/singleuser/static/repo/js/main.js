@@ -9,7 +9,7 @@ GenePattern.repo.repo_url = GenePattern.repo.repo_url || null;
 GenePattern.repo.token = GenePattern.repo.token || null;
 GenePattern.repo.last_refresh = GenePattern.repo.last_refresh || null;
 
-require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, dialog) {
+require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js'], function(Jupyter, $, dialog, datatables) {
     "use strict";
 
     /**
@@ -690,51 +690,78 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
     }
 
     /**
+     * Transforms the JSON notebooks object into a list of lists,
+     * to be consumed by data tables
+     */
+    function public_notebook_list() {
+        var built_list = [];
+
+        GenePattern.repo.public_notebooks.forEach(function(nb) {
+            built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality]);
+        });
+
+        return built_list;
+    }
+
+    /**
+     * Return the notebook matching the provided ID
+     * @param id
+     * @returns {*}
+     */
+    function get_notebook(id) {
+        var selected = null;
+        GenePattern.repo.public_notebooks.forEach(function(nb) {
+            if (nb.id === id) {
+                selected = nb;
+                return false;
+            }
+        });
+        return selected;
+    }
+
+    /**
      * Builds the repository tab
      */
     function build_repo_tab() {
+        // Create the table
         var list_div = $("#repository-list");
-        GenePattern.repo.public_notebooks.forEach(function(nb) {
-            var owner = GenePattern.repo.username == nb['owner'];
-            list_div.append(
-                $("<div></div>")
-                    .addClass("list_item row")
-                    .append(
-                        $("<div></div>")
-                            .addClass("col-md-12 repo-list")
-                            .append($('<i class="item_icon notebook_icon icon-fixed-width repo-nb-icon"></i>'))
-                            .append(
-                                $("<div></div>")
-                                    .addClass("pull-right repo-list-author")
-                                    .append(nb['author'])
+        var table = $("<table></table>")
+            .addClass("table table-striped table-bordered table-hover")
+            .appendTo(list_div);
 
-                            )
-                            .append(
-                                $("<div></div>")
-                                    .addClass("repo-list-name")
-                                    .append(owner ? '<span class="label label-primary">Owner<span>' : '')
-                                    .append(owner ? '&nbsp;' : '')
-                                    .append(nb['name'])
+        // Initialize the DataTable
+        var dt = table.DataTable({
+            "data": public_notebook_list(),
+            "pageLength": 25,
+            "columns": [
+                {"title": "ID", "visible": false, "searchable": false},
+                {"title": "Notebook"},
+                {"title": "Description", "visible": false},
+                {"title": "Authors"},
+                {"title":"Updated"},
+                {"title":"Quality"}
+            ]
+        });
 
-                            )
-                            .append(
-                                $("<div></div>")
-                                    .addClass("repo-nb-description")
-                                    .append(nb['description'])
-                            )
-                            .append(
-                                $("<div></div>")
-                                    .addClass("repo-nb-metadata hidden")
-                                    .append(nb['quality'])
-                                    .append(' ' + nb['owner'])
-                                    .append(' ' + nb['publication'])
-                                    .append(' ' + nb['api_path'])
-                            )
-                            .click(function() {
-                                repo_nb_dialog(nb);
-                            })
-                    )
-            );
+        // Add event listener for notebook dialogs
+        table.find("tbody").on('click', 'tr', function () {
+            var data = dt.row( this ).data();
+            var id = data[0];
+            var nb = get_notebook(id);
+            repo_nb_dialog(nb);
+        });
+
+        // Add the popovers
+        table.find("tbody").find("tr").each(function(i, e) {
+            var data = dt.row(e).data();
+            var element = $(this);
+            element.find("td:first").popover({
+                title: data[1],
+                content: data[2],
+                placement: "right",
+                trigger: "hover",
+                container: "body"
+            });
         });
     }
 
@@ -748,10 +775,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
 
             // If the notebooks haven't been refreshed in the last minute, refresh
             if (GenePattern.repo.last_refresh < new Date().valueOf() - ONE_MINUTE) {
-                get_notebooks(function() {
-                    // Clear the notebook search
-                    $("#repository-search").val("");
-                });
+                get_notebooks(function() {});
             }
         });
     }
@@ -919,31 +943,12 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                             .append(
                                 $('<div id="repository-list-header" class="row list_header repo-header"></div>')
                                     .append("Public Notebooks")
-                                    .append($('<input id="repository-search" type="search" placeholder="Search Repository" />'))
                             )
                             .append(
                                 $('<div id="repository-list" class="row"></div>')
                             )
                     )
             );
-
-        // Initialize the search box
-        $("#repository-search")
-            .keydown(function(event) {
-                event.stopPropagation();
-            })
-            .keyup(function(event) {
-                var search = $(event.target).val().toLowerCase();
-                $.each($("#repository-list").find(".list_item"), function(index, element) {
-                    var raw = $(element).text().toLowerCase();
-                    if (raw.indexOf(search) === -1) {
-                        $(element).hide();
-                    }
-                    else {
-                        $(element).show();
-                    }
-                });
-            });
     }
 
     /*

@@ -109,6 +109,10 @@ input.repo-input:invalid, select.repo-input:invalid {
     padding: 10px;
 }
 
+#repository-list table {
+    width: 100% !important;
+}
+
 #repository-list tbody {
     cursor: pointer;
 }

@@ -1,25 +1,25 @@
 #!/usr/bin/env python
 
-import http.server
-import socketserver
-
-the_port = 8080
-the_redirect_url = 'https://awsnotebook.genepattern.org'
-
-class myHandler(http.server.SimpleHTTPRequestHandler):
-   def do_GET(self):
-       print (self.path)
-       self.send_response(301)
-       new_path = '%s%s'%(the_redirect_url, self.path)
-       self.send_header('Location', new_path)
-       self.end_headers()
+import re
+import tornado.httpserver
+from tornado import web
 
 
-handler = socketserver.TCPServer(("", the_port), myHandler)
-print ("serving rediect to  ", the_redirect_url,  " at port ", the_port)
+class MainHandler(web.RequestHandler):
+    def prepare(self):
+        if self.request.protocol == "http":
+            redirect_to = re.sub(r'^([^:]+)', 'https', self.request.full_url())
+            self.redirect(redirect_to, permanent=True)
 
-try:
-    handler.serve_forever()
-except KeyboardInterrupt:
-    print("Shutting down...")
-    handler.shutdown()
+    def get(self):
+        self.write("Redirecting to HTTPS...")
+
+application = web.Application([
+    (r'/.*', MainHandler),
+])
+
+http_server = tornado.httpserver.HTTPServer(application)
+
+if __name__ == '__main__':
+    http_server.listen(8080)
+    tornado.ioloop.IOLoop.instance().start()

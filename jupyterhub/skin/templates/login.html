@@ -4,11 +4,34 @@
     <script type="text/javascript">
         require(["jquery"], function () {
             $(document).ready(function () {
+                // Set the cookie on login
                 $("#login_form").submit(function () {
                     document.cookie = "GenePattern=" + $("#username_input").val() + "|" +
                         encodeURIComponent(btoa($("#password_input").val())) + ";path=/;domain=genepattern.org"
-                })
-            })
+                });
+
+                // Get the status message
+                $.ajax({
+                    method: "GET",
+                    url: "https://genepattern.broadinstitute.org/gp/rest/v1/config/system-message",
+                    timeout: 10000,
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic c3RhdHVzX3F1ZXJ5OnN0YXR1c19xdWVyeQ==");
+                    },
+                    success: function(x, y) {
+                        $("#genepattern-status").empty();
+                        $("#genepattern-status").append(x)
+                    },
+                    error: function(x, y) {
+                        $("#genepattern-status").empty();
+                        $("#genepattern-status").append("<p style='color:red; font-weight:bold;'>The GenePattern public server currently appears to be experiencing technical difficulties.</p><p>You may encounter errors when attempting to log in or access otherwise access the server.</p><p>Please try again in a few minutes.</p>")
+                    }
+                });
+
+            });
         });
     </script>
     <style type="text/css">
@@ -25,6 +48,11 @@
             color: gray;
             position: relative;
             top: 7px;
+        }
+
+        #genepattern-status {
+	    height: 209px;
+            overflow-y: auto;
         }
 
         @media all and (min-width: 992px) {
@@ -45,6 +73,16 @@
                 transform: translate(-50%, -50%);
                 width: 100%;
                 margin: 0 10px 0 10px;
+            }
+
+            .status-panel {
+                min-height: 255px;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 350px;
+                margin: 0;
             }
         }
 
@@ -101,17 +139,11 @@
                     </div>
 
                     <div class="login-box col-md-4">
-                        <div style="min-height:255px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100%; padding: 6px 10px 0 10px;">
-                            <a class="twitter-timeline" href="https://twitter.com/GenePattern" data-widget-id="312272908099649536">Tweets by @GenePattern</a>
-                            <script>!function (d, s, id) {
-                                var js, fjs = d.getElementsByTagName(s)[0], p = /^http:/.test(d.location) ? 'http' : 'https';
-                                if (!d.getElementById(id)) {
-                                    js = d.createElement(s);
-                                    js.id = id;
-                                    js.src = p + "://platform.twitter.com/widgets.js";
-                                    fjs.parentNode.insertBefore(js, fjs);
-                                }
-                            }(document, "script", "twitter-wjs");</script>
+                        <div class="panel panel-primary status-panel">
+                            <div class="panel-heading" style="font-size: large;">GenePattern Server Status</div>
+                            <div id="genepattern-status" class="panel-body">
+                                Loading...
+                            </div>
                         </div>
                     </div>
 

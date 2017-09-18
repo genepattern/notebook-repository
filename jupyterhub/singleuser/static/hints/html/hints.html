@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to the GenePattern Notebook Repository!</title>
+    <link rel="stylesheet" href="/static/style/style.min.css" type="text/css">
+    <style type="text/css">
+        body {
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        p {
+            font-size: 1.2em;
+            line-height: 1.6em;
+            margin-bottom: 15px;
+        }
+
+        img {
+            width: 100%;
+            border: solid black 1px;
+        }
+    </style>
+    <script type="text/javascript">
+        function user_path() {
+            const on_hub = location.pathname.startsWith('/user/');
+
+            if (on_hub) {
+                const parts = location.pathname.split('/');
+                return parts[0] + '/' + parts[1];
+            }
+            else {
+                return '';
+            }
+        }
+
+        function open_notebook_tutorial() {
+            const tutorial_url = user_path() + "/notebooks/GenePattern Notebook Tutorial.ipynb";
+            window.open(tutorial_url);
+        }
+    </script>
+</head>
+<body>
+    <h3>Getting Started</h3>
+    <p>Welcome to the GenePattern Notebook Repository. GenePattern provides hundreds of analytical tools for the analysis of gene expression (RNA-seq and
+        microarray), sequence variation and copy number, proteomic, flow cytometry, and network analysis - all with a user-friendly interface!</p>
+    <p>This resource is here to help you run your own genomic analyses through the creation of interactive "notebooks." These notebooks are designed to help you
+        explore, track and reproduce your research, all the way from its conception through its dissemination.</p>
+    <p>To get started, we recommend beginning with the <a href="javascript:open_notebook_tutorial();">GenePattern Notebook Tutorial</a>.</p>
+
+    <h3>Accessing Public Notebooks</h3>
+    <p>The GenePattern Notebook Repository provides an variety of public notebooks, which can serve as templates or examples when creating your own. These
+        notebooks can be accessed from the "Public Notebooks" tab at the top of this page. (You may need to close this dialog in order to see the tab.)</p>
+    <p><img src="../img/public_notebooks.jpg" /></p>
+    <p>To open a public notebook, first look through the list and find one that interests you, then click on the notebook's name to open a dialog with the full
+        description. This dialog will have a "Get a Copy" button. If you click this button a copy of the notebook will be made to your workspace. Click the
+        button and then navigate back to the "Files" tab. A copy of the notebook will now be among your files. Simply click the copy to run the notebook and
+        reproduce its contents.</p>
+
+    <h3>Creating Your Own Notebook</h3>
+    <p>To create your own notebook from scratch, click the "New" dropdown and select Python 3.6. Programming knowledge is not required to use GenePattern
+        Notebooks, but its use remains available to you if you are a coder.</p>
+    <p><img src="../img/new_notebook.jpg" /></p>
+    <p>This will open a new blank notebook. To begin a GenePattern analysis, select any cell and change the cell type to "GenePattern." For more information,
+        see the <a href="javascript:open_notebook_tutorial();">GenePattern Notebook Tutorial</a>.</p>
+</body>
+</html>

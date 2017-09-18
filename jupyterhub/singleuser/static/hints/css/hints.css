@@ -1,0 +1,28 @@
+#gp-hint-box {
+    position: fixed;
+    right: 40px;
+    bottom: 20px;
+    font-size: 30px;
+    background-color: rgba(10, 45, 105, 0.80);
+    padding: 20px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    color: white;
+    border: 1px solid black;
+    cursor: pointer;
+}
+
+#gp-hint-box i {
+    position: relative;
+    top: -21px;
+    left: -8px;
+}
+
+#gp-hint-box:hover  {
+    background-color: rgba(10, 45, 105, 1);
+}
+
+#gp-hint-box:hover i {
+    color: #f8ffac;
+}

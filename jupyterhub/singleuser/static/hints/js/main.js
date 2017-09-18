@@ -21,7 +21,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                                 $("<iframe></iframe>")
                                     .css("height", $(window).height() - 300)
                                     .css("width", "100%")
-                                    .attr("src", "../static/hints/html/hints.html")
+                                    .attr("src", Jupyter.notebook_list.base_url + "static/hints/html/hints.html")
                             ),
                         buttons: {
                             "OK": {

@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Welcome to the GenePattern Notebook Repository!</title>
-    <link rel="stylesheet" href="/static/style/style.min.css" type="text/css">
+    <link rel="stylesheet" href="/hub/static/css/style.min.css" type="text/css" />
     <style type="text/css">
         body {
             padding-left: 20px;
             padding-right: 20px;
+            background-image: none;
+            background-color: white;
         }
 
         p {
             font-size: 1.2em;
             line-height: 1.6em;
-            margin-bottom: 15px;
+            margin-bottom: 15px !important;
         }
 
         img {
@@ -27,7 +29,7 @@
 
             if (on_hub) {
                 const parts = location.pathname.split('/');
-                return parts[0] + '/' + parts[1];
+                return '/' + parts[1] + '/' + parts[2];
             }
             else {
                 return '';

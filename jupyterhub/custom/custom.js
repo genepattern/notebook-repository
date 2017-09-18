@@ -1,7 +1,7 @@
 /**
  * Use require.js to load the static GenePattern Notebook Repository files
  */
-require(['base/js/namespace', 'jquery', 'repo/js/main'], function(Jupyter, $, repo) {
+require(['base/js/namespace', 'jquery', 'repo/js/main', 'hints/js/main'], function(Jupyter, $, repo, hints) {
     "use strict";
 
 	// Add username to the logout button

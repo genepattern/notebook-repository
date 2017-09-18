@@ -5,7 +5,7 @@
 /*
  * Import the styles used by the GenePattern notebook skin
  */
- @import url("../static/theme/css/navigation.css");
+@import url("../static/theme/css/navigation.css");
 
 /*
  * Import the styles used by the GenePattern widgets
@@ -16,6 +16,11 @@
  * Import the styles used by the GenePattern Repository service
  */
  @import url("../static/repo/css/repo.css");
+
+/*
+ * Import the styles used by the GenePattern hint box
+ */
+ @import url("../static/hints/css/hints.css");
 
 /**
  * Loading screen styles

@@ -18,9 +18,6 @@
                     xhrFields: {
                         withCredentials: true
                     },
-                    beforeSend: function (xhr) {
-                        xhr.setRequestHeader ("Authorization", "Basic c3RhdHVzX3F1ZXJ5OnN0YXR1c19xdWVyeQ==");
-                    },
                     success: function(x, y) {
                         $("#genepattern-status").empty();
                         $("#genepattern-status").append(x)
@@ -332,7 +329,7 @@
                         }
                     });
 
-                    // Prevent the normal form submission stuJSONff
+                    // Prevent the normal form submission stuff
                     event.preventDefault();
                 });
             });

@@ -52,6 +52,22 @@
             overflow-y: auto;
         }
 
+        #forgot-password {
+            width: auto !important;
+            margin-top: 16px;
+            float: right;
+        }
+
+        #success-message {
+            width: 50%;
+            max-width: 500px;
+            position: fixed;
+            top: 120px;
+            z-index: 60000;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
         @media all and (min-width: 992px) {
             .login-box {
                 height: 80vh;
@@ -131,6 +147,8 @@
                                 <input type="password" class="form-control" name="password" id="password_input" tabindex="2" />
 
                                 <input type="submit" id="login_submit" class='btn btn-jupyter' value='Sign In' tabindex="3" />
+
+                                <button id="forgot-password" type="button" class="btn btn-default" onclick="JavaScript:toggle_forgot_password()">Forgot Password?</button>
                             </div>
                         </form>
                     </div>
@@ -160,6 +178,37 @@
             </div>
         </div>
     {% endblock login %}
+
+    <div id="password-main" class="container" style="display: none; background: transparent;">
+        <div class="row">
+            <form id="forgot_password_form" method="POST" class="form-horizontal col-md-8">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h1 class="panel-title">Request a Password Reset</h1>
+                    </div>
+                    <div class="panel-body">
+                        <div id="password_error" class="alert alert-danger" style="display: none;"></div>
+                        <p class="col-md-12" style="float: none;">Enter your registered username into the form below. A new password will be sent to its
+                            associated email address. If you don't see the email within a few minutes, please check your spam filter.</p>
+                        <div class="control-group">
+                            <label class="control-label col-md-3" for="username">Username</label>
+                            <div class="col-md-9">
+                                <input type="text" name="username" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label col-md-3">&nbsp;</label>
+                            <div class="col-md-9">
+                                <input type="submit" class="btn btn-primary btn-lg" value="Reset Password" />
+                                <input type="submit" class="btn btn-default btn-lg login-return" onclick="JavaScript: toggle_forgot_password()" value="Return to Login" />
+                                <span class="spinner-space"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <div id="registration-main" class="container" style="display: none; background: transparent;">
         <div class="row">
@@ -216,6 +265,18 @@
 {% block script %}
     {{ super() }}
     <script type="text/javascript">
+        function toggle_forgot_password() {
+
+            if ($("#password-main:visible").length) {
+                $("#password-main").slideUp();
+                $("#login-main").slideDown();
+            }
+            else {
+                $("#password-main").slideDown();
+                $("#login-main").slideUp();
+            }
+        }
+
         function toggle_registration() {
             if ($("#registration-main:visible").length) {
                 $("#registration-main").slideUp();
@@ -246,8 +307,12 @@
             $(".spinner-space").empty();
         }
 
-        function display_error(message) {
-            $("#registration_error").text(message).show();
+        function display_error(message, selector="#registration_error") {
+            $(selector).text(message).show();
+        }
+
+        function hide_errors() {
+            $("div.alert-danger").hide();
         }
 
         function validate_password() {
@@ -265,6 +330,25 @@
             }
         }
 
+        function success_message(message) {
+            // Remove old message
+            $("#success-message").remove();
+
+            // Add the new message
+            $("body").append(
+                $("<div></div>")
+                    .attr("id", "success-message")
+                    .addClass("alert alert-success alert-dismissable")
+                    .append(
+                        $('<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>')
+                            .click(function() {
+                                $("#success-message").remove();
+                            })
+                    )
+                    .append(message)
+            );
+        }
+
         // Intercept the registration form submission and do AJAX
         require(["jquery"], function() {
             var registration_form = $("#registration_form");
@@ -272,6 +356,7 @@
             registration_form.find("input[name='password_confirm']")[0].onkeyup = validate_password;
 
             $(document).ready(function () {
+                // Handle the registration form
                 $("#registration_form").submit(function (event) {
                     // Gather the form data
                     var formData = {
@@ -327,6 +412,61 @@
                                 display_error(xhr.responseText);
                             }
                         }
+                    });
+
+                    // Prevent the normal form submission stuff
+                    event.preventDefault();
+                });
+
+                // Handle the forgot password form
+                var password_form = $("#forgot_password_form");
+                password_form.submit(function (event) {
+                    // Gather the form data
+                    var formData = {
+                        'usernameOrEmail': password_form.find('input[name=username]').val()
+                    };
+
+                    // Submit the form
+                    add_spinner();
+                    $.ajax({
+                        beforeSend: function(xhrObj){
+                            xhrObj.setRequestHeader("Content-Type","application/json");
+                            xhrObj.setRequestHeader("Accept","application/json");
+                        },
+                        type: 'PUT',
+                        url: 'https://genepattern.broadinstitute.org/gp/rest/v1/oauth2/forgot-password',
+                        crossDomain: true,
+                        data: JSON.stringify(formData),
+                        dataType: 'json'
+                    })
+
+                    // Handle the response
+                    .done(function (data) {
+                        // Success!
+                        if (data && data.message === "A new password has been emailed to you.") {
+                            toggle_forgot_password();
+                            hide_errors();
+                            success_message("A new password has been emailed to you.");
+                        }
+
+                        // Error response!
+                        else {
+                            try {
+                                display_error(data.message, "#password_error");
+                            }
+                            catch(e) {
+                                display_error(data.message, "#password_error");
+                            }
+                        }
+
+                        // Remove the spinner
+                        remove_spinner();
+                    })
+
+                    // Handle errors
+                    .error(function(xhr) {
+                        remove_spinner();
+                        display_error("Unable to reset password. Could not contact the GenePattern server or remote password reset unsupported.", "#password_error");
                     });
 
                     // Prevent the normal form submission stuff

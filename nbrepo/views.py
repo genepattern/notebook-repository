@@ -18,8 +18,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from nbrepo.models import Notebook
-from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer
+from nbrepo.models import Notebook, Share, Collaborator
+from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer, SharingSerializer, CollaboratorSerializer
 import logging
 
 
@@ -41,6 +41,26 @@ class GroupViewSet(viewsets.ModelViewSet):
     """
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+
+
+class SharingViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows notebooks to be viewed or edited.
+    """
+    queryset = Share.objects.all()
+    serializer_class = SharingSerializer
+    filter_fields = ('owner', 'name', 'file_path', 'api_path', )
+    permission_classes = (permissions.AllowAny, )
+
+
+class CollaboratorViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows notebooks to be viewed or edited.
+    """
+    queryset = Collaborator.objects.all()
+    serializer_class = CollaboratorSerializer
+    filter_fields = ('name', 'token', 'accepted', )
+    permission_classes = (permissions.AllowAny, )
 
 
 class NotebookViewSet(viewsets.ModelViewSet):
@@ -140,6 +160,18 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         # Return response
         return response
+
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def begin_sharing(request):
+    pass
+
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def accept_sharing(request):
+    pass
 
 
 @api_view(['POST'])

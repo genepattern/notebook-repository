@@ -16,14 +16,15 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
-from nbrepo.views import NotebookViewSet, copy, obtain_auth_token
-
+from nbrepo.views import NotebookViewSet, copy, obtain_auth_token, SharingViewSet, CollaboratorViewSet, begin_sharing, accept_sharing
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
 # router.register(r'users', UserViewSet)
 # router.register(r'groups', GroupViewSet)
 router.register(r'notebooks', NotebookViewSet)
+router.register(r'sharing', SharingViewSet)
+router.register(r'collaborators', CollaboratorViewSet)
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
@@ -34,6 +35,8 @@ urlpatterns = [
 
     # GenePattern Notebook Repo endpoints
     url(r'^notebooks/(?P<pk>[0-9]+)/copy/(?P<api_path>.*)$', copy),
+    url(r'^sharing/begin/', begin_sharing),
+    url(r'^sharing/(?P<pk>[0-9]+)/accept/(?P<token>.*)$', accept_sharing),
     url(r'^', include(router.urls)),
 ]
 

@@ -96,7 +96,7 @@ class GenePatternAuthentication(TokenAuthentication):
         try:
             token_model = Token.objects.get(user=user_model)
             token_model.delete()
-        except User.DoesNotExist:
+        except:
             # Ignore
             pass
 

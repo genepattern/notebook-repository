@@ -1,5 +1,8 @@
+import hashlib
 import ntpath
 import os
+import random
+import re
 import urllib
 import urllib.parse
 from django.contrib.auth.models import User, Group
@@ -162,10 +165,134 @@ class NotebookViewSet(viewsets.ModelViewSet):
         return response
 
 
+def _api_to_file_path(username, api_path):
+    base_user_path = os.path.join(settings.BASE_USER_PATH, username)
+
+    # Path to the user's notebook file
+    return os.path.join(base_user_path, api_path)
+
+
+def _remove_api_prefix(nb_path):
+    if nb_path.startswith("/notebooks/"):
+        return nb_path[11:]
+
+
+def _is_email(email):
+    if len(email) > 7:
+        if re.match("^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$", email.lower()) is not None:
+            return True
+    return False
+
+
+def _generate_token():
+    token = hashlib.md5()
+    token.update(str(random.random()).encode('utf-8'))
+    return token.hexdigest()
+
+
+def _create_collaborator(nb, name_or_email):
+    name = ''
+    email = ''
+
+    # Guess if provided with name or email
+    if _is_email(name_or_email):
+        email = name_or_email
+    else:
+        name = name_or_email
+
+    # If invalid name or email, throw an error
+    # TODO: Implement check
+
+    # Otherwise, create the collaborator
+    c = Collaborator()
+    c.share = nb
+    c.name = name
+    c.email = email
+    c.token = _generate_token()
+    c.accepted = False
+    c.save()
+
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def current_collaborators(request, api_path):
+    nb_path = _remove_api_prefix(urllib.parse.unquote('/' + api_path))
+    matches = Collaborator.objects.filter(share__api_path=nb_path)
+
+    return_list = []
+    for c in matches:
+        if c.name and c.email:
+            return_list.append(c.name)
+        elif c.name:
+            return_list.append(c.name)
+        elif c.email:
+            return_list.append(c.email)
+
+    return_obj = {"shared_with": return_list}
+    return Response(json.dumps(return_obj))
+
+
 @api_view(['POST'])
 @permission_classes((permissions.AllowAny,))
 def begin_sharing(request):
-    pass
+    nb_path = request.POST['notebook'] if 'notebook' in request.POST else None
+    users = request.POST['share_with'].split(',') if 'share_with' in request.POST and request.POST['share_with'] != '' else []
+    owner = request.POST['shared_by'] if 'shared_by' in request.POST else None
+
+    # Escape nb_path
+    nb_path = _remove_api_prefix(urllib.parse.unquote(nb_path))
+
+    # Handle the case of sharing with nobody
+    if nb_path is None or users is None or owner is None:
+        return_obj = {"success": "Unable to share notebook."}
+        return Response(json.dumps(return_obj))
+
+    # Get the database entry for the notebook
+    notebook = None
+    try:
+        notebook = Share.objects.get(api_path=nb_path)
+
+    # Lazily create one if one does not already exist
+    except Share.DoesNotExist:
+        notebook = Share()
+        notebook.owner = owner
+        notebook.name = nb_path.split('/')[-1]
+        notebook.file_path = _api_to_file_path(owner, nb_path)
+        notebook.api_path = nb_path
+        notebook.save()
+
+    # Get the list of collaborators for the notebook
+    collaborators = Collaborator.objects.filter(share=notebook)
+    existing = []
+    for c in collaborators:
+        if c.name:
+            existing.append(c.name)
+        if c.email:
+            existing.append(c.email)
+
+    # Figure out which need added
+    need_added = []
+    for user in users:
+        if user not in existing:
+            need_added.append(user)
+
+    # Figure out which need removed
+    need_removed = []
+    for user in collaborators:
+        if user.email not in users and user.name not in users:
+            need_removed.append(user)
+
+    # Remove collaborators as necessary
+    for user in need_removed:
+        user.delete()
+
+    # Add collaborators as necessary
+    for user in need_added:
+        _create_collaborator(notebook, user)
+
+    # Otherwise, assume everything is good
+    return_obj = {"success": "Notebook sharing updated"}
+    return Response(json.dumps(return_obj))
 
 
 @api_view(['GET'])

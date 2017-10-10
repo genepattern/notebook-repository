@@ -51,22 +51,22 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
     }
 
     /**
-     * Determine if the given api path is one of my shared notebooks
+     * Determine if the given api path is one of my published notebooks
      *
      * @param api_path
      * @returns {boolean}
      */
-    function is_nb_shared(api_path) {
+    function is_nb_published(api_path) {
         return GenePattern.repo.my_nb_paths.indexOf(api_path) >= 0;
     }
 
     /**
-     * Get the JSON info for the shared notebook, return null otherwise
+     * Get the JSON info for the published notebook, return null otherwise
      *
      * @param api_path
      * @returns {object|null}
      */
-    function get_shared(api_path) {
+    function get_published(api_path) {
         for (var i = 0; i < GenePattern.repo.public_notebooks.length; i++) {
             var nb = GenePattern.repo.public_notebooks[i];
             if (nb["api_path"] === api_path) {
@@ -176,7 +176,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
 
         // Clean the UI
         $("#repository").find(".list_item").remove();
-        $("#notebook_list").find(".repo-share-icon").remove();
+        $("#notebook_list").find(".repo-publish-icon").remove();
     }
 
     function forceHTTPS(url) {
@@ -197,9 +197,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      *
      * @param notebook
      * @param nb_path
-     * @param shared
+     * @param published
      */
-    function publish_or_update(notebook, nb_path, shared) {
+    function publish_or_update(notebook, nb_path, published) {
         // Get the notebook data structure
         var pub_nb = make_nb_json(notebook, nb_path);
 
@@ -208,8 +208,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
 
         // Call the repo service to publish the notebook
         $.ajax({
-            url: (shared ? forceHTTPS(notebook['url']) : GenePattern.repo.repo_url + "/notebooks/"),
-            method: (shared ? "PUT" : "POST"),
+            url: (published ? forceHTTPS(notebook['url']) : GenePattern.repo.repo_url + "/notebooks/"),
+            method: (published ? "PUT" : "POST"),
             crossDomain: true,
             data: pub_nb,
             dataType: 'json',
@@ -233,7 +233,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
                     body : $("<div></div>")
                         .addClass("alert alert-success")
                         .append(
-                            (shared ?
+                            (published ?
                                 "Your notebook was successfully updated in the GenePattern Notebook Repository." :
                                 "Your notebook was successfully published to the GenePattern Notebook Repository.")
 
@@ -376,13 +376,235 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         });
     }
 
+    function update_sharing(path, share_list, success, errors) {
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/sharing/begin/",
+            method: "POST",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: success,
+            error: errors,
+            data: {
+                "notebook": path,
+                "share_with": share_list.join(','),
+                "shared_by": GenePattern.repo.username
+            }
+        });
+    }
+
+    function get_current_sharing(nb_path, callback) {
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/sharing/current" + nb_path,
+            method: "GET",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(response) {
+                try {
+                    const shared_with = JSON.parse(response)['shared_with'];
+                    callback(shared_with);
+                }
+                catch (e) {
+                    console.log("ERROR: Parsing response in get_current_sharing(): " + response);
+                    callback([]);
+                }
+
+            },
+            error: function(response) {
+                console.log("ERROR: Getting current collaborators");
+                console.log(response);
+                callback([]);
+            }
+        });
+    }
+
     /**
      * Function to call when sharing a notebook
      */
     function share_selected() {
+        const nb_path = get_selected_path();
+
+        get_current_sharing(nb_path, function(shared_with) {
+            const shared = shared_with.length > 0;
+
+            // Create buttons list
+            const buttons = {};
+            buttons["Cancel"] = {"class" : "btn-default"};
+            buttons[shared ? "Update" : "Share"] = {
+                "class" : "btn-primary",
+                "click": function() {
+                    const success = function(response) {
+                        // Close the old dialog
+                        close_modal();
+
+                        // Parse the message
+                        const message = JSON.parse(response).success;
+
+                        // Display a new dialog with the success message
+                        dialog.modal({
+                            title : "Notebook Shared",
+                            body : $("<div></div>")
+                                .addClass("alert alert-success")
+                                .append(message),
+                            buttons: {"OK": function() {}}
+                        });
+                    };
+
+                    const errors = function(response) {
+                        // Remove the loading screen
+                        $(".repo-modal-cover").remove();
+
+                        // Try to parse a JSON error response
+                       try {
+                           const json = JSON.parse(response.responseText);
+                           console.log(json);
+                       }
+                       catch (e) {
+                           // Assume this is a 500 error of some sort
+                           $(".modal-dialog").find(".alert")
+                               .removeClass("alert-info")
+                               .addClass("alert-danger")
+                               .text("An error occured while attempting to share the notebook.")
+                       }
+                    };
+
+                    // Send list to the server
+                    update_sharing(nb_path, shared_with, success, errors);
+
+                    // Show the loading screen
+                    modal_loading_screen();
+
+                    // Wait for the callback to hide the dialog
+                    return false;
+                }};
+
+            // Create the dialog body
+            const body = $("<div/>");
+            if (shared) {
+                body.append(
+                    $("<div/>")
+                        .addClass("alert alert-info")
+                        .append("This notebook has been shared with the users listed below. To update this list, remove or add users and then click Update.")
+                );
+            }
+            else {
+                body.append(
+                    $("<div/>")
+                        .addClass("alert alert-info")
+                        .append("Enter the username or registered email address of those you want to share the notebook with below.")
+                );
+            }
+            body.append(
+                $("<h4></h4>")
+                    .append("Send Sharing Invite")
+            );
+            body.append(
+                $("<div></div>")
+                    .addClass("row")
+                    .append(
+                        $("<div></div>")
+                            .addClass("col-md-10")
+                            .append(
+                                $("<input/>")
+                                    .addClass("form-control repo-shared-invite")
+                                    .attr("type", "text")
+                                    .attr("required", "required")
+                                    .attr("maxlength", 64)
+                                    .attr("placeholder", "Enter username or email")
+                            )
+                    )
+                    .append(
+                        $("<div></div>")
+                            .addClass("col-md-2")
+                            .append("&nbsp;")
+                            .append(
+                                $("<button></button>")
+                                    .addClass("btn btn-primary")
+                                    .append("Add")
+                                    .click(function() {
+                                        const invite = $(".repo-shared-invite");
+                                        const user = invite.val().trim();
+                                        invite.val("");
+
+                                        if (user && shared_with.indexOf(user) === -1) add_shared_user(user, shared_with);
+                                    })
+                            )
+                    )
+            );
+            body.append(
+                $("<h4></h4>")
+                    .append("Share With")
+                    .css("margin-top", "30px")
+            );
+
+            // Create the shared list
+            const shared_list_div = $("<div></div>")
+                .addClass("repo-shared-list")
+                .append(
+                    $("<div></div>")
+                        .addClass("repo-shared-nobody")
+                        .text("Nobody")
+                )
+                .appendTo(body);
+
+            // Add shared users to the list
+            if (shared_with.length > 0) {
+                for (let i = 0; i < shared_with.length; i++) {
+                    const user = shared_with[i];
+                    add_shared_user(user, shared_with, shared_list_div)
+                }
+            }
+
+            // Show the modal dialog
+            dialog.modal({
+                title : "Share Notebook With Others",
+                body : body,
+                buttons: buttons
+            });
+        });
+    }
+
+    /**
+     * Add a user to the shared list
+     *
+     * @param user
+     * @param shared_with
+     */
+    function add_shared_user(user, shared_with, list) {
+        list = list ? list : $(".repo-shared-list");
+
+        // Hide the nobody label
+        const nobody = list.find(".repo-shared-nobody");
+        nobody.hide();
+
+        // Add the user tag
+        const tag = $("<div></div>")
+            .addClass("repo-shared-user")
+            .append(user)
+            .append("&nbsp;")
+            .append(
+                $("<span></span>")
+                    .addClass("fa fa-times")
+                    .click(function() {
+                        tag.remove();
+                        shared_with.splice(shared_with.indexOf(user), 1);
+                        if (shared_with.length === 0) nobody.show();
+                    })
+            )
+            .appendTo(list);
+        if (shared_with.indexOf(user) === -1) shared_with.push(user);
+    }
+
+    /**
+     * Function to call when publishing a notebook
+     */
+    function publish_selected() {
         var nb_path = get_selected_path();
-        var shared = is_nb_shared(nb_path);
-        var notebook = get_shared(nb_path);
+        var published = is_nb_published(nb_path);
+        var notebook = get_published(nb_path);
         var nb_name = notebook ? notebook['name'] : get_selected_name();
         var nb_description = notebook ? notebook['description'] : '';
         var nb_author = notebook ? notebook['author'] : '';
@@ -391,7 +613,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         // Create buttons list
         var buttons = {};
         buttons["Cancel"] = {"class" : "btn-default"};
-        if (shared) {
+        if (published) {
             buttons["Unpublish"] = {
                 "class": "btn-danger",
                 "click": function() {
@@ -418,7 +640,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
                     // Make sure the form is filled out correctly
                     if (!form_valid()) return false;
 
-                    publish_or_update(notebook, nb_path, shared);
+                    publish_or_update(notebook, nb_path, published);
 
                     return false;
                 }};
@@ -430,7 +652,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
                     // Make sure the form is filled out correctly
                     if (!form_valid()) return false;
 
-                    publish_or_update(notebook, nb_path, shared);
+                    publish_or_update(notebook, nb_path, published);
 
                     return false;
                 }};
@@ -438,7 +660,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
 
         // Create the dialog body
         var body = $("<div/>");
-        if (shared) {
+        if (published) {
             body.append(
                 $("<div/>")
                     .addClass("alert alert-info")
@@ -578,11 +800,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
 
         // Sharing isn't visible when a directory or file is selected.
         // To allow sharing multiple notebooks at once: selected.length > 0 && !has_directory && !has_file
-        if (selected.length == 1 && !has_directory && !has_file) {
-            $('.share-button').css('display', 'inline-block');
+        if (selected.length === 1 && !has_directory && !has_file) {
+            $('.publish-button, .share-button').css('display', 'inline-block');
         }
         else {
-            $('.share-button').css('display', 'none');
+            $('.publish-button, .share-button').css('display', 'none');
         }
     }
 
@@ -802,7 +1024,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
             },
             success: function(response) {
                 GenePattern.repo.public_notebooks = response['results'];
-                nb_path_list(); // Build the path list for displaying share icons
+                nb_path_list(); // Build the path list for displaying publish icons
                 empty_notebook_list(); // Empty the list of any existing state
                 build_repo_tab(); // Populate the repository tab
                 GenePattern.repo.last_refresh = new Date(); // Set the time of last refresh
@@ -914,11 +1136,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      */
     function add_published_icons() {
         $("a.item_link").each(function(i, element) {
-            // If a notebook matches a path in the shared list
+            // If a notebook matches a path in the published list
             if (GenePattern.repo.my_nb_paths.indexOf($(element).attr("href")) >= 0) {
-                // Add a shared icon to it
+                // Add a published icon to it
                 $(element).parent().find('.item_buttons').append(
-                    $('<i title="Published to Repository" class="item_icon icon-fixed-width fa fa-share-square pull-right repo-share-icon"></i>')
+                    $('<i title="Published to Repository" class="item_icon icon-fixed-width fa fa-share-square pull-right repo-publish-icon"></i>')
                 )
             }
         })
@@ -960,14 +1182,24 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         GenePattern.repo.events_init = true;
 
         // Add publish button and bind events
-        $(".dynamic-buttons").prepend(
-            $("<button></button>")
-                .addClass("share-button btn btn-default btn-xs")
-                .attr("title", "Publish selected")
-                .append("Publish")
-                .click($.proxy(share_selected, this))
-                .hide()
-        );
+        $(".dynamic-buttons")
+            .prepend(
+                $("<button></button>")
+                    .addClass("publish-button btn btn-default btn-xs")
+                    .attr("title", "Publish selected")
+                    .append("Publish")
+                    .click($.proxy(publish_selected, this))
+                    .hide()
+            )
+            .prepend(" ")
+            .prepend(
+                $("<button></button>")
+                    .addClass("share-button btn btn-default btn-xs")
+                    .attr("title", "Share selected")
+                    .append("Share")
+                    .click($.proxy(share_selected, this))
+                    .hide()
+            );
         $(document).click($.proxy(selection_changed, this));
 
         // Initialize repo search

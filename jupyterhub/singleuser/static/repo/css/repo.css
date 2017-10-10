@@ -116,3 +116,22 @@ input.repo-input:invalid, select.repo-input:invalid {
 #repository-list tbody {
     cursor: pointer;
 }
+
+.repo-shared-list {
+    border: 1px solid lightgray;
+    border-radius: 2px;
+    padding: 10px;
+}
+
+.repo-shared-user {
+    display: inline-block;
+    background-color: lightgray;
+    padding: 5px;
+    border-radius: 4px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+.repo-shared-nobody {
+    color: gray;
+}

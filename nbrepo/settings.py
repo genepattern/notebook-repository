@@ -162,3 +162,4 @@ BASE_GENEPATTERN_URL = 'https://genepattern.broadinstitute.org/gp'
 BASE_REPO_PATH = '/Users/tabor/repository'
 BASE_USER_PATH = '/Users/tabor/PycharmProjects/GenePatternNotebook/Notebooks'
 BASE_AUTH_PATH = '/Users/tabor/repository/auth'
+JUPYTERHUB = False

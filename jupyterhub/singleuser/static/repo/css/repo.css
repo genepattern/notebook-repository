@@ -132,6 +132,12 @@ input.repo-input:invalid, select.repo-input:invalid {
     margin-bottom: 5px;
 }
 
+.repo-shared-user-error {
+    background-color: #f2dede;
+    border-color: #ebccd1;
+    color: #a94442;
+}
+
 .repo-shared-nobody {
     color: gray;
 }

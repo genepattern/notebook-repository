@@ -422,6 +422,20 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
     }
 
     /**
+     * Displays an error message in a currently displayed dialog
+     */
+    function show_error_in_dialog(message) {
+       $(".modal-dialog").find(".alert")
+           .removeClass("alert-info")
+           .addClass("alert-danger")
+           .text(message)
+    }
+
+    function shared_user_error(user) {
+        $(".repo-shared-user[title='" + user + "']").addClass("repo-shared-user-error");
+    }
+
+    /**
      * Function to call when sharing a notebook
      */
     function share_selected() {
@@ -461,13 +475,19 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
                        try {
                            const json = JSON.parse(response.responseText);
                            console.log(json);
+
+                           show_error_in_dialog(json.error);
+
+                           // If errored users are provided, display this
+                           if (json.users) {
+                               json.users.forEach(function(u) {
+                                   shared_user_error(u);
+                               });
+                           }
                        }
                        catch (e) {
                            // Assume this is a 500 error of some sort
-                           $(".modal-dialog").find(".alert")
-                               .removeClass("alert-info")
-                               .addClass("alert-danger")
-                               .text("An error occured while attempting to share the notebook.")
+                           show_error_in_dialog("An error occured while attempting to share the notebook.");
                        }
                     };
 
@@ -583,6 +603,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         // Add the user tag
         const tag = $("<div></div>")
             .addClass("repo-shared-user")
+            .attr("title", user)
             .append(user)
             .append("&nbsp;")
             .append(

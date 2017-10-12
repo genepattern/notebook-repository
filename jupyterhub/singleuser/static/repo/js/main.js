@@ -1194,6 +1194,44 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
             );
     }
 
+    function lock_notebook(user) {
+        $("#notification_area").prepend(
+            $("<div></div>")
+                .attr("id", "notification_locked")
+                .addClass("notification_widget btn btn-xs navbar-btn")
+                .attr("title", "Notebook currently being edited by " + user)
+                .append(
+                    $("<span></span>")
+                        .append('<i class="fa fa-exclamation-triangle" aria-hidden="true"></i>')
+                        .append(" Locked")
+                )
+                .click(function() {
+                    dialog.modal({
+                        title : "Notebook Locked",
+                        body : $("<div></div>")
+                            .addClass("alert alert-info")
+                            .append("This shared notebook is currently being edited by " + user + ". Editing has been disabled. " +
+                                "You will need to reload the page in order to pick up any changes."),
+                        buttons: {"OK": function() {}}
+                    });
+                })
+        );
+
+        // Disable a bunch of stuff
+        $("#save-notbook, #save-notebook").find("button").attr("disabled", "disabled");
+        $("#save_checkpoint").addClass("disabled");
+        $("#restore_checkpoint").addClass("disabled");
+        $("#rename_notebook").addClass("disabled");
+
+        Jupyter.notebook.writable = false;
+        Jupyter.notebook.minimum_autosave_interval = 9999999999;
+
+        const name_clone = $("#notebook_name").clone();
+        $("#notebook_name").hide();
+        $("#save_widget").prepend(name_clone);
+    }
+    GenePattern.repo.lock_notebook = lock_notebook;
+
     /*
      * If we are currently viewing the notebook list
      * Attach the repository events if they haven't already been initialized

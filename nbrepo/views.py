@@ -9,6 +9,7 @@ import urllib.parse
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import time
 from django.contrib.auth.models import User, Group
 from django.conf import settings
 import json
@@ -199,16 +200,28 @@ def _generate_token():
 
 
 def _send_email(from_email, to_email, subject, message):
-    msg = MIMEMultipart()
-    msg['From'] = from_email
-    msg['To'] = to_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(message, 'html'))
+    tries = [0]
 
-    server = smtplib.SMTP('localhost', 25)
-    text = msg.as_string()
-    server.sendmail(from_email, to_email.split(', '), text)
-    server.quit()
+    def attempt_sending():
+        tries[0] += 1
+
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = from_email
+            msg['To'] = to_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(message, 'html'))
+
+            server = smtplib.SMTP('localhost', 25)
+            text = msg.as_string()
+            server.sendmail(from_email, to_email.split(', '), text)
+            server.quit()
+        except:
+            if tries[0] < 6:
+                time.sleep(3)
+                attempt_sending()
+
+    attempt_sending()
 
 
 def _create_collaborator(nb, name_or_email):

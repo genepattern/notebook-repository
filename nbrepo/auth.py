@@ -30,7 +30,8 @@ class GenePatternAuthentication(TokenAuthentication):
 
         # Return failure if username cannot be found
         if username is None:
-            raise exceptions.AuthenticationFailed("username not passed as POST parameter")
+            return None
+            #raise exceptions.AuthenticationFailed("username not passed as POST parameter")
 
         # Get the authentication file written by the JupyterHub authenticator, fail if file not found
         auth_file = settings.BASE_AUTH_PATH + '/' + username.lower() + '.json'

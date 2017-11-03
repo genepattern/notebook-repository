@@ -985,6 +985,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
                 {"title":"Quality"}
             ]
         });
+        dt.order([1, 'asc']).draw();
 
         // Add event listener for notebook dialogs
         table.find("tbody").on('click', 'tr', function () {

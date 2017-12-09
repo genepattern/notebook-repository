@@ -7,7 +7,8 @@ import datetime
 import json
 import os
 import shutil
-from tornado import gen, web
+import subprocess
+from tornado import gen
 from tornado.httputil import url_concat
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient, HTTPError
 from jupyterhub.auth import Authenticator, LocalAuthenticator
@@ -94,6 +95,12 @@ class GenePatternAuthenticator(Authenticator):
                                 shutil.copytree(file_path, os.path.join(specific_user, f))
                             elif os.path.isfile(file_path):
                                 shutil.copy(file_path, specific_user)
+
+            # Attempt to call the scale up script
+            try:
+                subprocess.call(['/path/to/updateAutoscaleAMICount.py'])
+            except:
+                print('Could not call autoscale script.')
 
             # Return the username
             return username

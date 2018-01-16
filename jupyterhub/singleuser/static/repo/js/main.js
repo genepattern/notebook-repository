@@ -18,7 +18,12 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * @returns {string|null}
      */
     function get_selected_path() {
-        var checkbox = $('#notebook_list').find('input:checked');
+        const checkbox = $('#notebook_list').find('input:checked');
+
+        // Check to see if path if available in notebook
+        if (Jupyter.notebook && Jupyter.notebook.notebook_path) {
+            return window.location.pathname;
+        }
 
         // Handle errors
         if (checkbox.length < 1) {
@@ -35,7 +40,12 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * @returns {string|null}
      */
     function get_selected_name() {
-        var checkbox = $('#notebook_list').find('input:checked');
+        const checkbox = $('#notebook_list').find('input:checked');
+
+        // Check to see if path if available in notebook
+        if (Jupyter.notebook && Jupyter.notebook.notebook_path) {
+            return Jupyter.notebook.notebook_name.replace(/\.[^/.]+$/, "");
+        }
 
         // Handle errors
         if (checkbox.length < 1) {
@@ -44,7 +54,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         }
 
         // Get file name
-        var raw_name = checkbox.parent().find("a.item_link").text();
+        const raw_name = checkbox.parent().find("a.item_link").text();
 
         // Remove .ipynb
         return raw_name.replace(/\.[^/.]+$/, "");
@@ -67,8 +77,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * @returns {object|null}
      */
     function get_published(api_path) {
-        for (var i = 0; i < GenePattern.repo.public_notebooks.length; i++) {
-            var nb = GenePattern.repo.public_notebooks[i];
+        for (let i = 0; i < GenePattern.repo.public_notebooks.length; i++) {
+            const nb = GenePattern.repo.public_notebooks[i];
             if (nb["api_path"] === api_path) {
                 return nb;
             }
@@ -83,10 +93,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * @returns {string}
      */
     function today() {
-        var today = new Date();
-        var month = ("0" + (today.getMonth() + 1)).slice(-2);
-        var date = ("0" + today.getDate()).slice(-2);
-        var year = today.getFullYear();
+        const today = new Date();
+        const month = ("0" + (today.getMonth() + 1)).slice(-2);
+        const date = ("0" + today.getDate()).slice(-2);
+        const year = today.getFullYear();
         return year + '-' + month + '-' + date;
     }
 
@@ -94,8 +104,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * Display the loading screen for the modal dialog
      */
     function modal_loading_screen() {
-        var to_cover = $(".modal-body");
-        var cover = $("<div></div>")
+        const to_cover = $(".modal-body");
+        const cover = $("<div></div>")
             .addClass("repo-modal-cover")
             .append($('<i class="fa fa-spinner fa-spin fa-3x fa-fw repo-modal-spinner"></i>'));
         to_cover.append(cover);
@@ -116,7 +126,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * @returns {{owner: (*|Document.username|string|null), file_path: (string|null), api_path: (string|null)}}
      */
     function make_nb_json(notebook, nb_path) {
-        var pub_nb = notebook ? notebook : {
+        const pub_nb = notebook ? notebook : {
             "owner": GenePattern.repo.username,
             "file_path": nb_path, // Will be replaced server-side
             "api_path": nb_path
@@ -141,7 +151,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * @returns {boolean}
      */
     function form_valid() {
-        var is_valid = true;
+        let is_valid = true;
 
         // Check name
         if (!$("#publish-name").is(":valid")) {
@@ -201,7 +211,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      */
     function publish_or_update(notebook, nb_path, published) {
         // Get the notebook data structure
-        var pub_nb = make_nb_json(notebook, nb_path);
+        const pub_nb = make_nb_json(notebook, nb_path);
 
         // Show the loading screen
         modal_loading_screen();
@@ -626,16 +636,16 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * Function to call when publishing a notebook
      */
     function publish_selected() {
-        var nb_path = get_selected_path();
-        var published = is_nb_published(nb_path);
-        var notebook = get_published(nb_path);
-        var nb_name = notebook ? notebook['name'] : get_selected_name();
-        var nb_description = notebook ? notebook['description'] : '';
-        var nb_author = notebook ? notebook['author'] : '';
-        var nb_quality = notebook ? notebook['quality'] : '';
+        const nb_path = get_selected_path();
+        const published = is_nb_published(nb_path);
+        const notebook = get_published(nb_path);
+        const nb_name = notebook ? notebook['name'] : get_selected_name();
+        const nb_description = notebook ? notebook['description'] : '';
+        const nb_author = notebook ? notebook['author'] : '';
+        const nb_quality = notebook ? notebook['quality'] : '';
 
         // Create buttons list
-        var buttons = {};
+        const buttons = {};
         buttons["Cancel"] = {"class" : "btn-default"};
         if (published) {
             buttons["Unpublish"] = {
@@ -683,7 +693,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         }
 
         // Create the dialog body
-        var body = $("<div/>");
+        const body = $("<div/>");
         if (published) {
             body.append(
                 $("<div/>")
@@ -788,6 +798,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         // Show the modal dialog
         dialog.modal({
             title : "Publish Notebook to Repository",
+            keyboard_manager: Jupyter.keyboard_manager,
             body : body,
             buttons: buttons
         });
@@ -797,12 +808,12 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * Function to call when the file list selection has changed
      */
     function selection_changed() {
-        var selected = [];
-        var has_directory = false;
-        var has_file = false;
-        var checked = 0;
+        const selected = [];
+        let has_directory = false;
+        let has_file = false;
+        let checked = 0;
         $('.list_item :checked').each(function(index, item) {
-            var parent = $(item).parent().parent();
+            const parent = $(item).parent().parent();
 
             // If the item doesn't have an upload button, isn't the
             // breadcrumbs and isn't the parent folder '..', then it can be selected.
@@ -861,11 +872,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      */
     function repo_nb_dialog(notebook) {
         // Declare the buttons
-        var buttons = {};
+        const buttons = {};
         buttons["Cancel"] = {"class" : "btn-default"};
 
         // If this is your notebook
-        if (GenePattern.repo.username == notebook['owner']) {
+        if (GenePattern.repo.username === notebook['owner']) {
             buttons["Go to Directory"] = {
                 "class": "btn-info",
                 "click": function() {
@@ -883,18 +894,18 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         buttons["Get a Copy"] = {
             "class": "btn-primary",
             "click": function() {
-                var current_dir = Jupyter.notebook_list.notebook_path;
+                const current_dir = Jupyter.notebook_list.notebook_path;
                 copy_notebook(notebook, current_dir);
             }};
 
         // Sanitize the title
-        var title = notebook['name'];
+        let title = notebook['name'];
         if (title.length > 32) {
             title = title.substring(0,32) + "..."
         }
 
         // Build the body
-        var body = $("<div></div>")
+        const body = $("<div></div>")
             .append(
                 $("<div></div>")
                     .addClass("repo-dialog-labels")
@@ -940,7 +951,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * to be consumed by data tables
      */
     function public_notebook_list() {
-        var built_list = [];
+        const built_list = [];
 
         GenePattern.repo.public_notebooks.forEach(function(nb) {
             built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality]);
@@ -955,7 +966,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * @returns {*}
      */
     function get_notebook(id) {
-        var selected = null;
+        let selected = null;
         GenePattern.repo.public_notebooks.forEach(function(nb) {
             if (nb.id === id) {
                 selected = nb;
@@ -970,13 +981,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      */
     function build_repo_tab() {
         // Create the table
-        var list_div = $("#repository-list");
-        var table = $("<table></table>")
+        const list_div = $("#repository-list");
+        const table = $("<table></table>")
             .addClass("table table-striped table-bordered table-hover")
             .appendTo(list_div);
 
         // Initialize the DataTable
-        var dt = table.DataTable({
+        const dt = table.DataTable({
             "data": public_notebook_list(),
             "pageLength": 25,
             "columns": [
@@ -992,16 +1003,16 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
 
         // Add event listener for notebook dialogs
         table.find("tbody").on('click', 'tr', function () {
-            var data = dt.row( this ).data();
-            var id = data[0];
-            var nb = get_notebook(id);
+            const data = dt.row( this ).data();
+            const id = data[0];
+            const nb = get_notebook(id);
             repo_nb_dialog(nb);
         });
 
         // Add the popovers
         table.find("tbody").find("tr").each(function(i, e) {
-            var data = dt.row(e).data();
-            var element = $(this);
+            const data = dt.row(e).data();
+            const element = $(this);
             element.find("td:first").popover({
                 title: data[1],
                 content: data[2],
@@ -1018,7 +1029,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
     function init_repo_refresh() {
         // When the repository tab is clicked
         $(".repository_tab_link").click(function() {
-            var ONE_MINUTE = 60000;
+            const ONE_MINUTE = 60000;
 
             // If the notebooks haven't been refreshed in the last minute, refresh
             if (GenePattern.repo.last_refresh < new Date().valueOf() - ONE_MINUTE) {
@@ -1050,8 +1061,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
             success: function(response) {
                 GenePattern.repo.public_notebooks = response['results'];
                 nb_path_list(); // Build the path list for displaying publish icons
-                empty_notebook_list(); // Empty the list of any existing state
-                build_repo_tab(); // Populate the repository tab
+
+                // If viewing the notebook index
+                if (Jupyter.notebook_list) {
+                    empty_notebook_list(); // Empty the list of any existing state
+                    build_repo_tab(); // Populate the repository tab
+                }
+
                 GenePattern.repo.last_refresh = new Date(); // Set the time of last refresh
                 if (success_callback) success_callback();
             },
@@ -1067,11 +1083,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * @returns {object}
      */
     function cookie_to_map() {
-        var cookie_map = {};
+        const cookie_map = {};
 
         document.cookie.split(';').forEach(function(cookie_str) {
-            var pair = cookie_str.split('=');
-            var key = pair[0].trim();
+            const pair = cookie_str.split('=');
+            const key = pair[0].trim();
             cookie_map[key] = pair.length > 1 ? pair[1].trim() : '';
         });
 
@@ -1084,10 +1100,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * @returns {string}
      */
     function extract_username() {
-        var username = null;
+        let username = null;
 
         // Try to get username from GPNB cookie
-        var cookie_map = cookie_to_map();
+        const cookie_map = cookie_to_map();
         if (cookie_map['gpnb-username'] !== undefined &&
             cookie_map['gpnb-username'] !== null &&
             cookie_map['gpnb-username'] !== 'undefined' &&
@@ -1106,7 +1122,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
 
         // Try to get the username from the URL
         if (username === null) {
-            var url_parts = window.location.href.split('/');
+            const url_parts = window.location.href.split('/');
             if (url_parts.length >= 5 &&
                 url_parts[0] === window.location.protocol &&
                 url_parts[1] === '' &&
@@ -1236,6 +1252,122 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
     }
     GenePattern.repo.lock_notebook = lock_notebook;
 
+    /**
+     * Checks to see if multiple authentication widgets exist in this notebook
+     *
+     * @returns {boolean}
+     */
+    function multiple_auth_check() {
+        return $(".gp-widget.gp-widget-auth").length > 1;
+    }
+
+    function job_widget_check() {
+        return $(".gp-widget.gp-widget-job[name!='-1']").length > 0;
+    }
+
+    function displayed_code_check() {
+        let errors = false;
+        Jupyter.notebook.get_cells().forEach(function(cell) {
+            if (cell.metadata.genepattern && $(cell.element).find(".input:visible").length > 0) {
+                errors = true;
+            }
+        });
+        return errors;
+    }
+
+    function unrendered_widget_check() {
+        let errors = false;
+        Jupyter.notebook.get_cells().forEach(function(cell) {
+            if (cell.metadata.genepattern && $(cell.element).find(".gp-widget").length < 1) {
+                errors = true;
+            }
+        });
+        return errors;
+    }
+
+    // Validates a notebook for publication
+    function validate_notebook() {
+        const issues_found = [];
+
+        // Check for multiple authentication widgets
+        if (multiple_auth_check()) {
+            issues_found.push("Multiple GenePattern authentication cells were detected. Most of the time this will be in error, however, this may be valid" +
+                " if you are connecting to multiple GenePattern servers from the same notebook.");
+        }
+
+        // Check for non-placeholder job widgets
+        if (job_widget_check()) {
+            issues_found.push("A GenePattern job cell was detected in your notebook. Since GenePattern jobs are private to each user, this will likely" +
+                " display as an error when other users view your notebook.");
+        }
+
+        // Check for displayed code
+        if (displayed_code_check()) {
+            issues_found.push("Code is currently toggled for display in one or more GenePattern cells. While this is not necessarily an error, it may" +
+                " confuse unfamiliar users.");
+        }
+
+        // Check for unrendered widgets
+        if (unrendered_widget_check()) {
+            issues_found.push("There appears to be an error with the display of one or more GenePattern cells. The cause of this error could not be detected, but" +
+                " to may be best to double check your notebook.");
+        }
+
+        if (issues_found.length < 1) {
+            publish_selected();
+        }
+        else {
+            const body = $("<div></div>")
+                .addClass("alert alert-warning")
+                .append(
+                    $("<p></p>")
+                        .append("When preparing your notebook for publication the following potential issues were discovered. " +
+                            "Please correct them and publish again, or otherwise confirm that you want to publish your notebook as is.")
+                )
+                .append(
+                    $("<ul></ul>")
+                        .attr("id", "issues_list")
+                        .css("margin-top", "10px")
+                );
+            issues_found.forEach(function(issue) {
+                body.find("#issues_list").append(
+                    $("<li></li>").append(issue)
+                );
+            });
+
+            dialog.modal({
+                title : "Potential Notebook Issues Found",
+                body : body,
+                buttons: {
+                    "Fix Issues": function() {},
+                    "Continue": {
+                        "class": "btn-warning",
+                        "click": function() {
+                            publish_selected();
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Add publish link to notebook File menu
+    function add_publish_link() {
+        const help_section = $("#file_menu");
+        const trust_notebook = help_section.find("#trust_notebook");
+        trust_notebook.before(
+            $("<li></li>")
+                .append(
+                    $("<a href='#' target='_blank'>Publish to Repository</a>")
+                        .click(function() {
+                            validate_notebook();
+                            return false;
+                        })
+                )
+        );
+        trust_notebook.before($("<li class='divider'></li>"));
+    }
+
     /*
      * If we are currently viewing the notebook list
      * Attach the repository events if they haven't already been initialized
@@ -1281,6 +1413,19 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         // When the files list is refreshed
         $([Jupyter.events]).on('draw_notebook_list.NotebookList', function() {
             add_published_icons();
+        });
+    }
+
+    /*
+     * If we are currently viewing a notebook
+     */
+    if (Jupyter.notebook !== undefined) {
+        // Authenticate
+        do_authentication(function() {
+            get_notebooks(function() {
+                // Add publish link to the toolbar
+                add_publish_link();
+            });
         });
     }
 });

@@ -66,9 +66,10 @@ class GenePatternAuthenticator(Authenticator):
             return
 
         if resp is not None and resp.code == 200:
+            response_payload = json.loads(resp.body.decode("utf-8"))
+
             # If REPO_AUTH_PATH is set, write the authentication file
             if self.REPO_AUTH_PATH is not None:
-                response_payload = json.loads(resp.body.decode("utf-8"))
                 auth_dict = {
                     "username": username,
                     "token": response_payload['access_token'],
@@ -103,7 +104,7 @@ class GenePatternAuthenticator(Authenticator):
                 print('Could not call autoscale script.')
 
             # Return the username
-            return username
+            return {"name": username, "auth_state": {}, "access_token": response_payload['access_token']}
         else:
             return
 

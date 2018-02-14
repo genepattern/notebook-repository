@@ -16,7 +16,7 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
-from nbrepo.views import NotebookViewSet, copy, download, obtain_auth_token
+from nbrepo.views import NotebookViewSet, copy, download, obtain_auth_token, preview
 
 from .sharing import SharingViewSet, CollaboratorViewSet, begin_sharing, accept_sharing, current_collaborators, error_redirect, urlpatterns as sharingpatterns
 
@@ -38,6 +38,7 @@ urlpatterns = [
     # GenePattern Notebook Repo endpoints
     url(r'^notebooks/(?P<pk>[0-9]+)/copy/(?P<api_path>.*)$', copy),
     url(r'^notebooks/(?P<pk>[0-9]+)/download/$', download),
+    url(r'^notebooks/(?P<pk>[0-9]+)/preview/$', preview),
 ]
 
 # Add the sharing URLs

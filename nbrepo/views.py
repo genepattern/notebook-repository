@@ -5,6 +5,8 @@ import urllib.parse
 import json
 import logging
 import shutil
+import nbconvert
+import nbformat
 
 from django.contrib.auth.models import User, Group
 from django.conf import settings
@@ -64,7 +66,10 @@ class NotebookViewSet(viewsets.ModelViewSet):
         # Get the file name and path
         api_path_parts = api_path.split('/')
         file_name = urllib.parse.unquote(api_path_parts[len(api_path_parts)-1])
-        file_path = urllib.parse.unquote(api_path.split('/', 4)[4])
+        if settings.DEBUG:  # Handle dev environment
+            file_path = urllib.parse.unquote(api_path.split('/', 2)[2])
+        else:
+            file_path = urllib.parse.unquote(api_path.split('/', 4)[4])
 
         # Path to the user's notebook file
         user_nb_path = os.path.join(base_user_path, file_path)
@@ -90,6 +95,20 @@ class NotebookViewSet(viewsets.ModelViewSet):
             shutil.rmtree(id_dir, ignore_errors=True)
         else:
             logger.debug("ERROR: Trying to delete stuff it shouldn't! " + id_dir)
+
+    @staticmethod
+    def _generate_preview(nb_file_path):
+        # Obtain the file paths
+        dir_path = os.path.dirname(nb_file_path)
+        preview_path = os.path.join(dir_path, 'preview')
+
+        # Generate the preview
+        html_exporter = nbconvert.HTMLExporter()
+        output, resources = html_exporter.from_file(nb_file_path)
+
+        # Write to disk
+        writer = nbconvert.writers.FilesWriter()
+        writer.write(output, resources, preview_path)
 
     def create(self, request, *args, **kwargs):
         logger.debug("CREATE NOTEBOOK")
@@ -204,15 +223,15 @@ def copy(request, pk, api_path):
         return Response("Notebook does not exist", status=status.HTTP_400_BAD_REQUEST)
 
 
-def _generate_preview(nb_file_path):
-    # TODO: Implement
-    pass
-
 @api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def preview(request, pk):
-    # TODO: Implement
-    pass
+    # Get the notebook model
+    notebook = Notebook.objects.get(pk=pk)
+
+    # Serve the file
+    response = serve(request, 'preview.html', os.path.dirname(notebook.file_path))
+    return response
 
 
 @api_view(['GET'])

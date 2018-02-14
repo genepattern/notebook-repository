@@ -104,7 +104,7 @@ class GenePatternAuthenticator(Authenticator):
                 print('Could not call autoscale script.')
 
             # Return the username
-            return {"name": username, "auth_state": {}, "access_token": response_payload['access_token']}
+            return {"name": username, "auth_state": {"access_token": response_payload['access_token']}}
         else:
             return
 

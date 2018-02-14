@@ -16,8 +16,9 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
-from nbrepo.views import NotebookViewSet, copy, obtain_auth_token, SharingViewSet, CollaboratorViewSet, begin_sharing, accept_sharing, current_collaborators, \
-    error_redirect
+from nbrepo.views import NotebookViewSet, copy, obtain_auth_token
+
+from .sharing import SharingViewSet, CollaboratorViewSet, begin_sharing, accept_sharing, current_collaborators, error_redirect, urlpatterns as sharingpatterns
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
@@ -40,6 +41,12 @@ urlpatterns = [
     url(r'^sharing/current/(?P<api_path>.*)$', current_collaborators),
     url(r'^sharing/(?P<pk>[0-9]+)/accept/(?P<token>.*)$', accept_sharing),
     url(r'^error/$', error_redirect),
+]
+
+# Add the sharing URLs
+urlpatterns += sharingpatterns
+
+urlpatterns += [
     url(r'^', include(router.urls)),
 ]
 

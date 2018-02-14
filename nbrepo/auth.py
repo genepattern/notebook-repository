@@ -33,6 +33,23 @@ class GenePatternAuthentication(TokenAuthentication):
             return None
             #raise exceptions.AuthenticationFailed("username not passed as POST parameter")
 
+        # If in development mode, assume authentication is good
+        if settings.DEBUG is True:
+            try:
+                user_model = User.objects.get(username=username)
+            except User.DoesNotExist:
+                user_model = User(username=username)
+                user_model.save()
+
+            try:
+                token_model = Token.objects.get(user=user_model)
+            except Token.DoesNotExist:
+                token_model = Token(user=user_model, key=username)
+                token_model.save()
+
+            return (user_model, token_model.key)
+
+
         # Get the authentication file written by the JupyterHub authenticator, fail if file not found
         auth_file = settings.BASE_AUTH_PATH + '/' + username.lower() + '.json'
 

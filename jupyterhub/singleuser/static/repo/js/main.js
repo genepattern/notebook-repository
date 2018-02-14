@@ -272,6 +272,16 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
     }
 
     /**
+     * Download the selected notebook
+     *
+     * @param notebook
+     */
+    function download_notebook(notebook) {
+        const download_url = GenePattern.repo.repo_url + "/notebooks/" + notebook['id'] + "/download/";
+        window.open(download_url);
+    }
+
+    /**
      * Copy a notebook from the repo to the user's current directory
      *
      * @param notebook
@@ -894,7 +904,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
                 }};
         }
 
-        buttons["Get a Copy"] = {
+        buttons["Download"] = {
+            "class": "btn-default",
+            "click": function() {
+                download_notebook(notebook);
+            }};
+
+        buttons["Run Notebook"] = {
             "class": "btn-primary",
             "click": function() {
                 const current_dir = Jupyter.notebook_list.notebook_path;

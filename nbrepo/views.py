@@ -9,6 +9,7 @@ import shutil
 from django.contrib.auth.models import User, Group
 from django.conf import settings
 from django.db.models import ObjectDoesNotExist
+from django.views.static import serve
 
 from rest_framework import parsers
 from rest_framework import permissions
@@ -24,7 +25,6 @@ from nbrepo.models import Notebook
 from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer
 
 from .sharing import CollaboratorViewSet, SharingViewSet, accept_sharing, begin_sharing, error_redirect
-
 
 
 # Get an instance of a logger
@@ -104,6 +104,9 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         # Copy the notebook to the file path
         response.data['file_path'] = self._copy_to_file_path(username, new_id, api_path)
+
+        # Generate the static preview
+        self._generate_preview(response.data['file_path'])
 
         # Update notebook model with the real file path
         notebook = Notebook.objects.get(id=new_id)
@@ -199,6 +202,29 @@ def copy(request, pk, api_path):
 
     except ObjectDoesNotExist:
         return Response("Notebook does not exist", status=status.HTTP_400_BAD_REQUEST)
+
+
+def _generate_preview(nb_file_path):
+    # TODO: Implement
+    pass
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def preview(request, pk):
+    # TODO: Implement
+    pass
+
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def download(request, pk):
+    # Get the notebook model
+    notebook = Notebook.objects.get(pk=pk)
+
+    # Serve the file
+    response = serve(request, os.path.basename(notebook.file_path), os.path.dirname(notebook.file_path))
+    response['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(notebook.file_path)
+    return response
 
 
 class ObtainAuthToken(APIView):

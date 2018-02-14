@@ -190,6 +190,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
     }
 
     function forceHTTPS(url) {
+        // Ignore this directive if in development mode
+        if (url.startsWith("http://localhost:")) return url;
+
         if (!url.startsWith("https://")) {
             return url.replace("http://", "https://")
         }

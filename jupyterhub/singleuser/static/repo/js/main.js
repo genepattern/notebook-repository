@@ -272,13 +272,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
     }
 
     /**
-     * Download the selected notebook
+     * Preview the selected notebook
      *
      * @param notebook
      */
-    function download_notebook(notebook) {
-        const download_url = GenePattern.repo.repo_url + "/notebooks/" + notebook['id'] + "/download/";
-        window.open(download_url);
+    function preview_notebook(notebook) {
+        const preview_url = GenePattern.repo.repo_url + "/notebooks/" + notebook['id'] + "/preview/";
+        window.open(preview_url);
     }
 
     /**
@@ -904,10 +904,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
                 }};
         }
 
-        buttons["Download"] = {
+        buttons["Preview"] = {
             "class": "btn-default",
             "click": function() {
-                download_notebook(notebook);
+                preview_notebook(notebook);
             }};
 
         buttons["Run Notebook"] = {

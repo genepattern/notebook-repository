@@ -132,7 +132,7 @@ div#notebook-container{
             let username = username_from_cookie(genepattern_cookie);
 
             // Failing this, try the gpnb-username cookie
-            if (!!username) username = get_cookie("gpnb-username");
+            if (!username) username = get_cookie("gpnb-username");
 
             return username;
         }
@@ -143,7 +143,7 @@ div#notebook-container{
 
             // Display the widget
             const widget_area = cell.find(".output_widget_view");
-            const base_url = window.location.protocol + '//' + window.location.hostname + ':8888/static/repo/img/';
+            const base_url = window.location.protocol + '//' + window.location.hostname + '/static/repo/img/';
             widget_area.empty();
             widget_area.append($('<img src="' + base_url + img + '" alt="GenePattern Authentication Cell" />'))
         }
@@ -176,12 +176,35 @@ div#notebook-container{
             }
         }
 
+        function replace_run_button(username) {
+            // Get the base URL
+            const base_url = window.location.protocol + '//' + window.location.hostname + ':8080';
+
+            // Remove the old link
+            $("#run_notebook").attr("href", "#");
+
+            // Attach the new click event
+            $("#run_notebook").click(function() {
+                $.ajax({
+                    url: base_url + "/notebooks/" + 72 + "/copy/",
+                    method: "POST",
+                    beforeSend: function (xhr) {
+                        // xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+                    },
+                    success: function(responseData) {
+                        // Redirect to the notebook
+                    }
+                });
+            });
+        }
+
         // Get the username, if logged in
         const username = get_username();
-        console.log(username);
 
         // If logged in, change Run in GenePattern link
-        // xxx
+        if (!!username) {
+            // replace_run_button(username)
+        }
 
         // Display the widgets
         $(".cell").each(function(i, e) {

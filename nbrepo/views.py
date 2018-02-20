@@ -97,14 +97,20 @@ class NotebookViewSet(viewsets.ModelViewSet):
             logger.debug("ERROR: Trying to delete stuff it shouldn't! " + id_dir)
 
     @staticmethod
-    def _generate_preview(nb_file_path):
+    def generate_preview(nb_file_path):
         # Obtain the file paths
         dir_path = os.path.dirname(nb_file_path)
         preview_path = os.path.join(dir_path, 'preview')
 
         # Generate the preview
         html_exporter = nbconvert.HTMLExporter()
+        html_exporter.template_path = ['.', os.path.join(os.path.dirname(os.path.abspath(__file__)),  'preview')]
+        html_exporter.template_file = 'genepattern'
         output, resources = html_exporter.from_file(nb_file_path)
+
+        # Set the notebook name in the metadata
+        # nb_name = os.path.splitext(os.path.basename(nb_file_path))[0]
+        # resources['metadata']['name'] = nb_name
 
         # Write to disk
         writer = nbconvert.writers.FilesWriter()
@@ -125,7 +131,7 @@ class NotebookViewSet(viewsets.ModelViewSet):
         response.data['file_path'] = self._copy_to_file_path(username, new_id, api_path)
 
         # Generate the static preview
-        self._generate_preview(response.data['file_path'])
+        self.generate_preview(response.data['file_path'])
 
         # Update notebook model with the real file path
         notebook = Notebook.objects.get(id=new_id)
@@ -148,6 +154,9 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         # Copy the notebook to the file path
         self._copy_to_file_path(username, old_id, api_path)
+
+        # Generate the static preview
+        self.generate_preview(response.data['file_path'])
 
         # Return response
         return response
@@ -228,6 +237,11 @@ def copy(request, pk, api_path):
 def preview(request, pk):
     # Get the notebook model
     notebook = Notebook.objects.get(pk=pk)
+
+    # Lazily generate preview.html, if necessary
+    preview_path = os.path.join(os.path.dirname(notebook.file_path), 'preview.html')
+    if not os.path.exists(preview_path):
+        NotebookViewSet.generate_preview(notebook.file_path)
 
     # Serve the file
     response = serve(request, 'preview.html', os.path.dirname(notebook.file_path))

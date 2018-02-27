@@ -137,6 +137,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         pub_nb['description'] = $("#publish-description").val();
         pub_nb['author'] = $("#publish-author").val();
         pub_nb['quality'] = $("#publish-quality").val();
+        pub_nb['tags'] = $("#publish-tags").tagit("assignedTags").join(',');
 
         // Set current date as publication date
         pub_nb['publication'] = today();

@@ -49,7 +49,6 @@ class GenePatternAuthentication(TokenAuthentication):
 
             return (user_model, token_model.key)
 
-
         # Get the authentication file written by the JupyterHub authenticator, fail if file not found
         auth_file = settings.BASE_AUTH_PATH + '/' + username.lower() + '.json'
 

@@ -96,6 +96,51 @@ class NotebookViewSet(viewsets.ModelViewSet):
         else:
             logger.debug("ERROR: Trying to delete stuff it shouldn't! " + id_dir)
 
+    def _apply_tags(self, notebook, tag_list):
+        # Clear the existing tags
+        notebook.tags.clear()
+
+        # Add the new tag list
+        for tag in tag_list:
+            notebook.tags.add(tag)
+
+    @staticmethod
+    def _get_or_create_tags(tag_list):
+        tag_obj_list = []
+        for tag_str in tag_list:
+            tag_obj, new = Tag.objects.get_or_create(label=tag_str)
+            tag_obj_list.append(tag_obj)
+
+        return tag_obj_list
+
+    def _validate_tags(self, request):
+        # Get the list of raw tags
+        tags_str = request.data['tags']
+        tags_list = tags_str.split(',')
+
+        # Lowercase normalize the tags
+        tags_list = [x.lower() for x in tags_list]
+
+        # Remove empty tags
+        for tag in tags_list:
+            if not tag.strip():
+                tags_list.remove(tag)
+
+        # Remove all duplicates in the list
+        tags_list = list(set(tags_list))
+
+        # Convert tag strings to tag objects
+        tags_list = self._get_or_create_tags(tags_list)
+
+        # Filter out protected tags, if not whitelisted
+        if request.user.username not in settings.CAN_SET_PROTECTED_TAGS:
+            for tag in tags_list:
+                if tag.protected:
+                    tags_list.remove(tag)
+
+        # Return the list of validated tag objects
+        return tags_list
+
     @staticmethod
     def generate_preview(nb_file_path):
         # Obtain the file paths
@@ -136,6 +181,12 @@ class NotebookViewSet(viewsets.ModelViewSet):
         # Update notebook model with the real file path
         notebook = Notebook.objects.get(id=new_id)
         notebook.file_path = response.data['file_path']
+
+        # Update the notebook's tags
+        valid_tags = self._validate_tags(request)
+        self._apply_tags(notebook, valid_tags)
+
+        # Save the notebook
         notebook.save()
 
         # Return response
@@ -143,6 +194,10 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         logger.debug("UPDATE NOTEBOOK")
+
+        # Update the notebook's tags
+        valid_tags = self._validate_tags(request)
+        self._apply_tags(self.get_object(), valid_tags)
 
         # Create updated model and response
         response = super(NotebookViewSet, self).update(request, *args, **kwargs)

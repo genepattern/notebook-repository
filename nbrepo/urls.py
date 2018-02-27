@@ -16,7 +16,7 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
-from nbrepo.views import NotebookViewSet, copy, download, obtain_auth_token, preview
+from nbrepo.views import NotebookViewSet, TagViewSet, copy, download, obtain_auth_token, preview
 
 from .sharing import SharingViewSet, CollaboratorViewSet, begin_sharing, accept_sharing, current_collaborators, error_redirect, urlpatterns as sharingpatterns
 
@@ -25,8 +25,9 @@ router = routers.DefaultRouter()
 # router.register(r'users', UserViewSet)
 # router.register(r'groups', GroupViewSet)
 router.register(r'notebooks', NotebookViewSet)
-router.register(r'sharing', SharingViewSet)
-router.register(r'collaborators', CollaboratorViewSet)
+router.register(r'tags', TagViewSet)
+# router.register(r'sharing', SharingViewSet)
+# router.register(r'collaborators', CollaboratorViewSet)
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),

@@ -9,7 +9,7 @@ GenePattern.repo.repo_url = GenePattern.repo.repo_url || null;
 GenePattern.repo.token = GenePattern.repo.token || null;
 GenePattern.repo.last_refresh = GenePattern.repo.last_refresh || null;
 
-require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js'], function(Jupyter, $, dialog, datatables) {
+require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTables.min', 'repo/js/tag-it'], function(Jupyter, $, dialog, datatables, tagit) {
     "use strict";
 
     /**
@@ -656,6 +656,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
         const nb_description = notebook ? notebook['description'] : '';
         const nb_author = notebook ? notebook['author'] : '';
         const nb_quality = notebook ? notebook['quality'] : '';
+        const nb_tags = notebook ? build_tag_list(notebook).join(',') : '';
 
         // Create buttons list
         const buttons = {};
@@ -805,6 +806,23 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
                                 .val(nb_quality)
                         )
                 )
+                .append(
+                    $("<div/>")
+                        .addClass("form-group")
+                        .append(
+                            $("<label/>")
+                                .addClass("repo-label")
+                                .attr("for", "publish-tags")
+                                .append("Tags")
+                        )
+                        .append(
+                            $("<input/>")
+                                .attr("id", "publish-tags")
+                                .addClass("form-control repo-input")
+                                .attr("type", "text")
+                                .attr("value", nb_tags)
+                        )
+                )
 
         );
 
@@ -815,6 +833,14 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
             body : body,
             buttons: buttons
         });
+
+        // Initialize the tag widget
+        setTimeout(function() {
+            $("#publish-tags").tagit({
+                singleField: true,
+                caseSensitive: false
+            });
+        }, 200);
     }
 
     /**
@@ -966,14 +992,40 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
     }
 
     /**
+     * Transform a list of tag objects into a list of tag strings
+     *
+     * @param nb
+     */
+    function build_tag_list(nb) {
+        // If cached, return
+        if (nb.str_tags) return nb.str_tags;
+
+        // Otherwise generate
+        let to_return = [];
+
+        nb.tags.forEach(function(tag) {
+            to_return.push(tag.label);
+        });
+
+        nb.str_tags = to_return;
+        return to_return;
+    }
+
+    /**
      * Transforms the JSON notebooks object into a list of lists,
      * to be consumed by data tables
      */
-    function public_notebook_list() {
+    function public_notebook_list(tag) {
         const built_list = [];
 
         GenePattern.repo.public_notebooks.forEach(function(nb) {
-            built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality]);
+            const tags = build_tag_list(nb);
+
+            // If no tag specified, return all notebooks
+            if (!tag) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
+
+            // Otherwise, check for a matching tag
+            else if (tags.includes(tag)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
         });
 
         return built_list;
@@ -999,23 +1051,128 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
      * Builds the repository tab
      */
     function build_repo_tab() {
+        // Add Notebook Sidebar
+        build_notebook_sidebar();
+    }
+
+    function get_pinned_tags() {
+        // If already cached, return the list
+        if (GenePattern.repo.pinned_tags) return GenePattern.repo.pinned_tags;
+
+        // Otherwise, generate the list
+        const pinned_tags = [];
+        GenePattern.repo.public_notebooks.forEach(function(nb) {
+            if (nb.tags) {
+                nb.tags.forEach(function(tag) {
+                    // If the tag is pinned and not already in the list
+                    if (tag.pinned && !pinned_tags.includes(tag.label)) {
+                        pinned_tags.push(tag.label);
+                    }
+                });
+            }
+        });
+        pinned_tags.sort();
+
+        // Set the cache and return
+        GenePattern.repo.pinned_tags = pinned_tags;
+        return pinned_tags;
+    }
+
+    function select_sidebar_nav(link) {
+        // Remove the old active class
+        const nav = $("#repo-sidebar-nav");
+        nav.find("li").removeClass("active");
+
+        // Add the new active class
+        link.parent().addClass("active");
+
+        // Set the header label
+        $("#repo-header-label").text(link.text());
+
+        // Remove the old notebook table
+        $("#repository-list").empty();
+
+        // Build the new notebook table
+        const filtered_notebook_list = public_notebook_list(link.attr("data-tag"));
+        build_notebook_table(filtered_notebook_list);
+    }
+
+    function create_sidebar_nav(tag, label) {
+        const li = $('<li role="presentation"></li>');
+        const link = $('<a href="#" data-tag="' + tag + '">' + label + '</a>');
+
+        // Attach the click event
+        link.click(function() {
+            select_sidebar_nav(link);
+        });
+
+        // Assemble the elements and return
+        li.append(link);
+        return li;
+    }
+
+    function build_notebook_sidebar() {
+        const pinned_tags = get_pinned_tags();
+        const nav = $("#repo-sidebar-nav");
+
+        // Empty the sidebar when refreshing the list
+        nav.empty();
+
+        // For each pinned tag, add to the sidebar
+        pinned_tags.forEach(function(tag) {
+            nav.append(create_sidebar_nav(tag, tag));
+        });
+
+        // Add the community tag
+        nav.append(create_sidebar_nav('', 'community'));
+
+        // Select the first nav
+        select_sidebar_nav(nav.find("a:first"));
+    }
+
+    /**
+     * Build and attach a notebook DataTable to the Public Notebooks tab
+     *
+     * @param label
+     * @param notebooks
+     */
+    function build_notebook_table(notebooks) {
         // Create the table
         const list_div = $("#repository-list");
+
         const table = $("<table></table>")
             .addClass("table table-striped table-bordered table-hover")
             .appendTo(list_div);
 
         // Initialize the DataTable
         const dt = table.DataTable({
-            "data": public_notebook_list(),
-            "pageLength": 25,
+            "data": notebooks,
+            "autoWidth": false,
+            "paging":  false,
             "columns": [
                 {"title": "ID", "visible": false, "searchable": false},
-                {"title": "Notebook"},
+                {
+                    "title": "Notebook",
+                    "width": "50%",
+                    "visible": true,
+                    "render": function(data, type, row, meta) {
+                        let to_return = "<h4 class='repo-title'>" + row[1] + "</h4>" +
+                                          "<div class='repo-description'>" + row[2] + "</div>" +
+                                          "<div>";
+
+                        // Add tags
+                        row[6].forEach(function(tag) {
+                            to_return += "<span class='label label-primary'>" + tag + "</span> ";
+                        });
+
+                        to_return += "</div>";
+                        return to_return;
+                    }
+                },
                 {"title": "Description", "visible": false},
-                {"title": "Authors"},
-                {"title":"Updated"},
-                {"title":"Quality"}
+                {"title": "Authors", "width": "200px", "visible": true},
+                {"title":"Updated", "width": "100px"},
+                {"title":"Quality", "width": "100px"}
             ]
         });
         dt.order([1, 'asc']).draw();
@@ -1026,19 +1183,6 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
             const id = data[0];
             const nb = get_notebook(id);
             repo_nb_dialog(nb);
-        });
-
-        // Add the popovers
-        table.find("tbody").find("tr").each(function(i, e) {
-            const data = dt.row(e).data();
-            const element = $(this);
-            element.find("td:first").popover({
-                title: data[1],
-                content: data[2],
-                placement: "right",
-                trigger: "hover",
-                container: "body"
-            });
         });
     }
 
@@ -1221,10 +1365,15 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'https://cdn.datatable
             .append(
                 $('<div id="repository" class="tab-pane"></div>')
                     .append(
-                        $('<div class="list_container">')
+                        $("<div id='repo-sidebar' class='col-md-2'></div>")
+                            .append($("<h4>Public Notebooks</h4>"))
+                            .append($("<ul id='repo-sidebar-nav' class='nav nav-pills'></ul>"))
+                    )
+                    .append(
+                        $('<div class="list_container col-md-10">')
                             .append(
                                 $('<div id="repository-list-header" class="row list_header repo-header"></div>')
-                                    .append("Public Notebooks")
+                                    .append("<span id='repo-header-label'></span> Notebooks")
                             )
                             .append(
                                 $('<div id="repository-list" class="row"></div>')

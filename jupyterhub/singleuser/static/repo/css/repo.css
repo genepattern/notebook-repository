@@ -64,6 +64,29 @@
     text-overflow: ellipsis;
 }
 
+.repo-description {
+    font-size: 0.9em;
+}
+
+.repo-title {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+.repo-spacer {
+    padding: 20px;
+}
+
+.repo-table-header {
+    margin: 0;
+    float: left;
+    letter-spacing: 2px;
+    padding-left: 5px;
+    font-weight: bold;
+    font-size: 1.8em;
+}
+
 .repo-header {
     padding-top: 5px;
     padding-right: 5px;
@@ -76,8 +99,21 @@
     font-weight: normal;
 }
 
+#repo-header-label {
+    text-transform: capitalize;
+}
+
 .repo-label {
     font-weight: bold;
+}
+
+#repo-sidebar {
+    padding: 5px;
+}
+
+#repo-sidebar-nav > li {
+    width: 100%;
+    text-transform: capitalize;
 }
 
 #publish-quality {
@@ -103,6 +139,10 @@
 
 input.repo-input:invalid, select.repo-input:invalid {
   border: 1px solid red;
+}
+
+#repository {
+    margin-top: 10px;
 }
 
 #repository-list {
@@ -147,4 +187,86 @@ input.repo-input:invalid, select.repo-input:invalid {
     background-color: #f2dede;
     border-color: #ebccd1;
     color: #a94442;
+}
+
+#repo-sidebar-nav.nav-pills > li + li {
+    margin-left: 0;
+}
+
+
+
+
+/* Tag-it CSS */
+
+ul.tagit {
+    padding: 1px 5px;
+    overflow: auto;
+    margin-left: inherit; /* usually we don't want the regular ul margins. */
+    margin-right: inherit;
+    font-size: 0.9em;
+}
+ul.tagit li {
+    display: block;
+    float: left;
+    margin: 2px 5px 2px 0;
+}
+ul.tagit li.tagit-choice {
+    position: relative;
+    line-height: inherit;
+    background: #337ab7;
+    color: white;
+}
+input.tagit-hidden-field {
+    display: none;
+}
+ul.tagit li.tagit-choice-read-only {
+    padding: .2em .5em .2em .5em;
+}
+
+ul.tagit li.tagit-choice-editable {
+    padding: .2em 18px .2em .5em;
+}
+
+ul.tagit li.tagit-new {
+    padding: .25em 4px .25em 0;
+}
+
+ul.tagit li.tagit-choice a.tagit-label {
+    cursor: pointer;
+    text-decoration: none;
+}
+ul.tagit li.tagit-choice .tagit-close {
+    cursor: pointer;
+    position: absolute;
+    right: .1em;
+    top: 50%;
+    margin-top: -8px;
+    line-height: 17px;
+}
+
+/* used for some custom themes that don't need image icons */
+ul.tagit li.tagit-choice .tagit-close .text-icon {
+    display: none;
+}
+
+ul.tagit li.tagit-choice input {
+    display: block;
+    float: left;
+    margin: 2px 5px 2px 0;
+}
+ul.tagit input[type="text"] {
+    -moz-box-sizing:    border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing:         border-box;
+
+    -moz-box-shadow: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+
+    border: none;
+    margin: 0;
+    padding: 0;
+    width: inherit;
+    background-color: inherit;
+    outline: none;
 }

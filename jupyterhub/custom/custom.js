@@ -5,7 +5,7 @@ require(['base/js/namespace', 'jquery', 'repo/js/main', 'hints/js/main'], functi
     "use strict";
 
 	// Add username to the logout button
-    var username =  (""+ window.location).split('/')[4];
+    const username =  (""+ window.location).split('/')[4];
     $('#logout').html( "Logout " + username);
 
 	/**
@@ -13,9 +13,9 @@ require(['base/js/namespace', 'jquery', 'repo/js/main', 'hints/js/main'], functi
 	 *
 	 * @returns {*|jQuery}
 	 */
-	var loadingScreen = function() {
-	    var base_url = Jupyter.contents ? Jupyter.contents.base_url : (Jupyter.notebook_list ? Jupyter.notebook_list.base_url : Jupyter.editor.base_url);
-	    var STATIC_PATH = location.origin + base_url + "nbextensions/genepattern/resources/";
+	const loadingScreen = function() {
+	    const base_url = Jupyter.contents ? Jupyter.contents.base_url : (Jupyter.notebook_list ? Jupyter.notebook_list.base_url : Jupyter.editor.base_url);
+	    const STATIC_PATH = location.origin + base_url + "nbextensions/genepattern/resources/";
 
 		return $("<div></div>")
 			.addClass("loading-screen")
@@ -40,7 +40,7 @@ require(['base/js/namespace', 'jquery', 'repo/js/main', 'hints/js/main'], functi
     // Backup attempt to fade loading screen
     setTimeout(function () {
         $(".loading-screen").hide("fade");
-    }, 10000);
+    }, 2000);
 
 
     console.log("GenePattern Notebook Repository code loaded.");

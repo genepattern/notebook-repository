@@ -103,7 +103,7 @@ body {
 }
 
 #maintoolbar-container .btn-group:last-of-type {
-    display: none;
+/*     display: none; */
 }
 
 #notebook, #site {

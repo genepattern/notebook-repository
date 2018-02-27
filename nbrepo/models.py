@@ -7,6 +7,13 @@ from django.dispatch import receiver
 from .sharing import Collaborator, Share
 
 
+class Tag(models.Model):
+    label = models.CharField(max_length=64)
+    protected = models.BooleanField(default=False)
+    weight = models.IntegerField(default=0)
+    pinned = models.BooleanField(default=False)
+
+
 class Notebook(models.Model):
     name = models.CharField(max_length=64)
     description = models.CharField(max_length=256)
@@ -18,6 +25,9 @@ class Notebook(models.Model):
     owner = models.CharField(max_length=128)
     file_path = models.CharField(max_length=256)
     api_path = models.CharField(max_length=256)
+
+    weight = models.IntegerField(default=0)
+    tags = models.ManyToManyField(Tag)
 
 
 # Create tokens for all users

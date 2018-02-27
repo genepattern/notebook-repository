@@ -23,8 +23,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from nbrepo.models import Notebook
-from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer
+from nbrepo.models import Notebook, Tag
+from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer, TagSerializer
 
 from .sharing import CollaboratorViewSet, SharingViewSet, accept_sharing, begin_sharing, error_redirect
 
@@ -176,6 +176,14 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         # Return response
         return response
+
+
+class TagViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows tags to be viewed or edited.
+    """
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
 
 
 @api_view(['POST'])

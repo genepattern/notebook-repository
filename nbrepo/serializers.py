@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
-from nbrepo.models import Notebook
+from nbrepo.models import Notebook, Tag
 from .sharing import CollaboratorSerializer, SharingSerializer
 
 
@@ -16,10 +16,18 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('url', 'name')
 
 
+class TagSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ('id', 'label', 'protected', 'pinned', 'weight')
+
+
 class NotebookSerializer(serializers.HyperlinkedModelSerializer):
+    tags = TagSerializer(many=True, read_only=True)
+
     class Meta:
         model = Notebook
-        fields = ('id', 'url', 'name', 'description', 'author', 'quality', 'publication', 'owner', 'file_path', 'api_path')
+        fields = ('id', 'url', 'name', 'description', 'author', 'quality', 'publication', 'owner', 'file_path', 'api_path', 'weight', 'tags')
 
 
 class AuthTokenSerializer(serializers.Serializer):

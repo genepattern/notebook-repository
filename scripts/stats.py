@@ -124,9 +124,11 @@ def get_total_jobs(weekly_jobs):
     total_jobs['prod'] = int(jobs_list[0]) + (0 if not isinstance(weekly_jobs['prod'], int) else weekly_jobs['prod'])
     total_jobs['broad'] = int(jobs_list[1]) + (0 if not isinstance(weekly_jobs['broad'], int) else weekly_jobs['broad'])
     total_jobs['iu'] = int(jobs_list[2]) + (0 if not isinstance(weekly_jobs['iu'], int) else weekly_jobs['iu'])
-    total_jobs['prod-py'] = int(jobs_list[3]) + (0 if not isinstance(weekly_jobs['prod-py'], int) else weekly_jobs['prod-py'])
-    total_jobs['broad-py'] = int(jobs_list[4]) + (0 if not isinstance(weekly_jobs['broad-py'], int) else weekly_jobs['broad-py'])
-    total_jobs['iu-py'] = int(jobs_list[5]) + (0 if not isinstance(weekly_jobs['iu-py'], int) else weekly_jobs['iu-py'])
+    total_jobs['aws'] = int(jobs_list[3]) + (0 if not isinstance(weekly_jobs['aws'], int) else weekly_jobs['aws'])
+    total_jobs['prod-py'] = int(jobs_list[4]) + (0 if not isinstance(weekly_jobs['prod-py'], int) else weekly_jobs['prod-py'])
+    total_jobs['broad-py'] = int(jobs_list[5]) + (0 if not isinstance(weekly_jobs['broad-py'], int) else weekly_jobs['broad-py'])
+    total_jobs['iu-py'] = int(jobs_list[6]) + (0 if not isinstance(weekly_jobs['iu-py'], int) else weekly_jobs['iu-py'])
+    total_jobs['aws-py'] = int(jobs_list[7]) + (0 if not isinstance(weekly_jobs['aws-py'], int) else weekly_jobs['aws-py'])
 
     # Write the new totals back to the file
     if not test_run:
@@ -167,10 +169,12 @@ def get_weekly_jobs():
     weekly_jobs['prod'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Notebook')
     # weekly_jobs['broad'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Notebook')
     weekly_jobs['iu'] = _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Notebook')
+    weekly_jobs['aws'] = _poll_genepattern('https://gp-beta-ami.genepattern.org', 'GenePattern%20Notebook')
 
     weekly_jobs['prod-py'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Python%20Client')
     # weekly_jobs['broad-py'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Python%20Client')
     weekly_jobs['iu-py'] = _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Python%20Client')
+    weekly_jobs['aws-py'] = _poll_genepattern('https://gp-beta-ami.genepattern.org', 'GenePattern%20Python%20Client')
 
     weekly_jobs['broad'], weekly_jobs['broad-py'] = _read_s3_stats('job_count.log')
 
@@ -208,10 +212,6 @@ def get_nb_count():
     # Gather a list of all running containers
     cmd_out = commands.getstatusoutput(sudo_req + 'docker ps')[1]
     cmd_lines = cmd_out.split('\n')
-    containers = []
-    for line in cmd_lines:
-        cmd_parts = line.split()
-        containers.append(cmd_parts[0])
 
     # For each container, get the count
     nb_count = {}
@@ -219,30 +219,26 @@ def get_nb_count():
     nb_count['total'] = 0
     nb_count['files_week'] = 0
     nb_count['files_total'] = 0
-    for d in containers:
-        # Ignore the header
-        if d == "CONTAINER":
-            continue
 
-        # Weekly query
-        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
-        user_week = int(cmd_out.strip())
-        nb_count['week'] += user_week
+    # Weekly query
+    cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
+    user_week = int(cmd_out.strip())
+    nb_count['week'] += user_week
 
-        # Total query
-        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
-        user_total = int(cmd_out.strip())
-        nb_count['total'] += user_total
+    # Total query
+    cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
+    user_total = int(cmd_out.strip())
+    nb_count['total'] += user_total
 
-        # All files query, weekly
-        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
-        files_week = int(cmd_out.strip())
-        nb_count['files_week'] += files_week - user_week
+    # All files query, weekly
+    cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
+    files_week = int(cmd_out.strip())
+    nb_count['files_week'] += files_week - user_week
 
-        # All files query, total
-        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' | wc -l")[1]
-        files_total = int(cmd_out.strip())
-        nb_count['files_total'] += files_total - user_total
+    # All files query, total
+    cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' | wc -l")[1]
+    files_total = int(cmd_out.strip())
+    nb_count['files_total'] += files_total - user_total
 
     return nb_count
 
@@ -442,30 +438,6 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                         </td>
                         <td width="50%%" valign="top">
                             <h2>Notebook Extension</h2>
-                            <h3>Total notebook jobs run</h3>
-                            <table border="1">
-                                <tr>
-                                    <th>Server</th>
-                                    <th>Notebook</th>
-                                    <th>Python</th>
-                                </tr>
-                                <tr>
-                                    <td>GP Prod</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td>GP Broad</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td>GP @ IU</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
-                                </tr>
-                            </table>
-
                             <h3>Notebook jobs run this week</h3>
                             <table border="1">
                                 <tr>
@@ -484,7 +456,41 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                                     <td>%s</td>
                                 </tr>
                                 <tr>
-                                    <td>GP @ IU</td>
+                                    <td>GP IU</td>
+                                    <td>%s</td>
+                                    <td>%s</td>
+                                </tr>
+                                <tr>
+                                    <td>GP AWS</td>
+                                    <td>%s</td>
+                                    <td>%s</td>
+                                </tr>
+                            </table>
+                            
+                            <h3>All time notebook jobs run</h3>
+                            <table border="1">
+                                <tr>
+                                    <th>Server</th>
+                                    <th>Notebook</th>
+                                    <th>Python</th>
+                                </tr>
+                                <tr>
+                                    <td>GP Prod</td>
+                                    <td>%s</td>
+                                    <td>%s</td>
+                                </tr>
+                                <tr>
+                                    <td>GP Broad</td>
+                                    <td>%s</td>
+                                    <td>%s</td>
+                                </tr>
+                                <tr>
+                                    <td>GP IU</td>
+                                    <td>%s</td>
+                                    <td>%s</td>
+                                </tr>
+                                <tr>
+                                    <td>GP AWS</td>
                                     <td>%s</td>
                                     <td>%s</td>
                                 </tr>
@@ -567,15 +573,17 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
         # List New Users
         users['new_users'],
 
-        # Total jobs
-        total_jobs['prod'], total_jobs['prod-py'],
-        total_jobs['broad'], total_jobs['broad-py'],
-        total_jobs['iu'], total_jobs['iu-py'],
-
         # Weekly jobs
         weekly_jobs['prod'], weekly_jobs['prod-py'],
         weekly_jobs['broad'], weekly_jobs['broad-py'],
         weekly_jobs['iu'], weekly_jobs['iu-py'],
+        weekly_jobs['aws'], weekly_jobs['aws-py'],
+
+        # Total jobs
+        total_jobs['prod'], total_jobs['prod-py'],
+        total_jobs['broad'], total_jobs['broad-py'],
+        total_jobs['iu'], total_jobs['iu-py'],
+        total_jobs['aws'], total_jobs['aws-py'],
 
         # Docker stats
         docker['notebook']['stars'], docker['notebook']['pulls'],

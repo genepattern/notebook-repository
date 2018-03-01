@@ -143,7 +143,7 @@ div#notebook-container{
 
             // Display the widget
             const widget_area = cell.find(".output_widget_view");
-            const base_url = window.location.protocol + '//' + window.location.hostname + '/static/repo/img/';
+            const base_url = window.location.protocol + '//' + window.location.hostname + '/user/' +  get_username() + '/static/repo/img/';
             widget_area.empty();
             widget_area.append($('<img src="' + base_url + img + '" alt="GenePattern Authentication Cell" />'))
         }

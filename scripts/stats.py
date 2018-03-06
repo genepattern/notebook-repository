@@ -136,9 +136,11 @@ def get_total_jobs(weekly_jobs):
         jobs_file.write("%s\n" % total_jobs['prod'])
         jobs_file.write("%s\n" % total_jobs['broad'])
         jobs_file.write("%s\n" % total_jobs['iu'])
+        jobs_file.write("%s\n" % total_jobs['aws'])
         jobs_file.write("%s\n" % total_jobs['prod-py'])
         jobs_file.write("%s\n" % total_jobs['broad-py'])
         jobs_file.write("%s\n" % total_jobs['iu-py'])
+        jobs_file.write("%s\n" % total_jobs['aws-py'])
         jobs_file.close()
 
     return total_jobs
@@ -220,27 +222,62 @@ def get_nb_count():
     nb_count['files_week'] = 0
     nb_count['files_total'] = 0
 
-    # Weekly query
-    cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
-    user_week = int(cmd_out.strip())
-    nb_count['week'] += user_week
+    if not test_run:
+        # Weekly query
+        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
+        user_week = int(cmd_out.strip())
+        nb_count['week'] += user_week
 
-    # Total query
-    cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
-    user_total = int(cmd_out.strip())
-    nb_count['total'] += user_total
+        # Total query
+        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
+        user_total = int(cmd_out.strip())
+        nb_count['total'] += user_total
 
-    # All files query, weekly
-    cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
-    files_week = int(cmd_out.strip())
-    nb_count['files_week'] += files_week - user_week
+        # All files query, weekly
+        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
+        files_week = int(cmd_out.strip())
+        nb_count['files_week'] += files_week - user_week
 
-    # All files query, total
-    cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' | wc -l")[1]
-    files_total = int(cmd_out.strip())
-    nb_count['files_total'] += files_total - user_total
+        # All files query, total
+        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' | wc -l")[1]
+        files_total = int(cmd_out.strip())
+        nb_count['files_total'] += files_total - user_total
 
     return nb_count
+
+
+def _genepattern_users():
+    """
+    Poll the provided GenePattern server for the number of GenePattern Notebook jobs launched in the last week
+
+    :param gp_url: The URL of the GenePattern server, not including /gp...
+    :return: Return the number of GenePattern Notebook jobs launched on this server
+    """
+    try:
+        start_date = datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(days=30), "%Y-%m-%d+01:01:01")
+        request = urllib2.Request('https://genepattern.broadinstitute.org/gp/rest/v1/users/new?start=' + start_date)
+        base64string = base64.encodestring(bytearray(admin_login, 'utf-8')).decode('utf-8').replace('\n', '')
+        request.add_header("Authorization", "Basic %s" % base64string)
+        response = urllib2.urlopen(request)
+        json_str = response.read().decode('utf-8')
+        user_json = json.loads(json_str)
+        return user_json['users']
+    except urllib2.URLError:
+        return 'ERROR'
+
+
+def _get_user_email(gp_users, user):
+    # If list is an error, return error
+    if gp_users == 'ERROR':
+        return 'ERROR'
+
+    # Iterate over the list of users, return matching user's email
+    for u in gp_users:
+        if u['username'].lower() == user:
+            return u['email']
+
+    # If no user was found, return blank
+    return ''
 
 
 def get_users():
@@ -259,11 +296,18 @@ def get_users():
     cmd_out = commands.getstatusoutput("sqlite3 " + home_dir + "jupyterhub.sqlite 'select name from users;'")[1]
     containers = cmd_out.split('\n')
 
-    # Create the rows list of new users
+    # Get a list of all new users
     new_users = list(set(containers) - set(user_list))
+
+    # Query the GenePattern public server for info about new users
+    gp_users = _genepattern_users()
+
+    # Create the HTML row list for all new users
     new_users_rows = ''
     for user in new_users:
-        new_users_rows = new_users_rows + '<tr><td>' + user + '</td></tr>'
+        # Get the user email or fall back to blank
+        email = _get_user_email(gp_users, user)
+        new_users_rows = new_users_rows + '<tr><td>' + user + '</td><td>' + email + '</td></tr>'
 
     # Get the sets of users
     users['returning'] = len(set(user_list) & set(containers))
@@ -432,6 +476,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                             <table border="1">
                                 <tr>
                                     <th>Username</th>
+                                    <th>Email</th>
                                 </tr>
                                 %s
                             </table>

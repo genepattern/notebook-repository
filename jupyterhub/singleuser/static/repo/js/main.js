@@ -839,7 +839,15 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         setTimeout(function() {
             $("#publish-tags").tagit({
                 singleField: true,
-                caseSensitive: false
+                caseSensitive: false,
+                beforeTagAdded: function(event, obj) {
+                    const protected_tags = get_protected_tags();
+                    const tag = obj.tagLabel.toLowerCase();
+                    if (protected_tags.includes(tag)) {
+                        $(obj.tag).css("background-color", "gray");
+                        return true;
+                    }
+                }
             });
         }, 200);
     }
@@ -1054,6 +1062,29 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     function build_repo_tab() {
         // Add Notebook Sidebar
         build_notebook_sidebar();
+    }
+
+    function get_protected_tags() {
+        // If already cached, return the list
+        if (GenePattern.repo.protected_tags) return GenePattern.repo.protected_tags;
+
+        // Otherwise, generate the list
+        const protected_tags = [];
+        GenePattern.repo.public_notebooks.forEach(function(nb) {
+            if (nb.tags) {
+                nb.tags.forEach(function(tag) {
+                    // If the tag is protected and not already in the list
+                    if (tag.protected && !protected_tags.includes(tag.label)) {
+                        protected_tags.push(tag.label);
+                    }
+                });
+            }
+        });
+        protected_tags.sort();
+
+        // Set the cache and return
+        GenePattern.repo.protected_tags = protected_tags;
+        return protected_tags;
     }
 
     function get_pinned_tags() {

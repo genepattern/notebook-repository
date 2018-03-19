@@ -79,6 +79,34 @@
              }
          }
 
+         function replace_run_button(username) {
+             // Get the button
+             const run_button = $("#run_notebook");
+
+             // Get the base URL
+             const base_url = window.location.protocol + '//' + window.location.hostname + ':8080';
+
+             // Rename the button
+             run_button.text("Run in GenePattern Notebook");
+
+             // Remove the old link
+             run_button.attr("href", "#");
+
+             // Attach the new click event
+             run_button.click(function() {
+                 $.ajax({
+                     url: base_url + "/notebooks/" + 72 + "/copy/",
+                     method: "POST",
+                     beforeSend: function (xhr) {
+                         // xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+                     },
+                     success: function(responseData) {
+                         // Redirect to the notebook
+                     }
+                 });
+             });
+         }
+
          // Get the username, if logged in
          const username = get_username();
 

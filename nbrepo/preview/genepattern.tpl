@@ -81,7 +81,7 @@ div#notebook-container{
 
       <span class="flex-spacer"></span>
       <span id="login_widget">
-          <a id="run_notebook" href="https://notebook.genepattern.org" class="btn btn-sm btn-default navbar-btn">Run in GenePattern Notebook</a>
+          <a id="run_notebook" href="https://notebook.genepattern.org" class="btn btn-sm btn-default navbar-btn">Login or Register</a>
       </span>
       <span>
           <a href="../download/" class="btn btn-default btn-sm navbar-btn pull-right" style="margin-right: 4px; margin-left: 2px;">

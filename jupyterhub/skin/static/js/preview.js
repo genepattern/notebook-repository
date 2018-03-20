@@ -41,13 +41,14 @@
              cell.find(".input").hide();
 
              // Display the widget
-             const widget_area = cell.find(".output_widget_view");
+             const widget_area = cell.find(".output_widget_view, .output_area");
              const base_url = "https://notebook.genepattern.org/hub/static/images/";
 
              const image = $('<img src="' + base_url + img + '" alt="GenePattern Authentication Cell" />');
              const div = $("<div></div>").append(image);
 
-             widget_area.empty();
+             widget_area.find(".output_subarea").remove();
+             //widget_area.empty();
              widget_area.append(div);
          }
 

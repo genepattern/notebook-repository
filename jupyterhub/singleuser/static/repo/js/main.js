@@ -1389,7 +1389,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         // Create the public notebooks tab
         $("#tabs").append(
             $('<li></li>')
-                .append($('<a href="#repository" data-toggle="tab" class="repository_tab_link" >Public Notebooks</a>'))
+                .append(
+                    $('<a href="#repository" data-toggle="tab" class="repository_tab_link" ></a>')
+                        .append("Public Notebooks")
+                        .click(function() {
+                            window.location.hash = 'repository';
+                        })
+                )
         );
 
         // Add the contents of the public notebooks tab
@@ -1411,6 +1417,14 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                                 $('<div id="repository-list" class="row"></div>')
                             )
                     )
+                    .ready(function() {
+                        // Display the Public Notebooks tab, if selected
+                        if (window.location.hash === "#repository") {
+                            setTimeout(function() {
+                                $(".repository_tab_link").tab('show');
+                            }, 1);
+                        }
+                    })
             );
     }
 

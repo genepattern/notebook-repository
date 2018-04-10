@@ -7,6 +7,7 @@ import smtplib
 import time
 import urllib
 import urllib.parse
+from datetime import datetime
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -33,22 +34,25 @@ from rest_framework.response import Response
 
 
 class Share(models.Model):
-    owner = models.CharField(max_length=128)
     name = models.CharField(max_length=64)
 
-    file_path = models.CharField(max_length=256)
     api_path = models.CharField(max_length=256)
+    last_updated = models.DateTimeField(null=True)
 
     def __str__(self):
-        return self.owner + '/' + self.api_path
+        return self.api_path
 
 
 class Collaborator(models.Model):
     share = models.ForeignKey(Share, on_delete=models.CASCADE, related_name='shared_with')
-    name = models.CharField(max_length=64)
+    user = models.CharField(max_length=64)
+    owner = models.BooleanField(default=False)
+
     email = models.CharField(max_length=128)
     token = models.CharField(max_length=128)
     accepted = models.BooleanField(default=False)
+
+    file_path = models.CharField(max_length=256, null=True)
 
     def __str__(self):
         return str(self.share) + ' (' + self.email + ')'
@@ -62,13 +66,13 @@ class Collaborator(models.Model):
 class SharingSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Share
-        fields = ('id', 'owner', 'file_path', 'api_path', 'shared_with', )
+        fields = ('id', 'name', 'api_path', 'last_updated', 'shared_with', )
 
 
 class CollaboratorSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Collaborator
-        fields = ('share', 'email', 'name', 'token', 'accepted', )
+        fields = ('share', 'user', 'owner', 'email', 'token', 'accepted', 'file_path')
 
 
 #################
@@ -82,7 +86,7 @@ class SharingViewSet(viewsets.ModelViewSet):
     """
     queryset = Share.objects.all()
     serializer_class = SharingSerializer
-    filter_fields = ('owner', 'name', 'file_path', 'api_path', )
+    filter_fields = ('name', 'api_path', )
     permission_classes = (permissions.AllowAny, )
 
 
@@ -92,19 +96,24 @@ class CollaboratorViewSet(viewsets.ModelViewSet):
     """
     queryset = Collaborator.objects.all()
     serializer_class = CollaboratorSerializer
-    filter_fields = ('name', 'token', 'accepted', )
+    filter_fields = ('user', 'owner', 'token', 'accepted', 'file_path', )
     permission_classes = (permissions.AllowAny, )
 
 
 @api_view(['POST'])
 @permission_classes((permissions.AllowAny,))
 def begin_sharing(request):
-    nb_path = request.POST['notebook'] if 'notebook' in request.POST else None
-    users = request.POST['share_with'].split(',') if 'share_with' in request.POST and request.POST['share_with'] != '' else []
-    owner = request.POST['shared_by'] if 'shared_by' in request.POST else None
+    # Path to the original notebook on the file system
+    nb_path = request.data['notebook'] if 'notebook' in request.data else None
 
-    # Escape nb_path
-    nb_path = _remove_api_prefix(urllib.parse.unquote(nb_path))
+    # The list of users the notebook is being shared with
+    users = request.data['share_with'].split(',') if 'share_with' in request.data and request.data['share_with'] != '' else []
+
+    # The original owner of the notebook
+    owner = request.data['shared_by'] if 'shared_by' in request.data else None
+
+    # Escape nb_path and prepend owner
+    nb_path = str(owner) + '/' + str(_remove_api_prefix(urllib.parse.unquote(str(nb_path))))
 
     # Handle the case of sharing with nobody
     if nb_path is None or users is None or owner is None:
@@ -119,18 +128,26 @@ def begin_sharing(request):
     # Lazily create one if one does not already exist
     except Share.DoesNotExist:
         notebook = Share()
-        notebook.owner = owner
         notebook.name = nb_path.split('/')[-1]
-        notebook.file_path = _api_to_file_path(owner, nb_path)
         notebook.api_path = nb_path
+        notebook.last_updated = datetime.now()
         notebook.save()
+
+        # Add the owner as a collaborator
+        owner_collaborator = Collaborator()
+        owner_collaborator.share = notebook
+        owner_collaborator.user = owner
+        owner_collaborator.owner = True
+        owner_collaborator.accepted = True
+        owner_collaborator.file_path = _api_to_file_path(owner, nb_path)
+        owner_collaborator.save()
 
     # Get the list of collaborators for the notebook
     collaborators = Collaborator.objects.filter(share=notebook)
     existing = []
     for c in collaborators:
-        if c.name:
-            existing.append(c.name)
+        if c.user:
+            existing.append(c.user)
         if c.email:
             existing.append(c.email)
 
@@ -143,7 +160,7 @@ def begin_sharing(request):
     # Figure out which need removed
     need_removed = []
     for user in collaborators:
-        if user.email not in users and user.name not in users:
+        if user.email not in users and user.user not in users and not user.owner:
             need_removed.append(user)
 
     # Remove collaborators as necessary
@@ -248,6 +265,8 @@ def _api_to_file_path(username, api_path):
 def _remove_api_prefix(nb_path):
     if nb_path.startswith("/notebooks/"):
         return nb_path[11:]
+    else:
+        return None
 
 
 def _is_email(email):
@@ -311,7 +330,8 @@ def _create_collaborator(nb, name_or_email):
     # Otherwise, create the collaborator
     c = Collaborator()
     c.share = nb
-    c.name = name
+    c.user = name
+    c.owner = False
     c.email = email
     c.token = _generate_token()
     c.accepted = False

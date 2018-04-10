@@ -1030,14 +1030,26 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         GenePattern.repo.public_notebooks.forEach(function(nb) {
             const tags = build_tag_list(nb);
 
-            // If no tag specified, return all notebooks
-            if (!tag) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
+            // If no tag specified, return all notebooks without a pinned tag
+            if (!tag && no_pinned_tags(tags)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
 
             // Otherwise, check for a matching tag
             else if (tags.includes(tag)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
         });
 
         return built_list;
+    }
+
+    /**
+     * Returns true if the list of tags contains no pinned tags
+     *
+     * @param tags
+     * @returns {boolean}
+     */
+    function no_pinned_tags(tags) {
+        const pinned_tags = new Set(get_pinned_tags());
+        let intersection = new Set([...tags].filter(x => pinned_tags.has(x)));
+        return intersection.size === 0;
     }
 
     /**

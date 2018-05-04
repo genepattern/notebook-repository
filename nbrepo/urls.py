@@ -26,8 +26,8 @@ router = routers.DefaultRouter()
 # router.register(r'groups', GroupViewSet)
 router.register(r'notebooks', NotebookViewSet)
 router.register(r'tags', TagViewSet)
-# router.register(r'sharing', SharingViewSet)
-# router.register(r'collaborators', CollaboratorViewSet)
+router.register(r'sharing', SharingViewSet)
+router.register(r'collaborators', CollaboratorViewSet)
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),

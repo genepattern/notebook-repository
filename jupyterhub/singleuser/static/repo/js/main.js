@@ -3,6 +3,7 @@ var GenePattern = GenePattern || {};
 GenePattern.repo = GenePattern.repo || {};
 GenePattern.repo.events_init = GenePattern.repo.events_init || false;
 GenePattern.repo.public_notebooks = GenePattern.repo.public_notebooks || [];
+GenePattern.repo.shared_notebooks = GenePattern.repo.shared_notebooks || [];
 GenePattern.repo.my_nb_paths = GenePattern.repo.my_nb_paths || [];
 GenePattern.repo.username = GenePattern.repo.username || null;
 GenePattern.repo.repo_url = GenePattern.repo.repo_url || null;
@@ -400,6 +401,312 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     buttons: {"OK": function() {}}
                 });
             }
+        });
+    }
+
+    //////////////////////////////
+    // TODO: BEGIN SHARING WORK //
+    //////////////////////////////
+
+    function run_shared_notebook(notebook, current_directory) {
+        // Show the loading screen
+        modal_loading_screen();
+
+        // Call the repo service to publish the notebook
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/sharing/" + notebook['id'] + "/copy/" + current_directory,
+            method: "PUT",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(responseData) {
+                // Close the modal
+                close_modal();
+
+                // Refresh the file list
+                get_sharing_list();
+                $("#refresh_notebook_list").trigger("click");
+
+                // Open the notebook
+                const nb_url = window.location.protocol + '//' + window.location.hostname + '/notebooks/' + encodeURI(notebook['my_path']);
+                window.open(nb_url);
+
+            },
+            error: function() {
+                // Close the modal
+                close_modal();
+
+                // Show error dialog
+                console.log("ERROR: Failed to run the shared notebook");
+                dialog.modal({
+                    title : "Failed to Run Shared Notebook",
+                    body : $("<div></div>")
+                        .addClass("alert alert-danger")
+                        .append("The GenePattern Notebook Repository encountered an error when attempting to run the shared notebook."),
+                    buttons: {"OK": function() {}}
+                });
+            }
+        });
+    }
+
+    function update_invite(notebook, accepted=true) {
+        // Show the loading screen
+        modal_loading_screen();
+
+        // Call the repo service to publish the notebook
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/sharing/" + notebook['id'] + (accepted ? "/accept/" : "/decline/"),
+            method: "PUT",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(responseData) {
+                // Close the modal
+                close_modal();
+
+                // Refresh the list of notebooks
+                get_sharing_list(function() {
+                    $("a[data-tag='-shared-invites']").click();
+                });
+
+                // Assemble the buttons
+                const buttons = {};
+                if (accepted) {
+                    buttons["Run Notebook"] = {
+                        "class": "btn-primary",
+                        "click": function () {
+                            const current_dir = Jupyter.notebook_list.notebook_path;
+                            run_shared_notebook(notebook, current_dir);
+                        }
+                    };
+                }
+                buttons["OK"] = function() {};
+
+                // Open the notebook
+                dialog.modal({
+                    title : "Notebook Invitation " + (accepted ? "Accepted" : "Declined"),
+                    body : $("<div></div>")
+                        .addClass("alert alert-success")
+                        .append("You have " + (accepted ? "accepted" : "declined") + " the notebook sharing invitation. " +
+                            (accepted ? "To open the notebook, click the <em>Run Notebook</em> button below." : "")),
+                    buttons: buttons
+                });
+
+            },
+            error: function() {
+                // Close the modal
+                close_modal();
+
+                // Show error dialog
+                console.log("ERROR: Failed to update the sharing invite");
+                dialog.modal({
+                    title : "Failed to Update Sharing Invite",
+                    body : $("<div></div>")
+                        .addClass("alert alert-danger")
+                        .append("The GenePattern Notebook Repository encountered an error when attempting to update the notebook sharing invite."),
+                    buttons: {"OK": function() {}}
+                });
+            }
+        });
+    }
+
+    /**
+     * Show the dialog to run a shared notebook
+     *
+     * @param notebook
+     */
+    function repo_shared_dialog(notebook, invite_dialog=false) {
+        // Declare the buttons
+        const buttons = {};
+        buttons["Cancel"] = {"class" : "btn-default"};
+
+        // If you have a copy of the notebook
+        if (notebook['my_path'] && !invite_dialog) {
+            buttons["Go to Directory"] = {
+                "class": "btn-info",
+                "click": function() {
+                    window.location.href = build_dir_url(notebook) + "#notebook_list";
+                }};
+        }
+
+        if (invite_dialog) {
+            buttons["Decline Invite"] = {
+                "class": "btn-danger",
+                "click": function () {
+                    const current_dir = Jupyter.notebook_list.notebook_path;
+                    update_invite(notebook, false);
+                }
+            };
+            buttons["Accept Invite"] = {
+                "class": "btn-primary",
+                "click": function () {
+                    const current_dir = Jupyter.notebook_list.notebook_path;
+                    update_invite(notebook, true);
+                }
+            };
+        }
+        else {
+            buttons["Run Notebook"] = {
+                "class": "btn-primary",
+                "click": function () {
+                    const current_dir = Jupyter.notebook_list.notebook_path;
+                    run_shared_notebook(notebook, current_dir);
+                }
+            };
+        }
+
+        // Sanitize the title
+        let title = notebook['name'];
+        if (title.length > 64) {
+            title = title.substring(0,64) + "..."
+        }
+
+        // Build the body
+        const body = $("<div></div>")
+            .append(
+                $("<div></div>")
+                    .addClass("repo-dialog-labels")
+                    .append("Users")
+                    .append($("<br/>"))
+                    .append("Filename")
+                    .append($("<br/>"))
+                    .append("Owner")
+                    .append($("<br/>"))
+                    .append("Updated")
+            )
+            .append(
+                $("<div></div>")
+                    .addClass("repo-dialog-values")
+                    .append(get_collaborator_string(notebook))
+                    .append($("<br/>"))
+                    .append(notebook['api_path'].replace(/^.*[\\\/]/, ''))
+                    .append($("<br/>"))
+                    .append(get_shared_owner(notebook))
+                    .append($("<br/>"))
+                    .append(notebook['last_updated'])
+            )
+            .append(
+                $("<div></div>")
+                    .addClass("repo-dialog-description")
+                    .append(notebook['description'])
+            );
+
+        // Show the modal dialog
+        dialog.modal({
+            title : title,
+            body : body,
+            buttons: buttons
+        });
+    }
+
+    function get_shared_notebook(id) {
+        let selected = null;
+        GenePattern.repo.shared_notebooks.forEach(function(nb) {
+            if (nb.id === id) {
+                selected = nb;
+                return false;
+            }
+        });
+        return selected;
+    }
+
+    function get_shared_owner(notebook) {
+        let owner = null;
+        notebook.collaborators.forEach(function(c) {
+            if (c.owner) owner = c.user;
+        });
+
+        return owner;
+    }
+
+    function get_collaborator_string(notebook) {
+        let collaborators = [];
+        notebook.collaborators.forEach(function(c) {
+            collaborators.push(c.user);
+        });
+        return collaborators.join(', ');
+    }
+
+    function shared_notebook_matrix(accepted=true) {
+        const notebooks = GenePattern.repo.shared_notebooks;
+        const rows = [];
+
+        notebooks.forEach(function(nb) {
+            // Skip accepted or non-accepted
+            if (nb.accepted !== accepted) return true;
+
+            // Prepare the last updated date
+            let last_updated = null;
+            if (nb.last_updated) last_updated = nb.last_updated.split(' ')[0];
+
+            // Prepare the collaborator list
+            let owner = get_shared_owner(nb);
+            let collaborators = get_collaborator_string(nb);
+
+            rows.push([nb.id, nb.name, collaborators, last_updated, owner]);
+        });
+
+        return rows;
+    }
+
+    function build_sharing_table(notebooks) {
+        // Create the table
+        const list_div = $("#repository-list");
+
+        const table = $("<table></table>")
+            .addClass("table table-striped table-bordered table-hover")
+            .appendTo(list_div);
+
+        // Initialize the DataTable
+        const dt = table.DataTable({
+            "data": notebooks,
+            "autoWidth": false,
+            "paging":  false,
+            "columns": [
+                {"title": "ID", "visible": false, "searchable": false},
+                {
+                    "title": "Notebook",
+                    "width": "50%",
+                    "visible": true,
+                    "render": function(data, type, row, meta) {
+                        return "<h4 class='repo-title'>" + row[1] + "</h4>";
+                    }
+                },
+                {"title": "Collaborators", "width": "200px", "visible": true},
+                {"title":"Updated", "width": "100px"},
+                {"title":"Owner", "width": "100px"}
+            ]
+        });
+        dt.order([1, 'asc']).draw();
+
+        // Add event listener for notebook dialogs
+        table.find("tbody").on('click', 'tr', function () {
+            const data = dt.row( this ).data();
+            const id = data[0];
+            const nb = get_shared_notebook(id);
+
+            const table_name = $("#repo-header-label").text();
+            const invite_dialog = table_name === "Sharing Invites";
+
+            repo_shared_dialog(nb, invite_dialog);
+        });
+    }
+
+    function get_sharing_list(success = ()=>{}, error = ()=>{}) {
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/sharing/list/",
+            method: "GET",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(data) {
+                GenePattern.repo.shared_notebooks = JSON.parse(data);
+                success(data);
+            },
+            error: error
         });
     }
 
@@ -910,7 +1217,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
      * @returns {string|null}
      */
     function build_dir_url(notebook) {
-        return notebook['api_path'].match(/^(.*[\\\/])/)[1].replace("/notebooks/", "/tree/", 1);
+        const base_path = notebook['my_path'] ? notebook['my_path'] : notebook['api_path'];
+
+        return base_path.match(/^(.*[\\\/])/)[1].replace("/notebooks/", "/tree/", 1);
     }
 
     /**
@@ -1124,7 +1433,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
     function select_sidebar_nav(link) {
         // Remove the old active class
-        const nav = $("#repo-sidebar-nav");
+        const nav = $("#repo-sidebar");
         nav.find("li").removeClass("active");
 
         // Add the new active class
@@ -1136,9 +1445,25 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         // Remove the old notebook table
         $("#repository-list").empty();
 
-        // Build the new notebook table
-        const filtered_notebook_list = public_notebook_list(link.attr("data-tag"));
-        build_notebook_table(filtered_notebook_list);
+        // Get the data tag
+        const tag = link.attr("data-tag");
+        const nb_header = $("#repo-header-notebooks");
+
+        // If shared notebook
+        if (tag.startsWith('-shared-')) {
+            nb_header.hide();
+
+            const accepted = tag !== '-shared-invites';
+            const shared_nb_matrix = shared_notebook_matrix(accepted);
+            build_sharing_table(shared_nb_matrix)
+        }
+
+        // If public notebook
+        else {
+            nb_header.show();
+            const filtered_notebook_list = public_notebook_list(link.attr("data-tag"));
+            build_notebook_table(filtered_notebook_list);
+        }
     }
 
     function create_sidebar_nav(tag, label) {
@@ -1418,12 +1743,14 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                         $("<div id='repo-sidebar' class='col-md-2'></div>")
                             .append($("<h4>Public Notebooks</h4>"))
                             .append($("<ul id='repo-sidebar-nav' class='nav nav-pills'></ul>"))
+                            .append($("<h4>Shared Notebooks</h4>"))
+                            .append($("<ul id='repo-sidebar-shared' class='nav nav-pills'></ul>"))
                     )
                     .append(
                         $('<div class="list_container col-md-10">')
                             .append(
                                 $('<div id="repository-list-header" class="row list_header repo-header"></div>')
-                                    .append("<span id='repo-header-label'></span> Notebooks")
+                                    .append("<span id='repo-header-label'></span> <span id='repo-header-notebooks'>Notebooks</span>")
                             )
                             .append(
                                 $('<div id="repository-list" class="row"></div>')
@@ -1438,6 +1765,12 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                         }
                     })
             );
+
+        // Attach the shared menu items
+        $("#repo-sidebar-shared")
+            .append(create_sidebar_nav("-shared-with-me", "Shared With Me"))
+            .append(create_sidebar_nav("-shared-invites", "Sharing Invites"));
+
     }
 
     function lock_notebook(user) {
@@ -1631,6 +1964,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             get_notebooks(function() {
                 add_published_icons();
             });
+            get_sharing_list();
         });
 
         // Refresh notebooks in the list if the tab is clicked
@@ -1652,6 +1986,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 // Add publish link to the toolbar
                 add_publish_link();
             });
+            get_sharing_list();
         });
     }
 });

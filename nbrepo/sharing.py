@@ -11,11 +11,13 @@ from datetime import datetime
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
+from shutil import copyfile
 
 from django.conf import settings
 from django.conf.urls import url
 from django.contrib.auth.models import User
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.db import models
 
 from rest_framework import permissions
@@ -34,10 +36,12 @@ from rest_framework.response import Response
 
 
 class Share(models.Model):
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64)          # Name of the notebook
+    last_updated = models.DateTimeField(null=True)  # Timestamp of the last publish
 
+    # The file path to the published copy of the notebook, relative to settings.BASE_REPO_PATH
+    # Will usually be: [settings.BASE_REPO_PATH/] owner_username/owner_file_path
     api_path = models.CharField(max_length=256)
-    last_updated = models.DateTimeField(null=True)
 
     def __str__(self):
         return self.api_path
@@ -52,6 +56,7 @@ class Collaborator(models.Model):
     token = models.CharField(max_length=128)
     accepted = models.BooleanField(default=False)
 
+    # The file path for the linked file for this particular user, relative to the user's directory
     file_path = models.CharField(max_length=256, null=True)
 
     def __str__(self):
@@ -66,7 +71,7 @@ class Collaborator(models.Model):
 class SharingSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Share
-        fields = ('id', 'name', 'api_path', 'last_updated', 'shared_with', )
+        fields = ('url', 'id', 'name', 'last_updated', 'api_path', 'shared_with')
 
 
 class CollaboratorSerializer(serializers.HyperlinkedModelSerializer):
@@ -197,59 +202,51 @@ def error_redirect(request):
     return render(request, "error.html", context={"message": message})
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT'])
 @permission_classes((permissions.AllowAny,))
-def accept_sharing(request, pk, token):
+def accept_sharing(request, pk):
+    # If this was a direct link and not logged in, redirect to the login page
+    if request.method == 'GET' and request.user.is_anonymous():
+        return redirect('/hub/login?next=/tree?#repository')
+
     # Look up the sharing entry
-    share = None
-    try:
-        share = Share.objects.get(id=pk)
-    except Share.DoesNotExist:
-        return redirect("/error/?" + urllib.parse.urlencode({"message": "Could not located shared notebook."}))
+    nb = get_object_or_404(Share, id=pk)
 
-    # Verify the token
-    try:
-        collaborator = Collaborator.objects.get(share=share, token=token)
-    except Collaborator.DoesNotExist:
-        return redirect("/error/?" + urllib.parse.urlencode({"message": "Unable to verify provided token."}))
+    # Get the current username
+    username = request.user.username
 
-    # If not yet accepted
-    if not collaborator.accepted:
+    # Get the current collaborator
+    collaborator = get_object_or_404(Collaborator, user=username, share=nb)
 
-        # Lazily create the sharing directory
-        if settings.JUPYTERHUB:
-            user_directory = os.path.join(settings.BASE_USER_PATH, request.user.username)
-        else:
-            user_directory = settings.BASE_USER_PATH
+    # Mark sharing as accepted
+    collaborator.accepted = True
+    collaborator.save()
 
-        sharing_directory = os.path.join(user_directory, 'Shared')
+    # If this was a GET request, redirect to the Public Notebooks tab
+    if request.method == 'GET':
+        return redirect('/tree?#repository')
 
-        if not os.path.exists(sharing_directory):
-            os.makedirs(sharing_directory)
+    # Otherwise, return a 200 response in the API
+    return Response(nb.name + " sharing accepted.", status=200)
 
-        # Soft link the shared notebook, throw an error if already exists
-        notebook_link = os.path.join(sharing_directory, share.name)
 
-        if os.path.exists(notebook_link):
-            if settings.JUPYTERHUB:
-                return redirect("/error/?" + urllib.parse.urlencode({"message": "Unable to link notebook. " +
-                                                                                "A notebook with that name already exists in the sharing directory."}))
-        else:
-            os.symlink(share.file_path, notebook_link)
+@api_view(['PUT'])
+@permission_classes((permissions.AllowAny,))
+def decline_sharing(request, pk):
+    # Look up the sharing entry
+    nb = get_object_or_404(Share, id=pk)
 
-        # Initialize the collaborator's name, if necessary
-        if not collaborator.name:
-            collaborator.name = request.user.username
+    # Get the current username
+    username = request.user.username
 
-        # Mark the collaborator as having accepted
-        collaborator.accepted = True
-        collaborator.save()
+    # Get the current collaborator
+    collaborator = get_object_or_404(Collaborator, user=username, share=nb)
 
-    # Redirect to the sharing directory
-    if settings.JUPYTERHUB:
-        return redirect("https://notebook.genepattern.org/hub/%s/tree/Shared" % request.user.username)
-    else:
-        return redirect("http://localhost:8888/tree/Shared")
+    # Remove the collaborator from the shared notebook
+    collaborator.delete()
+
+    # Otherwise, return a 200 response in the API
+    return Response(nb.name + " sharing declines.", status=200)
 
 
 def _api_to_file_path(username, api_path):
@@ -371,14 +368,92 @@ def current_collaborators(request, api_path):
     return Response(json.dumps(return_obj))
 
 
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def shared_with_me(request):
+    if request.user:
+        username = request.user.username
+        c_list = Collaborator.objects.filter(user=username)
+
+        notebook_list = []
+        for c in c_list:
+            nb = {}
+            nb['name'] = c.share.name
+            nb['id'] = c.share.id
+            nb['api_path'] = c.share.api_path
+            nb['my_path'] = c.file_path
+            nb['last_updated'] = str(c.share.last_updated)
+            nb['owner'] = c.owner
+            nb['accepted'] = c.accepted
+
+            collaborator_list = []
+            for oc in c.share.shared_with.all():
+                collaborator_list.append({
+                    'user': oc.user if oc.user else oc.email,
+                    'accepted': oc.accepted,
+                    'owner': oc.owner
+                })
+            nb['collaborators'] = collaborator_list
+
+            notebook_list.append(nb)
+        return Response(json.dumps(notebook_list))
+
+    else:
+        return_obj = {"error": "Must be logged in to have notebooks shared with you."}
+        return Response(json.dumps(return_obj), status=401)
+
+
+@api_view(['PUT'])
+@permission_classes((permissions.AllowAny,))
+def copy_share(request, pk, local_dir_path):
+    # Look up the notebook using pk
+    nb = get_object_or_404(Share, id=pk)
+
+    # Get the current username
+    username = request.user.username
+
+    # Get the current collaborator
+    collaborator = get_object_or_404(Collaborator, user=username, share=nb)
+
+    # Does the collaborator already have a file path? If not, add one
+    if not collaborator.file_path:
+        collaborator.file_path = os.path.join(local_dir_path, nb.name)
+        collaborator.save()
+
+    # Either way, get the local path
+    local_path = Path(os.path.join(settings.BASE_USER_PATH, collaborator.file_path))
+
+    # Check to see if the notebook exists, if not copy the shared notebook there and return
+    if not local_path.exists():
+        copyfile(os.path.join(settings.BASE_REPO_PATH, nb.api_path), str(local_path))
+        return Response('Shared notebook lazily created', status=200)
+
+    # If it does, get the last updated timestamp of the file
+    local_last_updated = local_path.stat().st_mtime
+
+    # Compare last_updated of the file vs. the db entry, if the db entry is newer, overwrite the local file and return
+    # Local file older than the repo file
+    if local_last_updated < nb.last_updated.timestamp():
+        copyfile(os.path.join(settings.BASE_REPO_PATH, nb.api_path), str(local_path))
+        return Response('Updated local copy of shared notebook', status=200)
+
+    # If the file is newer, don't copy, just return
+    # Local file newer than the repo file
+    else:
+        return Response('Keeping local copy of shared notebook', status=200)
+
+
 ################
 # From urls.py #
 ################
 
 
 urlpatterns = [
+    url(r'^sharing/list/$', shared_with_me),
+    url(r'^sharing/(?P<pk>[0-9]+)/accept/$', accept_sharing),
+    url(r'^sharing/(?P<pk>[0-9]+)/decline/$', decline_sharing),
+    url(r'^sharing/(?P<pk>[0-9]+)/copy/(?P<local_dir_path>.*)$', copy_share),
     url(r'^sharing/begin/', begin_sharing),
     url(r'^sharing/current/(?P<api_path>.*)$', current_collaborators),
-    url(r'^sharing/(?P<pk>[0-9]+)/accept/(?P<token>.*)$', accept_sharing),
     url(r'^error/$', error_redirect),
 ]

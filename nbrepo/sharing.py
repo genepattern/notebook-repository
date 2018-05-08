@@ -212,6 +212,34 @@ def begin_sharing(request):
     return Response(json.dumps(return_obj))
 
 
+@api_view(['DELETE'])
+@permission_classes((permissions.AllowAny,))
+def remove_sharing(request, pk):
+    # Look up the sharing entry
+    nb = get_object_or_404(Share, id=pk)
+
+    # Get the current username
+    username = request.user.username
+
+    # Get the current collaborator
+    collaborator = get_object_or_404(Collaborator, user=username, share=nb)
+
+    # Ensure the current user has owner permissions
+    if not collaborator.owner:
+        return_obj = {"error": "Unable to remove sharing due to user permissions."}
+        return Response(return_obj, status=403)
+
+    # Remove the shared notebook from the file system
+    share_path = Path(os.path.join(settings.BASE_REPO_PATH, nb.api_path))
+    share_path.unlink()
+
+    # Remove the share from the database
+    nb.delete()
+
+    # Otherwise, return a 200 response in the API
+    return Response(nb.name + " sharing removed.", status=200)
+
+
 @api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def error_redirect(request):
@@ -474,6 +502,7 @@ urlpatterns = [
     url(r'^sharing/list/$', shared_with_me),
     url(r'^sharing/(?P<pk>[0-9]+)/accept/$', accept_sharing),
     url(r'^sharing/(?P<pk>[0-9]+)/decline/$', decline_sharing),
+    url(r'^sharing/(?P<pk>[0-9]+)/remove/$', remove_sharing),
     url(r'^sharing/(?P<pk>[0-9]+)/copy/(?P<local_dir_path>.*)$', copy_share),
     url(r'^sharing/begin/', begin_sharing),
     url(r'^sharing/current/(?P<api_path>.*)$', current_collaborators),

@@ -513,6 +513,57 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         });
     }
 
+    function remove_shared_notebook(notebook) {
+        // Show the loading screen
+        modal_loading_screen();
+
+        // Call the repo service to publish the notebook
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/sharing/" + notebook['id'] + "/remove/",
+            method: "DELETE",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(responseData) {
+                // Close the modal
+                close_modal();
+
+                // Refresh the list of notebooks
+                get_sharing_list(function() {
+                    $("a[data-tag='-shared-invites']").click();
+                });
+
+                // Open the dialog
+                dialog.modal({
+                    title : "Notebook is Now Private",
+                    body : $("<div></div>")
+                        .addClass("alert alert-success")
+                        .append("The selected notebook is now private. Collaborators with existing copies " +
+                            "of the notebook will retain their copies, but will no longer see changes you make."),
+                    buttons: {
+                        "OK": function() {}
+                    }
+                });
+
+            },
+            error: function() {
+                // Close the modal
+                close_modal();
+
+                // Show error dialog
+                console.log("ERROR: Failed to make the notebook private.");
+                dialog.modal({
+                    title : "Failed to Make Notebook Private",
+                    body : $("<div></div>")
+                        .addClass("alert alert-danger")
+                        .append("The GenePattern Notebook Repository encountered an error when attempting to make the notebook private."),
+                    buttons: {"OK": function() {}}
+                });
+            }
+        });
+    }
+
     /**
      * Show the dialog to run a shared notebook
      *
@@ -523,12 +574,27 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         const buttons = {};
         buttons["Cancel"] = {"class" : "btn-default"};
 
+        // If you are the owner
+        if (notebook['owner']) {
+            buttons["Make Private"] = {
+                "class": "btn-danger",
+                "click": function() {
+                    remove_shared_notebook(notebook);
+                }};
+        }
+
         // If you have a copy of the notebook
         if (notebook['my_path'] && !invite_dialog) {
             buttons["Go to Directory"] = {
                 "class": "btn-info",
                 "click": function() {
-                    window.location.href = build_dir_url(notebook) + "#notebook_list";
+                    let url = window.location.protocol + '//' + window.location.hostname + Jupyter.notebook_list.base_url + 'tree/'; // Base part of URL
+
+                    let slash_index = notebook['my_path'].lastIndexOf('/');             // Get the last slash, separating directory from file name
+                    let directory_path = notebook['my_path'].substring(0, slash_index); // Get the directory path
+
+                    url += directory_path + '#notebook_list';                           // Finish the URL
+                    window.location.href = url;
                 }};
         }
 
@@ -602,10 +668,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         });
     }
 
-    function get_shared_notebook(id) {
+    function get_shared_notebook(id_or_path) {
         let selected = null;
         GenePattern.repo.shared_notebooks.forEach(function(nb) {
-            if (nb.id === id) {
+            if (nb.id === id_or_path || nb.my_path === id_or_path) {
                 selected = nb;
                 return false;
             }
@@ -813,6 +879,15 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             // Create buttons list
             const buttons = {};
             buttons["Cancel"] = {"class" : "btn-default"};
+
+            buttons["Make Private"] = {
+                "class": "btn-danger",
+                "click": function() {
+                    const my_path = home_relative_path(nb_path);
+                    const notebook = get_shared_notebook(my_path);
+                    remove_shared_notebook(notebook);
+                }};
+
             buttons[shared ? "Update" : "Share"] = {
                 "class" : "btn-primary",
                 "click": function() {

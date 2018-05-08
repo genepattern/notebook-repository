@@ -32,6 +32,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog'], function(Jupyter, $, 
                     });
                 })
         );
+
+        // If there are only the two default notebooks, open the hint dialog
+        const notebook_count = $("#notebook_list").find(".list_item.row").length;
+        if (notebook_count === 2) $("#gp-hint-box").click();
     }
 
     const on_index_page = $("#notebooks").is(":visible");

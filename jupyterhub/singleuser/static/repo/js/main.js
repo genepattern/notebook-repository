@@ -4,6 +4,7 @@ GenePattern.repo = GenePattern.repo || {};
 GenePattern.repo.events_init = GenePattern.repo.events_init || false;
 GenePattern.repo.public_notebooks = GenePattern.repo.public_notebooks || [];
 GenePattern.repo.shared_notebooks = GenePattern.repo.shared_notebooks || [];
+GenePattern.repo.my_shared_paths = GenePattern.repo.my_shared_paths || [];
 GenePattern.repo.my_nb_paths = GenePattern.repo.my_nb_paths || [];
 GenePattern.repo.username = GenePattern.repo.username || null;
 GenePattern.repo.repo_url = GenePattern.repo.repo_url || null;
@@ -21,7 +22,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     function get_selected_path() {
         const checkbox = $('#notebook_list').find('input:checked');
 
-        // Check to see if path if available in notebook
+        // Check to see if path is available in notebook
         if (Jupyter.notebook && Jupyter.notebook.notebook_path) {
             return window.location.pathname;
         }
@@ -629,6 +630,22 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         return collaborators.join(', ');
     }
 
+    /**
+     * Add the sharing icons to the user's notebooks
+     */
+    function add_sharing_icons() {
+        $("a.item_link").each(function(i, element) {
+            // If a notebook matches a path in the shared list
+            if (GenePattern.repo.my_shared_paths.indexOf($(element).attr("href")) >= 0) {
+
+                // Add a shared icon to it
+                $(element).parent().find('.item_buttons').append(
+                    $('<i title="Shared Notebook" class="item_icon icon-fixed-width fa fa-share-alt-square pull-right repo-shared-icon"></i>')
+                )
+            }
+        })
+    }
+
     function shared_notebook_matrix(accepted=true) {
         const notebooks = GenePattern.repo.shared_notebooks;
         const rows = [];
@@ -694,6 +711,18 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         });
     }
 
+    /**
+     * Function builds a path list from the public notebooks
+     */
+    function share_path_list() {
+        GenePattern.repo.my_shared_paths = [];
+        GenePattern.repo.shared_notebooks.forEach(function(nb) {
+            if (nb['owner']) {
+                GenePattern.repo.my_shared_paths.push('/notebooks/' +encodeURI( nb['my_path']));
+            }
+        });
+    }
+
     function get_sharing_list(success = ()=>{}, error = ()=>{}) {
         $.ajax({
             url: GenePattern.repo.repo_url + "/sharing/list/",
@@ -704,6 +733,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             },
             success: function(data) {
                 GenePattern.repo.shared_notebooks = JSON.parse(data);
+                share_path_list();
                 success(data);
             },
             error: error
@@ -729,8 +759,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     }
 
     function get_current_sharing(nb_path, callback) {
+        const api_path = GenePattern.repo.username + '/' + nb_path;
+
         $.ajax({
-            url: GenePattern.repo.repo_url + "/sharing/current" + nb_path,
+            url: GenePattern.repo.repo_url + "/sharing/current/" + api_path,
             method: "GET",
             crossDomain: true,
             beforeSend: function (xhr) {
@@ -775,7 +807,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     function share_selected() {
         const nb_path = get_selected_path();
 
-        get_current_sharing(nb_path, function(shared_with) {
+        get_current_sharing(home_relative_path(nb_path), function(shared_with) {
             const shared = shared_with.length > 0;
 
             // Create buttons list
@@ -787,6 +819,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     const success = function(response) {
                         // Close the old dialog
                         close_modal();
+
+                        // Refresh the list of notebooks
+                        get_sharing_list();
 
                         // Parse the message
                         const message = JSON.parse(response).success;
@@ -826,7 +861,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     };
 
                     // Send list to the server
-                    update_sharing(nb_path, shared_with, success, errors);
+                    update_sharing(home_relative_path(nb_path), shared_with, success, errors);
 
                     // Show the loading screen
                     modal_loading_screen();
@@ -1220,6 +1255,26 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         const base_path = notebook['my_path'] ? notebook['my_path'] : notebook['api_path'];
 
         return base_path.match(/^(.*[\\\/])/)[1].replace("/notebooks/", "/tree/", 1);
+    }
+
+    /**
+     * Converts a Jupyter API path to a file path relative to the user's home directory
+     *
+     * @param api_path
+     * @returns {string}
+     */
+    function home_relative_path(api_path) {
+        // Removes /users/foo/ if it's prepended to the path
+        const standardized_url = api_path.substring(Jupyter.notebook_list.base_url.length-1);
+
+        // Handle notebook URLs
+        if (standardized_url.startsWith("/notebooks/")) return standardized_url.substring(11);
+
+        // Handle directory URLs
+        if (standardized_url.startsWith("/tree/")) return standardized_url.substring(6);
+
+        // Otherwise, take our best guess
+        return standardized_url.substring(standardized_url.split('/')[1].length+2);
     }
 
     /**
@@ -1964,7 +2019,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             get_notebooks(function() {
                 add_published_icons();
             });
-            get_sharing_list();
+            get_sharing_list(function() {
+                add_sharing_icons();
+            });
         });
 
         // Refresh notebooks in the list if the tab is clicked
@@ -1973,6 +2030,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         // When the files list is refreshed
         $([Jupyter.events]).on('draw_notebook_list.NotebookList', function() {
             add_published_icons();
+            add_sharing_icons();
         });
     }
 

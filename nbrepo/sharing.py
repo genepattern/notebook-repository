@@ -105,48 +105,26 @@ class CollaboratorViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.AllowAny, )
 
 
-@api_view(['POST'])
-@permission_classes((permissions.AllowAny,))
-def begin_sharing(request):
-    # Path to the original notebook on the file system
-    nb_path = request.data['notebook'] if 'notebook' in request.data else None
+def _create_new_share(owner, api_path, file_path):
+    notebook = Share()
+    notebook.name = api_path.split('/')[-1]
+    notebook.api_path = api_path
+    notebook.last_updated = datetime.now()
+    notebook.save()
 
-    # The list of users the notebook is being shared with
-    users = request.data['share_with'].split(',') if 'share_with' in request.data and request.data['share_with'] != '' else []
+    # Add the owner as a collaborator
+    owner_collaborator = Collaborator()
+    owner_collaborator.share = notebook
+    owner_collaborator.user = owner
+    owner_collaborator.owner = True
+    owner_collaborator.accepted = True
+    owner_collaborator.file_path = file_path
+    owner_collaborator.save()
 
-    # The original owner of the notebook
-    owner = request.data['shared_by'] if 'shared_by' in request.data else None
+    return notebook
 
-    # Escape nb_path and prepend owner
-    nb_path = str(owner) + '/' + str(_remove_api_prefix(urllib.parse.unquote(str(nb_path))))
 
-    # Handle the case of sharing with nobody
-    if nb_path is None or users is None or owner is None:
-        return_obj = {"error": "Unable to share notebook."}
-        return Response(json.dumps(return_obj), status=400)
-
-    # Get the database entry for the notebook
-    notebook = None
-    try:
-        notebook = Share.objects.get(api_path=nb_path)
-
-    # Lazily create one if one does not already exist
-    except Share.DoesNotExist:
-        notebook = Share()
-        notebook.name = nb_path.split('/')[-1]
-        notebook.api_path = nb_path
-        notebook.last_updated = datetime.now()
-        notebook.save()
-
-        # Add the owner as a collaborator
-        owner_collaborator = Collaborator()
-        owner_collaborator.share = notebook
-        owner_collaborator.user = owner
-        owner_collaborator.owner = True
-        owner_collaborator.accepted = True
-        owner_collaborator.file_path = _api_to_file_path(owner, nb_path)
-        owner_collaborator.save()
-
+def _sync_collaborators(notebook, users):
     # Get the list of collaborators for the notebook
     collaborators = Collaborator.objects.filter(share=notebook)
     existing = []
@@ -173,12 +151,56 @@ def begin_sharing(request):
         user.delete()
 
     # Add collaborators as necessary
-    user_errors =[]
+    user_errors = []
     for user in need_added:
         try:
             _create_collaborator(notebook, user)
         except Exception as e:
             user_errors.append(user)
+
+    return user_errors
+
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def begin_sharing(request):
+    # Path to the notebook relative to the user's home directory
+    nb_path = urllib.parse.unquote(request.data['notebook']) if 'notebook' in request.data else None
+
+    # The list of users the notebook is being shared with
+    users = request.data['share_with'].split(',') if 'share_with' in request.data and request.data['share_with'] != '' else []
+
+    # The original owner of the notebook
+    owner = request.data['shared_by'] if 'shared_by' in request.data else None
+
+    # Escape nb_path and prepend owner
+    api_path = str(owner) + '/' + nb_path
+
+    # Handle the case of sharing with nobody
+    if not api_path or not users or not owner:
+        return_obj = {"error": "Unable to share notebook."}
+        return Response(json.dumps(return_obj), status=400)
+
+    # Get the database entry for the notebook
+    notebook = None
+    try:
+        notebook = Share.objects.get(api_path=api_path)
+
+    # Lazily create one if one does not already exist
+    except Share.DoesNotExist:
+        notebook = _create_new_share(owner, api_path, nb_path)
+
+    # Update the shared notebook on the file system
+    try:
+        local_path = Path(os.path.join(settings.BASE_USER_PATH, nb_path))
+        share_path = Path(os.path.join(settings.BASE_REPO_PATH, api_path))
+        copyfile(str(local_path), str(share_path))
+    except Exception as e:
+        return_obj = {"error": "Unable to copy shared notebook. " + str(e)}
+        return Response(return_obj, status=400)
+
+    # Sync the collaborators in the request with the collaborators in the database
+    user_errors = _sync_collaborators(notebook, users)
 
     # If any users get an error message, return an error
     if len(user_errors) > 0:
@@ -352,15 +374,15 @@ def _create_collaborator(nb, name_or_email):
 @api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def current_collaborators(request, api_path):
-    nb_path = _remove_api_prefix(urllib.parse.unquote('/' + api_path))
+    nb_path = urllib.parse.unquote(api_path)
     matches = Collaborator.objects.filter(share__api_path=nb_path)
 
     return_list = []
     for c in matches:
-        if c.name and c.email:
-            return_list.append(c.name)
-        elif c.name:
-            return_list.append(c.name)
+        if c.user and c.email:
+            return_list.append(c.user)
+        elif c.user:
+            return_list.append(c.user)
         elif c.email:
             return_list.append(c.email)
 

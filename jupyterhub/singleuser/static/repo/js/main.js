@@ -880,13 +880,16 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             const buttons = {};
             buttons["Cancel"] = {"class" : "btn-default"};
 
-            buttons["Make Private"] = {
-                "class": "btn-danger",
-                "click": function() {
-                    const my_path = home_relative_path(nb_path);
-                    const notebook = get_shared_notebook(my_path);
-                    remove_shared_notebook(notebook);
-                }};
+            if (shared) {
+                buttons["Make Private"] = {
+                    "class": "btn-danger",
+                    "click": function () {
+                        const my_path = home_relative_path(nb_path);
+                        const notebook = get_shared_notebook(my_path);
+                        remove_shared_notebook(notebook);
+                    }
+                };
+            }
 
             buttons[shared ? "Update" : "Share"] = {
                 "class" : "btn-primary",

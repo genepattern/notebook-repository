@@ -161,6 +161,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 BASE_GENEPATTERN_URL = 'https://genepattern.broadinstitute.org/gp'
 BASE_REPO_PATH = '/Users/tabor/repository'
 BASE_USER_PATH = '/Users/tabor/Notebooks'
+BASE_SHARE_PATH = '/Users/tabor/Notebooks/shared'
 BASE_AUTH_PATH = '/Users/tabor/repository/auth'
 CAN_SET_PROTECTED_TAGS = ['beholdsa', 'tabor', 'admin']
 JUPYTERHUB = False

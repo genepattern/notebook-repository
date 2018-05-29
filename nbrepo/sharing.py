@@ -39,8 +39,8 @@ class Share(models.Model):
     name = models.CharField(max_length=64)          # Name of the notebook
     last_updated = models.DateTimeField(null=True)  # Timestamp of the last publish
 
-    # The file path to the published copy of the notebook, relative to settings.BASE_REPO_PATH
-    # Will usually be: [settings.BASE_REPO_PATH/] owner_username/owner_file_path
+    # The file path to the published copy of the notebook, relative to settings.BASE_SHARE_PATH
+    # Will usually be: [settings.BASE_SHARE_PATH/] owner_username/owner_file_path
     api_path = models.CharField(max_length=256)
 
     def __str__(self):
@@ -192,9 +192,10 @@ def begin_sharing(request):
 
     # Update the shared notebook on the file system
     try:
-        local_path = Path(os.path.join(settings.BASE_USER_PATH, nb_path))
-        share_path = Path(os.path.join(settings.BASE_REPO_PATH, api_path))
-        copyfile(str(local_path), str(share_path))
+        local_path = os.path.join(settings.BASE_USER_PATH, request.user.username, nb_path) if settings.JUPYTERHUB else os.path.join(settings.BASE_USER_PATH, nb_path)
+        share_path = os.path.join(settings.BASE_SHARE_PATH, api_path)
+        os.makedirs(os.path.dirname(share_path), exist_ok=True)  # Lazily create the directory, if necessary
+        copyfile(local_path, share_path)
     except Exception as e:
         return_obj = {"error": "Unable to copy shared notebook. " + str(e)}
         return Response(return_obj, status=400)
@@ -229,12 +230,12 @@ def remove_sharing(request, pk):
         return_obj = {"error": "Unable to remove sharing due to user permissions."}
         return Response(return_obj, status=403)
 
-    # Remove the shared notebook from the file system
-    share_path = Path(os.path.join(settings.BASE_REPO_PATH, nb.api_path))
-    share_path.unlink()
-
     # Remove the share from the database
     nb.delete()
+
+    # Remove the shared notebook from the file system
+    share_path = Path(os.path.join(settings.BASE_SHARE_PATH, nb.api_path))
+    share_path.unlink()
 
     # Otherwise, return a 200 response in the API
     return Response(nb.name + " sharing removed.", status=200)
@@ -471,11 +472,12 @@ def copy_share(request, pk, local_dir_path):
         collaborator.save()
 
     # Either way, get the local path
-    local_path = Path(os.path.join(settings.BASE_USER_PATH, collaborator.file_path))
+    local_path = Path(os.path.join(settings.BASE_USER_PATH, request.user.username, collaborator.file_path)) if settings.JUPYTERHUB else Path(os.path.join(settings.BASE_USER_PATH, collaborator.file_path))
 
     # Check to see if the notebook exists, if not copy the shared notebook there and return
     if not local_path.exists():
-        copyfile(os.path.join(settings.BASE_REPO_PATH, nb.api_path), str(local_path))
+        copyfile(os.path.join(settings.BASE_SHARE_PATH, nb.api_path), str(local_path))
+        local_path.chmod(0o777)
         return Response('Shared notebook lazily created', status=200)
 
     # If it does, get the last updated timestamp of the file
@@ -484,7 +486,8 @@ def copy_share(request, pk, local_dir_path):
     # Compare last_updated of the file vs. the db entry, if the db entry is newer, overwrite the local file and return
     # Local file older than the repo file
     if local_last_updated < nb.last_updated.timestamp():
-        copyfile(os.path.join(settings.BASE_REPO_PATH, nb.api_path), str(local_path))
+        copyfile(os.path.join(settings.BASE_SHARE_PATH, nb.api_path), str(local_path))
+        local_path.chmod(0o777)
         return Response('Updated local copy of shared notebook', status=200)
 
     # If the file is newer, don't copy, just return

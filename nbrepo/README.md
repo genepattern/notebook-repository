@@ -22,8 +22,9 @@ good candidate for integrating with that API once it is available.
     a. `BASE_GENEPATTERN_URL` is the URL to the GenePattern authentication endpoint. 
     In the future this should be refactored to accept any genetic auth endpoint.
     b. `BASE_REPO_PATH` is the directory where the public notebooks will be saved.
-    c. `BASE_USER_PATH` is the directory containing all user workspace directories.
-    d. `BASE_AUTH_PATH` is a directory containing user authentication files.
+    c. `BASE_SHARE_PATH` is the directory where the shared notebooks will be saved.
+    d. `BASE_USER_PATH` is the directory containing all user workspace directories.
+    e. `BASE_AUTH_PATH` is a directory containing user authentication files.
 4. Ready the database. Run `./manage.py makemigrations` and `./manage.py migrate`
 5. Copy the static resources in `notebook-repository/jupyterhub/singleuser/static/repo`
 to the `static` directory of the Jupyter singleuser server.

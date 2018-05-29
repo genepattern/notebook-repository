@@ -430,7 +430,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 $("#refresh_notebook_list").trigger("click");
 
                 // Open the notebook
-                const nb_url = window.location.protocol + '//' + window.location.hostname + '/notebooks/' + encodeURI(notebook['my_path']);
+                const nb_url = window.location.protocol + '//' + window.location.hostname + Jupyter.notebook_list.base_url + 'notebooks/' + encodeURI(notebook['my_path']);
                 window.open(nb_url);
 
             },

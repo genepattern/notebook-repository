@@ -532,6 +532,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 // Refresh the list of notebooks
                 get_sharing_list(function() {
                     $("a[data-tag='-shared-invites']").click();
+                    $("#refresh_notebook_list").trigger("click");
                 });
 
                 // Open the dialog
@@ -702,7 +703,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     function add_sharing_icons() {
         $("a.item_link").each(function(i, element) {
             // If a notebook matches a path in the shared list
-            if (GenePattern.repo.my_shared_paths.indexOf($(element).attr("href")) >= 0) {
+            const fixed_path = $(element).attr("href").substring(Jupyter.notebook_list.base_url.length-1);
+
+            if (GenePattern.repo.my_shared_paths.indexOf(fixed_path) >= 0) {
 
                 // Add a shared icon to it
                 $(element).parent().find('.item_buttons').append(
@@ -900,6 +903,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
                         // Refresh the list of notebooks
                         get_sharing_list();
+                        $("#refresh_notebook_list").trigger("click");
 
                         // Parse the message
                         const message = JSON.parse(response).success;

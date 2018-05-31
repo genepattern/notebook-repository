@@ -487,12 +487,15 @@ def copy_share(request, pk, local_dir_path):
     # Local file older than the repo file
     if local_last_updated < nb.last_updated.timestamp():
         copyfile(os.path.join(settings.BASE_SHARE_PATH, nb.api_path), str(local_path))
-        local_path.chmod(0o777)
+        # local_path.chmod(0o777)
         return Response('Updated local copy of shared notebook', status=200)
 
-    # If the file is newer, don't copy, just return
+    # If the local file is newer, copy to the repo
     # Local file newer than the repo file
     else:
+        copyfile(str(local_path), os.path.join(settings.BASE_SHARE_PATH, nb.api_path))  # Copy the file
+        nb.last_updated = datetime.now()  # Update the database
+        nb.save()
         return Response('Keeping local copy of shared notebook', status=200)
 
 

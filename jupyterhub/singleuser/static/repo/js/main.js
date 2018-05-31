@@ -942,6 +942,12 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                        }
                     };
 
+                    // Ensure the Share With list is not empty or only shared with the current user
+                    if ((shared_with.length === 0) || (shared_with.length === 1 && shared_with[0] === GenePattern.repo.username)) {
+                        show_error_in_dialog("Another user must be invited before sharing can begin.");
+                        return false;
+                    }
+
                     // Send list to the server
                     update_sharing(home_relative_path(nb_path), shared_with, success, errors);
 
@@ -985,6 +991,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                                     .attr("required", "required")
                                     .attr("maxlength", 64)
                                     .attr("placeholder", "Enter username or email")
+                                    .keypress(function(e) {
+                                        if (e.keyCode === 13) $(".repo-share-add").click();
+                                    })
                             )
                     )
                     .append(
@@ -993,11 +1002,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                             .append("&nbsp;")
                             .append(
                                 $("<button></button>")
-                                    .addClass("btn btn-primary")
+                                    .addClass("btn btn-primary repo-share-add")
                                     .append("Add")
                                     .click(function() {
                                         const invite = $(".repo-shared-invite");
-                                        const user = invite.val().trim();
+                                        const user = invite.val().trim().toLowerCase();
                                         invite.val("");
 
                                         if (user && shared_with.indexOf(user) === -1) add_shared_user(user, shared_with);
@@ -1046,10 +1055,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
      */
     function add_shared_user(user, shared_with, list) {
         list = list ? list : $(".repo-shared-list");
-
-        // Hide the nobody label
         const nobody = list.find(".repo-shared-nobody");
-        nobody.hide();
 
         // Add the user tag
         const tag = $("<div></div>")
@@ -1063,10 +1069,15 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     .click(function() {
                         tag.remove();
                         shared_with.splice(shared_with.indexOf(user), 1);
-                        if (shared_with.length === 0) nobody.show();
+                        if ($(".repo-shared-user:visible").length === 0) nobody.show();
                     })
             )
             .appendTo(list);
+
+        // If the tag is for the current user, hide
+        if (user === GenePattern.repo.username) tag.hide();
+        else nobody.hide(); // Otherwise hide the nobody label
+
         if (shared_with.indexOf(user) === -1) shared_with.push(user);
     }
 

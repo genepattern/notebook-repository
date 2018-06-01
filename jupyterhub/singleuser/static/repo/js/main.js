@@ -409,9 +409,38 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     // TODO: BEGIN SHARING WORK //
     //////////////////////////////
 
-    function run_shared_notebook(notebook, current_directory) {
+    function run_shared_notebook(notebook, current_directory, custom_success, custom_error) {
         // Show the loading screen
         modal_loading_screen();
+
+        const success = function(responseData) {
+            // Close the modal
+            close_modal();
+
+            // Refresh the file list
+            get_sharing_list();
+            $("#refresh_notebook_list").trigger("click");
+
+            // Open the notebook
+            const nb_url = window.location.protocol + '//' + window.location.hostname + Jupyter.notebook_list.base_url + 'notebooks/' + encodeURI(notebook['my_path']);
+            window.open(nb_url);
+
+        };
+
+        const error = function() {
+            // Close the modal
+            close_modal();
+
+            // Show error dialog
+            console.log("ERROR: Failed to run the shared notebook");
+            dialog.modal({
+                title : "Failed to Run Shared Notebook",
+                body : $("<div></div>")
+                    .addClass("alert alert-danger")
+                    .append("The GenePattern Notebook Repository encountered an error when attempting to run the shared notebook."),
+                buttons: {"OK": function() {}}
+            });
+        };
 
         // Call the repo service to publish the notebook
         $.ajax({
@@ -421,33 +450,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             beforeSend: function (xhr) {
                 xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
             },
-            success: function(responseData) {
-                // Close the modal
-                close_modal();
-
-                // Refresh the file list
-                get_sharing_list();
-                $("#refresh_notebook_list").trigger("click");
-
-                // Open the notebook
-                const nb_url = window.location.protocol + '//' + window.location.hostname + Jupyter.notebook_list.base_url + 'notebooks/' + encodeURI(notebook['my_path']);
-                window.open(nb_url);
-
-            },
-            error: function() {
-                // Close the modal
-                close_modal();
-
-                // Show error dialog
-                console.log("ERROR: Failed to run the shared notebook");
-                dialog.modal({
-                    title : "Failed to Run Shared Notebook",
-                    body : $("<div></div>")
-                        .addClass("alert alert-danger")
-                        .append("The GenePattern Notebook Repository encountered an error when attempting to run the shared notebook."),
-                    buttons: {"OK": function() {}}
-                });
-            }
+            success: custom_success ? custom_success : success,
+            error: custom_error ? custom_error : error
         });
     }
 
@@ -703,9 +707,21 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     function add_sharing_icons() {
         $("a.item_link").each(function(i, element) {
             // If a notebook matches a path in the shared list
-            const fixed_path = $(element).attr("href").substring(Jupyter.notebook_list.base_url.length-1);
+            const href = $(element).attr("href");
+            const fixed_path = href.substring(Jupyter.notebook_list.base_url.length-1);
+
+            const open_in_new_window = function() {
+                window.open(href);
+            };
 
             if (GenePattern.repo.my_shared_paths.indexOf(fixed_path) >= 0) {
+                // Attach sync callback
+                $(element).attr("onclick", "Javascript:return false;");
+                $(element).click(function() {
+                    const current_dir = Jupyter.notebook_list.notebook_path;
+                    const notebook = get_shared_notebook(home_relative_path(href));
+                    run_shared_notebook(notebook, current_dir, open_in_new_window, open_in_new_window);
+                });
 
                 // Add a shared icon to it
                 $(element).parent().find('.item_buttons').append(
@@ -2075,6 +2091,28 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         trust_notebook.before($("<li class='divider'></li>"));
     }
 
+    function in_shared_notebook() {
+        return GenePattern.repo.my_shared_paths.indexOf('/notebooks/' + Jupyter.notebook.notebook_path) > -1;
+    }
+
+    function init_save_sync() {
+        // No need to sync if this is not a shared notebook
+        if (!in_shared_notebook()) return;
+
+        // Otherwise, sync the notebook after every save
+        const events = require('base/js/events');
+        events.on('notebook_saved.Notebook', function() {
+            // Get the path to the current directory
+            const slash_index = Jupyter.notebook.notebook_path.lastIndexOf('/');             // Get the last slash, separating directory from file name
+            const directory_path = Jupyter.notebook.notebook_path.substring(0, slash_index); // Get the directory path
+
+            // Get the current notebook's model
+            const notebook = get_shared_notebook(Jupyter.notebook.notebook_path);
+
+            run_shared_notebook(notebook, directory_path, () => {}, () => {});
+        });
+    }
+
     /*
      * If we are currently viewing the notebook list
      * Attach the repository events if they haven't already been initialized
@@ -2137,7 +2175,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 // Add publish link to the toolbar
                 add_publish_link();
             });
-            get_sharing_list();
+            get_sharing_list(()=> init_save_sync());
         });
     }
 });

@@ -5,6 +5,7 @@ GenePattern.repo.events_init = GenePattern.repo.events_init || false;
 GenePattern.repo.public_notebooks = GenePattern.repo.public_notebooks || [];
 GenePattern.repo.shared_notebooks = GenePattern.repo.shared_notebooks || [];
 GenePattern.repo.my_shared_paths = GenePattern.repo.my_shared_paths || [];
+GenePattern.repo.other_shared_paths = GenePattern.repo.other_shared_paths || [];
 GenePattern.repo.my_nb_paths = GenePattern.repo.my_nb_paths || [];
 GenePattern.repo.username = GenePattern.repo.username || null;
 GenePattern.repo.repo_url = GenePattern.repo.repo_url || null;
@@ -714,7 +715,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 window.open(href);
             };
 
-            if (GenePattern.repo.my_shared_paths.indexOf(fixed_path) >= 0) {
+            const is_my_share = GenePattern.repo.my_shared_paths.indexOf(fixed_path) >= 0;
+            const is_other_share = GenePattern.repo.other_shared_paths.indexOf(fixed_path) >= 0;
+
+            if (is_my_share || is_other_share) {
                 // Attach sync callback
                 $(element).attr("onclick", "Javascript:return false;");
                 $(element).click(function() {
@@ -725,7 +729,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
                 // Add a shared icon to it
                 $(element).parent().find('.item_buttons').append(
-                    $('<i title="Shared Notebook" class="item_icon icon-fixed-width fa fa-share-alt-square pull-right repo-shared-icon"></i>')
+                    $('<i title="' + (is_my_share ? 'Shared by me' : 'Shared with me') + '" class="item_icon icon-fixed-width fa fa-share-alt-square pull-right repo-shared-icon"></i>')
                 )
             }
         })
@@ -801,9 +805,14 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
      */
     function share_path_list() {
         GenePattern.repo.my_shared_paths = [];
+        GenePattern.repo.other_shared_paths = [];
+
         GenePattern.repo.shared_notebooks.forEach(function(nb) {
             if (nb['owner']) {
                 GenePattern.repo.my_shared_paths.push('/notebooks/' +encodeURI( nb['my_path']));
+            }
+            else {
+                if (nb['my_path']) GenePattern.repo.other_shared_paths.push('/notebooks/' +encodeURI( nb['my_path']));
             }
         });
     }
@@ -2092,7 +2101,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     }
 
     function in_shared_notebook() {
-        return GenePattern.repo.my_shared_paths.indexOf('/notebooks/' + Jupyter.notebook.notebook_path) > -1;
+        return GenePattern.repo.my_shared_paths.indexOf('/notebooks/' + Jupyter.notebook.notebook_path) > -1 ||
+               GenePattern.repo.other_shared_paths.indexOf('/notebooks/' + Jupyter.notebook.notebook_path) > -1;
     }
 
     function init_save_sync() {

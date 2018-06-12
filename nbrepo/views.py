@@ -5,6 +5,9 @@ import urllib.parse
 import json
 import logging
 import shutil
+from distutils.dir_util import copy_tree
+from distutils.errors import DistutilsFileError
+
 import nbconvert
 import nbformat
 
@@ -321,6 +324,36 @@ def download(request, pk):
     response = serve(request, os.path.basename(notebook.file_path), os.path.dirname(notebook.file_path))
     response['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(notebook.file_path)
     return response
+
+
+@api_view(['POST'])
+@permission_classes((permissions.IsAuthenticatedOrReadOnly,))
+def migrate_account(request, old_user, new_user):
+    # Check for nulls or empty usernames
+    if old_user is None or old_user.strip() == '':
+        return Response('Old username is invalid', status=status.HTTP_400_BAD_REQUEST)
+    if new_user is None or new_user.strip() == '':
+        return Response('New username is invalid', status=status.HTTP_400_BAD_REQUEST)
+
+    # Get the path to the old and new user directories
+    old_dir = os.path.join(settings.OLD_ACCOUNTS_BASE_DIR, old_user) if settings.JUPYTERHUB else settings.OLD_ACCOUNTS_BASE_DIR
+    new_dir = os.path.join(settings.BASE_USER_PATH, old_user) if settings.JUPYTERHUB else settings.BASE_USER_PATH
+
+    # Check that both paths exist
+    if not os.path.exists(old_dir):
+        return Response('Old user does not exist', status=status.HTTP_400_BAD_REQUEST)
+    if not os.path.exists(new_dir):
+        return Response('New user does not exist', status=status.HTTP_400_BAD_REQUEST)
+
+    # Copy contents of old directory to the new directory
+    try:
+        copy_tree(old_dir, new_dir, update=1)
+    except DistutilsFileError as e:
+        # Ignore errors from broken symlinks or non-normal files, they just won't be copied
+        pass
+
+    # Everything worked, return
+    return Response(old_user + ' copied to ' + new_user)
 
 
 class ObtainAuthToken(APIView):

@@ -165,3 +165,4 @@ BASE_SHARE_PATH = '/Users/tabor/Notebooks/shared'
 BASE_AUTH_PATH = '/Users/tabor/repository/auth'
 CAN_SET_PROTECTED_TAGS = ['beholdsa', 'tabor', 'admin']
 JUPYTERHUB = False
+OLD_ACCOUNTS_BASE_DIR = '/Users/tabor/Notebooks'

@@ -33,8 +33,8 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
 
     # Django Rest Framework
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^api-token-auth/', obtain_auth_token),
+    url(r'^services/sharing/api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^services/sharing/api-token-auth/', obtain_auth_token),
 
     # GenePattern Notebook Repo endpoints
     url(r'^notebooks/(?P<pk>[0-9]+)/copy/(?P<api_path>.*)$', copy),
@@ -49,6 +49,6 @@ urlpatterns = [
 urlpatterns += sharingpatterns
 
 urlpatterns += [
-    url(r'^', include(router.urls)),
+    url(r'^services/sharing/', include(router.urls)),
 ]
 

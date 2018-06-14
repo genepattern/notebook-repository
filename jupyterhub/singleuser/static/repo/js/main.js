@@ -1855,7 +1855,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
      */
     function do_authentication(success_callback) {
         // Set top-level variables
-        GenePattern.repo.repo_url = window.location.protocol + '//' + window.location.hostname + ':8080';
+        GenePattern.repo.repo_url = window.location.protocol + '//' + window.location.hostname + '/services/sharing';
         GenePattern.repo.username = extract_username();
 
         $.ajax({

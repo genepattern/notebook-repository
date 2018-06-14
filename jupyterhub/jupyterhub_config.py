@@ -26,3 +26,13 @@ c.JupyterHub.spawner_class = dockerspawner.DockerSpawner
 # The docker instances need access to the Hub, so the default loopback port doesn't work:
 from IPython.utils.localinterfaces import public_ips
 c.JupyterHub.hub_ip = public_ips()[0]
+
+c.JupyterHub.services = [
+    {
+        'name': 'sharing',
+        'admin': True,
+        'url': 'http://127.0.0.1:8080/',
+        'cwd': '/path/to/repository/webservice',
+        'command': ['./manage.py', 'runserver', '0.0.0.0:8080'],
+    }
+]

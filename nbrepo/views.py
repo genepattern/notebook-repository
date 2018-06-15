@@ -306,7 +306,7 @@ def preview(request, pk):
 
     # Lazily generate preview.html, if necessary
     preview_path = os.path.join(os.path.dirname(notebook.file_path), 'preview.html')
-    if not os.path.exists(preview_path):
+    if not os.path.exists(preview_path) or not settings.JUPYTERHUB:
         NotebookViewSet.generate_preview(notebook.file_path)
 
     # Serve the file

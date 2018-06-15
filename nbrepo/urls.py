@@ -37,9 +37,9 @@ urlpatterns = [
     url(r'^services/sharing/api-token-auth/', obtain_auth_token),
 
     # GenePattern Notebook Repo endpoints
-    url(r'^notebooks/(?P<pk>[0-9]+)/copy/(?P<api_path>.*)$', copy),
-    url(r'^notebooks/(?P<pk>[0-9]+)/download/$', download),
-    url(r'^notebooks/(?P<pk>[0-9]+)/preview/$', preview),
+    url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/copy/(?P<api_path>.*)$', copy),
+    url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/download/$', download),
+    url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/preview/$', preview),
 
     # Notebook Repository account migration
     url(r'^migrate/(?P<old_user>.*)/(?P<new_user>.*)/$', migrate_account),

@@ -35,30 +35,21 @@ class JupyterHubAuthentication(TokenAuthentication):
             if username is None:
                 return None
 
-            try:
-                user_model = User.objects.get(username=username)
-            except User.DoesNotExist:
-                user_model = User(username=username)
-                user_model.save()
-
-            try:
-                token_model = Token.objects.get(user=user_model)
-            except Token.DoesNotExist:
-                token_model = Token(user=user_model, key=username)
-                token_model.save()
-
         # Otherwise get the username from JupyterHub
-        cookie = request.COOKIES.get(self.auth.cookie_name)
-        token = request.META.get(self.auth.auth_header_name)
-        if cookie:
-            user = self.auth.user_for_cookie(cookie)
-        elif token:
-            user = self.auth.user_for_token(token)
         else:
-            return None
+            cookie = request.COOKIES.get(self.auth.cookie_name)
+            token = request.META.get(self.auth.auth_header_name)
+            if cookie:
+                user = self.auth.user_for_cookie(cookie)
+            elif token:
+                user = self.auth.user_for_token(token)
+            else:
+                return None
 
-        # Get the user object, lazily create one if it doesn't exist
-        username = user.get('name')
+            # Get the user object, lazily create one if it doesn't exist
+            username = user.get('name')
+
+        # Get the user model or lazily create one
         try:
             user_model = User.objects.get(username=username)
         except User.DoesNotExist:

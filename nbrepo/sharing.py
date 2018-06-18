@@ -505,12 +505,12 @@ def copy_share(request, pk, local_dir_path):
 
 
 urlpatterns = [
-    url(r'^sharing/list/$', shared_with_me),
-    url(r'^sharing/(?P<pk>[0-9]+)/accept/$', accept_sharing),
-    url(r'^sharing/(?P<pk>[0-9]+)/decline/$', decline_sharing),
-    url(r'^sharing/(?P<pk>[0-9]+)/remove/$', remove_sharing),
-    url(r'^sharing/(?P<pk>[0-9]+)/copy/(?P<local_dir_path>.*)$', copy_share),
-    url(r'^sharing/begin/', begin_sharing),
-    url(r'^sharing/current/(?P<api_path>.*)$', current_collaborators),
-    url(r'^error/$', error_redirect),
+    url(r'^services/sharing/sharing/list/$', shared_with_me),
+    url(r'^services/sharing/sharing/(?P<pk>[0-9]+)/accept/$', accept_sharing),
+    url(r'^services/sharing/sharing/(?P<pk>[0-9]+)/decline/$', decline_sharing),
+    url(r'^services/sharing/sharing/(?P<pk>[0-9]+)/remove/$', remove_sharing),
+    url(r'^services/sharing/sharing/(?P<pk>[0-9]+)/copy/(?P<local_dir_path>.*)$', copy_share),
+    url(r'^services/sharing/sharing/begin/', begin_sharing),
+    url(r'^services/sharing/sharing/current/(?P<api_path>.*)$', current_collaborators),
+    url(r'^services/sharing/error/$', error_redirect),
 ]

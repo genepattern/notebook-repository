@@ -46,6 +46,17 @@ class Share(models.Model):
     def __str__(self):
         return self.api_path
 
+    def owner(self):
+        """
+        Returns the Collaborator instance for the owner of the shared notebook.
+        Returns None if no owner is found.
+        :return:
+        """
+        for c in self.shared_with.all():
+            if c.owner:
+                return c
+        return None
+
 
 class Collaborator(models.Model):
     share = models.ForeignKey(Share, on_delete=models.CASCADE, related_name='shared_with')
@@ -258,7 +269,7 @@ def error_redirect(request):
 def accept_sharing(request, pk):
     # If this was a direct link and not logged in, redirect to the login page
     if request.method == 'GET' and request.user.is_anonymous():
-        return redirect('/hub/login?next=/tree?#repository')
+        return redirect('/hub/login?next=/hub/#repository')
 
     # Look up the sharing entry
     nb = get_object_or_404(Share, id=pk)
@@ -275,7 +286,7 @@ def accept_sharing(request, pk):
 
     # If this was a GET request, redirect to the Public Notebooks tab
     if request.method == 'GET':
-        return redirect('/tree?#repository')
+        return redirect('/hub/#repository')
 
     # Otherwise, return a 200 response in the API
     return Response(nb.name + " sharing accepted.", status=200)
@@ -375,6 +386,14 @@ def _create_collaborator(nb, name_or_email):
         except User.DoesNotExist:
             raise Exception("Unknown user")
 
+    # If email, make the username match the email for now
+    if is_email:
+        name = email
+
+    # Get the owner's username or email
+    owner_model = nb.owner()
+    owner = owner_model.user if owner_model.user else owner_model.email
+
     # Otherwise, create the collaborator
     c = Collaborator()
     c.share = nb
@@ -390,14 +409,14 @@ def _create_collaborator(nb, name_or_email):
         domain = 'https://notebook.genepattern.org' if settings.JUPYTERHUB else 'http://localhost'
 
         _send_email("gp-help@broadinstitute.org", email, "Notebook Sharing Invite - GenePattern Notebook Repository", """
-        <p>You've been invited to share a notebook on the GenePattern Notebook Repository. To accept, just sign in and then click the link below.</p>
+        <p>%s has invited you to share the following notebook on the GenePattern Notebook Repository: %s. To accept, just sign in and then click the link below.</p>
 
         <h5>GenePattern Notebook Repository</h5>
         <p><a href="https://notebook.genepattern.org">https://notebook.genepattern.org</a></p>
 
         <h5>Click below to accept shared notebook</h5>
-        <p><a href="%s:8000/sharing/%s/accept/%s">%s:8000/sharing/%s/accept/%s</a></p>
-        """ % (domain, c.share.id, c.token, domain, c.share.id, c.token))
+        <p><a href="%s/services/sharing/sharing/%s/accept/">%s/services/sharing/sharing/%s/accept/</a></p>
+        """ % (owner, nb.name, domain, c.share.id, domain, c.share.id))
 
 
 @api_view(['GET'])

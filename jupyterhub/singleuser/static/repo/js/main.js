@@ -423,9 +423,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             $("#refresh_notebook_list").trigger("click");
 
             // Open the notebook
-            const nb_url = window.location.protocol + '//' + window.location.hostname + Jupyter.notebook_list.base_url + 'notebooks/' + encodeURI(notebook['my_path']);
+            let nb_url = null;
+            if (notebook['my_path']) nb_url = window.location.protocol + '//' + window.location.hostname + Jupyter.notebook_list.base_url + 'notebooks/' + encodeURI(notebook['my_path']);
+            else nb_url = window.location.protocol + '//' + window.location.hostname + Jupyter.notebook_list.base_url + 'notebooks/' + current_directory + encodeURI(notebook.name);
             window.open(nb_url);
-
         };
 
         const error = function() {
@@ -1382,6 +1383,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
      * @returns {string}
      */
     function home_relative_path(api_path) {
+        // Decode %20 or similar encodings
+        api_path = decodeURI(api_path);
+
         // Removes /users/foo/ if it's prepended to the path
         const standardized_url = api_path.substring(Jupyter.notebook_list.base_url.length-1);
 
@@ -1942,7 +1946,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
         // Attach the shared menu items
         $("#repo-sidebar-shared")
-            .append(create_sidebar_nav("-shared-with-me", "Shared With Me"))
+            .append(create_sidebar_nav("-shared-with-me", "Shared Notebooks"))
             .append(create_sidebar_nav("-shared-invites", "Sharing Invites"));
 
     }

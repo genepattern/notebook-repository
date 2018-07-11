@@ -1608,6 +1608,25 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         return pinned_tags;
     }
 
+    function get_tag_model(tag_label) {
+        // If already cached, return the model
+        if (GenePattern.repo.tag_models) return GenePattern.repo.tag_models[tag_label];
+
+        // Otherwise, generate the map
+        const tag_models = {};
+        GenePattern.repo.public_notebooks.forEach(function(nb) {
+            if (nb.tags) {
+                nb.tags.forEach(function(tag) {
+                    tag_models[tag.label] = tag;
+                });
+            }
+        });
+
+        // Set the cache and return
+        GenePattern.repo.tag_models = tag_models;
+        return tag_models[tag_label];
+    }
+
     function select_sidebar_nav(link) {
         // Remove the old active class
         const nav = $("#repo-sidebar");
@@ -1730,6 +1749,89 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             const nb = get_notebook(id);
             repo_nb_dialog(nb);
         });
+
+        // Add event listener for tag clicks
+        table.find("td").on('click', '.label', function (event) {
+            const tag = $(event.target).text();
+
+            // If admin, give choice to pin or protect tag
+            if (GenePattern.repo.admin) {
+                admin_tag_dialog(tag);
+            }
+            else {
+                // Filter the table by this tag
+                const search_box = $("#repository-list").find("input[type=search]");
+                search_box.val(tag);
+                search_box.keyup();
+            }
+
+            // Stop propagation
+            return false;
+        });
+    }
+
+    /**
+     * Updates the tag model on the server
+     *
+     * @param model
+     */
+    function update_tag(model) {
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/tags/" + model.id + "/",
+            method: "PUT",
+            crossDomain: true,
+            data: model,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(response) {
+                get_notebooks(function() {});
+            },
+            error: function() {
+                console.log("ERROR: Could not update tag model");
+            }
+        });
+    }
+
+    /**
+     * Prompt the admin to pin or protect tag
+     *
+     * @param tag
+     */
+    function admin_tag_dialog(tag) {
+        const pinned_tags = get_pinned_tags();
+        const protected_tags = get_protected_tags();
+
+        let is_pinned = pinned_tags.includes(tag);
+        let is_protected = protected_tags.includes(tag);
+
+        // Prepare buttons
+        const buttons = {};
+        buttons[is_pinned ? "Unpin" : "Pin"] = {
+            "class": is_pinned ? "btn-danger" : "btn-warning",
+            "click": function() {
+                const tag_model = get_tag_model(tag);
+                tag_model.pinned = !tag_model.pinned;
+                update_tag(tag_model);
+            }
+        };
+        buttons[is_protected ? "Unprotect" : "Protect"] = {
+            "class": is_protected ? "btn-danger" : "btn-warning",
+            "click": function() {
+                const tag_model = get_tag_model(tag);
+                tag_model.protected = !tag_model.protected;
+                update_tag(tag_model);
+            }
+        };
+        buttons["Cancel"] = function() {};
+
+        dialog.modal({
+            title : "Pin or Protect Tag",
+            body : $("<div></div>")
+                .addClass("alert alert-info")
+                .append("Pin or protect the following tag: <span class='label label-primary'>" + tag + "</span>"),
+            buttons: buttons
+        });
     }
 
     /**
@@ -1752,6 +1854,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
      */
     function empty_notebook_list() {
         $("#repository-list").empty();
+        GenePattern.repo.pinned_tags = null;
+        GenePattern.repo.protected_tags = null;
+        GenePattern.repo.tag_models = null;
     }
 
     /**
@@ -1874,6 +1979,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             success: function(data) {
                 // Set token and make callback
                 GenePattern.repo.token = data['token'];
+                GenePattern.repo.admin = data['admin'];
                 if (success_callback) success_callback();
             },
             error: function() {

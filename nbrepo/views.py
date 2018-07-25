@@ -69,7 +69,7 @@ class NotebookViewSet(viewsets.ModelViewSet):
         # Get the file name and path
         api_path_parts = api_path.split('/')
         file_name = urllib.parse.unquote(api_path_parts[len(api_path_parts)-1])
-        if settings.DEBUG:  # Handle dev environment
+        if not settings.JUPYTERHUB:  # Handle dev environment
             file_path = urllib.parse.unquote(api_path.split('/', 2)[2])
         else:
             file_path = urllib.parse.unquote(api_path.split('/', 4)[4])

@@ -269,7 +269,7 @@ def error_redirect(request):
 def accept_sharing(request, pk):
     # If this was a direct link and not logged in, redirect to the login page
     if request.method == 'GET' and request.user.is_anonymous():
-        return redirect('/hub/login?next=/hub/#repository')
+        return redirect('/hub/login?next=' + request.get_full_path())
 
     # Look up the sharing entry
     nb = get_object_or_404(Share, id=pk)
@@ -277,8 +277,17 @@ def accept_sharing(request, pk):
     # Get the current username
     username = request.user.username
 
-    # Get the current collaborator
-    collaborator = get_object_or_404(Collaborator, user=username, share=nb)
+    # Get the current collaborator by id
+    if 'collaborator' in request.GET:
+        id = request.GET['collaborator']
+        collaborator = get_object_or_404(Collaborator, id=id, share=nb)
+        collaborator.user = username  # Update the username
+
+    # Otherwise, get the current collaborator by username
+    else:
+        collaborator = get_object_or_404(Collaborator, user=username, share=nb)
+
+    # If this fails, get the current collaborator by id
 
     # Mark sharing as accepted
     collaborator.accepted = True
@@ -415,8 +424,8 @@ def _create_collaborator(nb, name_or_email):
         <p><a href="https://notebook.genepattern.org">https://notebook.genepattern.org</a></p>
 
         <h5>Click below to accept shared notebook</h5>
-        <p><a href="%s/services/sharing/sharing/%s/accept/">%s/services/sharing/sharing/%s/accept/</a></p>
-        """ % (owner, nb.name, domain, c.share.id, domain, c.share.id))
+        <p><a href="%s/services/sharing/sharing/%s/accept/?collaborator=%s">%s/services/sharing/sharing/%s/accept/?collaborator=%s</a></p>
+        """ % (owner, nb.name, domain, c.share.id, c.id, domain, c.share.id, c.id))
 
 
 @api_view(['GET'])
@@ -513,7 +522,7 @@ def copy_share(request, pk, local_dir_path):
     # Local file newer than the repo file
     else:
         copyfile(str(local_path), os.path.join(settings.BASE_SHARE_PATH, nb.api_path))  # Copy the file
-        nb.last_updated = datetime.now()  # Update the database
+        nb.last_updated = datetime.utcfromtimestamp(local_last_updated)  # Update the database
         nb.save()
         return Response('Keeping local copy of shared notebook', status=200)
 

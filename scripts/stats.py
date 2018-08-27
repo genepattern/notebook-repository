@@ -52,37 +52,6 @@ def get_docker():
     return docker
 
 
-def _poll_pypi(package):
-    """
-    Poll PyPI for stats on the GenePattern packages
-    :param package:
-    :return:
-    """
-    request = urllib2.Request('https://pypi.python.org/pypi/' + package + '/json')
-    response = urllib2.urlopen(request)
-    json_str = response.read().decode('utf-8')
-    package_json = json.loads(json_str)
-
-    # Total the downloads
-    total = 0
-    for release in package_json['releases']:
-        total += package_json['releases'][release][0]['downloads']
-
-    return {'weekly': package_json['info']['downloads']['last_week'], 'total': total}
-
-
-def get_pypi():
-    """
-    Assemble the available PyPI stats
-    :return:
-    """
-    pypi = {}
-    pypi['notebook'] = _poll_pypi('genepattern-notebook')
-    pypi['python'] = _poll_pypi('genepattern-python')
-    pypi['wysiwyg'] = _poll_pypi('jupyter-wysiwyg')
-    return pypi
-
-
 def _poll_genepattern(gp_url, tag):
     """
     Poll the provided GenePattern server for the number of GenePattern Notebook jobs launched in the last week
@@ -360,7 +329,7 @@ def get_logins():
     return logins
 
 
-def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jobs):
+def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs):
     """
     Send the weekly report in an email
     :param disk:
@@ -559,30 +528,6 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
                                     <td>%s</td>
                                 </tr>
                             </table>
-
-                            <h3>PyPI downloads</h3>
-                            <table border="1">
-                                <tr>
-                                    <th>Package</th>
-                                    <th>Weekly</th>
-                                    <th>Total</th>
-                                </tr>
-                                <tr>
-                                    <td>genepattern-notebook</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td>genepattern-python</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td>jupyter-wysiwyg</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
-                                </tr>
-                            </table>
                         </td>
                     </tr>
                 </table>
@@ -632,12 +577,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jo
 
         # Docker stats
         docker['notebook']['stars'], docker['notebook']['pulls'],
-        docker['jupyterhub']['stars'], docker['jupyterhub']['pulls'],
-
-        # PyPI stats
-        pypi['notebook']['weekly'], pypi['notebook']['total'],
-        pypi['python']['weekly'], pypi['python']['total'],
-        pypi['wysiwyg']['weekly'], pypi['wysiwyg']['total'])
+        docker['jupyterhub']['stars'], docker['jupyterhub']['pulls'])
 
     msg.attach(MIMEText(body, 'html'))
 
@@ -654,6 +594,5 @@ users = get_users()
 logins = get_logins()
 weekly_jobs = get_weekly_jobs()
 docker = get_docker()
-pypi = get_pypi()
 total_jobs = get_total_jobs(weekly_jobs)
-send_mail(users, logins, disk, nb_count, weekly_jobs, docker, pypi, total_jobs)
+send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs)

@@ -152,6 +152,40 @@ def get_weekly_jobs():
     return weekly_jobs
 
 
+def get_user_disk():
+    """
+    Handle determining disk usage on this VM
+    """
+    users = []
+
+    if not test_run:
+        # Get the amount of disk usage per user
+
+        cmd_out = commands.getstatusoutput(sudo_req + 'du -h --max-depth=1 ' + data_dir + ' | sort -hr')[1]
+        cmd_lines = cmd_out.split('\n')
+
+        # Iterate over each user's line
+        for line in cmd_lines:
+            cmd_parts = line.split('\t')
+
+            # Clean the username
+            cleaned_name = cmd_parts[1][len(data_dir):]
+
+            # Ignore the base directory
+            if cleaned_name == '':
+                continue
+
+            # Add the user stats to the list
+            users.append([cmd_parts[0], cleaned_name])
+
+    # Create the HTML row list for top 20 users
+    user_rows = ''
+    for i in range(len(users[:20])):
+        user_rows += '<tr><td>' + users[i][1] + '</td><td>' + users[i][0] + '</td></tr>'
+
+    return user_rows
+
+
 def get_disk_usage():
     """
     Handle determining disk usage on this VM
@@ -329,7 +363,7 @@ def get_logins():
     return logins
 
 
-def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs):
+def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, user_disk):
     """
     Send the weekly report in an email
     :param disk:
@@ -528,6 +562,15 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs):
                                     <td>%s</td>
                                 </tr>
                             </table>
+                            
+                            <h3>User Disk Usage Top 20</h3>
+                            <table border="1">
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Disk Usage</th>
+                                </tr>
+                                %s
+                            </table>
                         </td>
                     </tr>
                 </table>
@@ -577,7 +620,10 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs):
 
         # Docker stats
         docker['notebook']['stars'], docker['notebook']['pulls'],
-        docker['jupyterhub']['stars'], docker['jupyterhub']['pulls'])
+        docker['jupyterhub']['stars'], docker['jupyterhub']['pulls'],
+
+        # User disk usage
+        user_disk)
 
     msg.attach(MIMEText(body, 'html'))
 
@@ -595,4 +641,5 @@ logins = get_logins()
 weekly_jobs = get_weekly_jobs()
 docker = get_docker()
 total_jobs = get_total_jobs(weekly_jobs)
-send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs)
+user_disk = get_user_disk()
+send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, user_disk)

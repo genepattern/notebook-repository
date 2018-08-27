@@ -829,10 +829,28 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             success: function(data) {
                 GenePattern.repo.shared_notebooks = JSON.parse(data);
                 share_path_list();
+                update_sharing_notifications();
                 success(data);
             },
             error: error
         });
+    }
+
+    function update_sharing_notifications() {
+        const badge = $(".repo-notifications");
+        const notebooks = GenePattern.repo.shared_notebooks;
+        let count = 0;
+
+        notebooks.forEach(function(nb) {
+            // Skip accepted or non-accepted
+            if (!nb.accepted && !nb.owner) count++;
+        });
+
+        // Hide no if invites pending
+        if (count === 0) badge.text('');
+
+        // Otherwise, set the notification number
+        else badge.text(count);
     }
 
     function update_sharing(path, share_list, success, errors) {
@@ -2011,8 +2029,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         $("#tabs").append(
             $('<li></li>')
                 .append(
-                    $('<a href="#repository" data-toggle="tab" class="repository_tab_link" ></a>')
-                        .append("Public Notebooks")
+                    $('<a href="#repository" data-toggle="tab" class="repository_tab_link"></a>')
+                        .append("Public Notebooks ")
+                        .append('<span class="badge repo-notifications"></span>')
                         .click(function() {
                             window.location.hash = 'repository';
                         })

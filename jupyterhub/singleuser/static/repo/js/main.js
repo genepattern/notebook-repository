@@ -406,9 +406,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         });
     }
 
-    //////////////////////////////
-    // TODO: BEGIN SHARING WORK //
-    //////////////////////////////
+    /////////////////////////////////
+    // BEGIN SHARING FUNCTIONALITY //
+    /////////////////////////////////
 
     function run_shared_notebook(notebook, current_directory, custom_success, custom_error) {
         // Show the loading screen
@@ -583,10 +583,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
         // If you are the owner
         if (notebook['owner']) {
-            buttons["Make Private"] = {
-                "class": "btn-danger",
+            buttons["Edit Sharing"] = {
+                "class": "btn-warning",
                 "click": function() {
-                    remove_shared_notebook(notebook);
+                    share_selected(notebook['my_path']);
                 }};
         }
 
@@ -761,7 +761,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         return rows;
     }
 
-    function build_sharing_table(notebooks) {
+    function build_sharing_table(notebooks, shared_by_me) {
         // Create the table
         const list_div = $("#repository-list");
 
@@ -771,6 +771,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
         // Initialize the DataTable
         const dt = table.DataTable({
+            "oLanguage": {
+                "sEmptyTable": (shared_by_me ? "You haven't shared any notebooks." : "No one has shared any notebooks with you.")
+            },
             "data": notebooks,
             "autoWidth": false,
             "paging":  false,
@@ -919,10 +922,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     /**
      * Function to call when sharing a notebook
      */
-    function share_selected() {
-        const nb_path = get_selected_path();
+    function share_selected(nb_path=null) {
+        // If no selected notebook was provided, get which notebook is checked
+        if (!nb_path) nb_path = home_relative_path(get_selected_path());
 
-        get_current_sharing(home_relative_path(nb_path), function(shared_with) {
+        get_current_sharing(nb_path, function(shared_with) {
             const shared = shared_with.length > 0;
 
             // Create buttons list
@@ -933,8 +937,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 buttons["Make Private"] = {
                     "class": "btn-danger",
                     "click": function () {
-                        const my_path = home_relative_path(nb_path);
-                        const notebook = get_shared_notebook(my_path);
+                        const notebook = get_shared_notebook(nb_path);
                         remove_shared_notebook(notebook);
                     }
                 };
@@ -995,7 +998,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     }
 
                     // Send list to the server
-                    update_sharing(home_relative_path(nb_path), shared_with, success, errors);
+                    update_sharing(nb_path, shared_with, success, errors);
 
                     // Show the loading screen
                     modal_loading_screen();
@@ -1671,7 +1674,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
             const mine = tag === '-shared-by-me';
             const shared_nb_matrix = shared_notebook_matrix(mine);
-            build_sharing_table(shared_nb_matrix)
+            build_sharing_table(shared_nb_matrix, mine);
         }
 
         // If public notebook
@@ -1732,6 +1735,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
         // Initialize the DataTable
         const dt = table.DataTable({
+            "oLanguage": {
+                "sEmptyTable": "No public notebooks are available in the repository."
+            },
             "data": notebooks,
             "autoWidth": false,
             "paging":  false,
@@ -2279,7 +2285,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     .addClass("share-button btn btn-default btn-xs")
                     .attr("title", "Share selected")
                     .append("Share")
-                    .click($.proxy(share_selected, this))
+                    .click(() => share_selected())
                     .hide()
             );
         $(document).click($.proxy(selection_changed, this));

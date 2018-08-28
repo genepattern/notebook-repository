@@ -94,6 +94,10 @@
     padding-left: 13px;
 }
 
+#repository .repo-notifications {
+    float: right;
+}
+
 #repository-search {
     float: right;
     font-weight: normal;

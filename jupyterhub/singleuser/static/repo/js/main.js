@@ -475,7 +475,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
                 // Refresh the list of notebooks
                 get_sharing_list(function() {
-                    $("a[data-tag='-shared-invites']").click();
+                    $("a[data-tag='-shared-with-me']").click();
                 });
 
                 // Assemble the buttons
@@ -537,8 +537,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
                 // Refresh the list of notebooks
                 get_sharing_list(function() {
-                    $("a[data-tag='-shared-invites']").click();
                     $("#refresh_notebook_list").trigger("click");
+                    $("a[data-tag='-shared-by-me']").click();
                 });
 
                 // Open the dialog
@@ -736,13 +736,16 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         })
     }
 
-    function shared_notebook_matrix(accepted=true) {
+    function shared_notebook_matrix(mine=true) {
         const notebooks = GenePattern.repo.shared_notebooks;
         const rows = [];
 
         notebooks.forEach(function(nb) {
-            // Skip accepted or non-accepted
-            if (nb.accepted !== accepted) return true;
+            // Skip notebooks with other owners if mine is set
+            if (mine && !nb.owner) return true;
+
+            // Skip notebooks where user is the owner is mine is not set
+            if (!mine && nb.owner) return true;
 
             // Prepare the last updated date
             let last_updated = null;
@@ -752,7 +755,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             let owner = get_shared_owner(nb);
             let collaborators = get_collaborator_string(nb);
 
-            rows.push([nb.id, nb.name, collaborators, last_updated, owner]);
+            rows.push([nb.id, nb.name, collaborators, last_updated, owner, nb.accepted]);
         });
 
         return rows;
@@ -778,7 +781,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     "width": "50%",
                     "visible": true,
                     "render": function(data, type, row, meta) {
-                        return "<h4 class='repo-title'>" + row[1] + "</h4>";
+                        return "<h4 class='repo-title'>" + row[1] + (!row[5] ? " <span class='label label-primary'>New!</span>" : "") + "</h4>";
                     }
                 },
                 {"title": "Collaborators", "width": "200px", "visible": true},
@@ -793,10 +796,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             const data = dt.row( this ).data();
             const id = data[0];
             const nb = get_shared_notebook(id);
+            const invite_dialog = !nb.accepted;
 
-            const table_name = $("#repo-header-label").text();
-            const invite_dialog = table_name === "Sharing Invites";
-
+            // Attach the right dialog
             repo_shared_dialog(nb, invite_dialog);
         });
     }
@@ -1654,7 +1656,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         link.parent().addClass("active");
 
         // Set the header label
-        $("#repo-header-label").text(link.text());
+        $("#repo-header-label").html(link.html());
 
         // Remove the old notebook table
         $("#repository-list").empty();
@@ -1667,8 +1669,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         if (tag.startsWith('-shared-')) {
             nb_header.hide();
 
-            const accepted = tag !== '-shared-invites';
-            const shared_nb_matrix = shared_notebook_matrix(accepted);
+            const mine = tag === '-shared-by-me';
+            const shared_nb_matrix = shared_notebook_matrix(mine);
             build_sharing_table(shared_nb_matrix)
         }
 
@@ -1683,6 +1685,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     function create_sidebar_nav(tag, label) {
         const li = $('<li role="presentation"></li>');
         const link = $('<a href="#" data-tag="' + tag + '">' + label + '</a>');
+        if (tag === '-shared-with-me') link.append($('<span class="badge repo-notifications"></span>'));
 
         // Attach the click event
         link.click(function() {
@@ -2071,9 +2074,8 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
         // Attach the shared menu items
         $("#repo-sidebar-shared")
-            .append(create_sidebar_nav("-shared-with-me", "Shared Notebooks"))
-            .append(create_sidebar_nav("-shared-invites", "Sharing Invites"));
-
+            .append(create_sidebar_nav("-shared-by-me", "Shared by Me"))
+            .append(create_sidebar_nav("-shared-with-me", "Shared with Me"));
     }
 
     function lock_notebook(user) {

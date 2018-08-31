@@ -730,7 +730,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
                 // Add a shared icon to it
                 $(element).parent().find('.item_buttons').append(
-                    $('<i title="' + (is_my_share ? 'Shared by me' : 'Shared with me') + '" class="item_icon icon-fixed-width fa fa-share-alt-square pull-right repo-shared-icon"></i>')
+                    $('<i title="' + (is_my_share ? 'Shared by me' : 'Shared with me') + '" class="item_icon icon-fixed-width fa fa-share-alt-square pull-right repo-shared-icon ' + (is_my_share ? 'repo-shared-by' : 'repo-shared-with') + '"></i>')
                 )
             }
         })
@@ -1343,6 +1343,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         const selected = [];
         let has_directory = false;
         let has_file = false;
+        let shared_with_me = false;
         let checked = 0;
         $('.list_item :checked').each(function(index, item) {
             const parent = $(item).parent().parent();
@@ -1362,12 +1363,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 // used to decide which action buttons are visible.
                 has_file = has_file || (parent.data('type') === 'file');
                 has_directory = has_directory || (parent.data('type') === 'directory');
+                shared_with_me = shared_with_me || parent.find(".repo-shared-with").length;
             }
         });
 
         // Sharing isn't visible when a directory or file is selected.
         // To allow sharing multiple notebooks at once: selected.length > 0 && !has_directory && !has_file
-        if (selected.length === 1 && !has_directory && !has_file) {
+        if (selected.length === 1 && !has_directory && !has_file && !shared_with_me) {
             $('.publish-button, .share-button').css('display', 'inline-block');
         }
         else {

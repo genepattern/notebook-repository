@@ -815,10 +815,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
         GenePattern.repo.shared_notebooks.forEach(function(nb) {
             if (nb['owner']) {
-                GenePattern.repo.my_shared_paths.push('/notebooks/' +encodeURI( nb['my_path']));
+                GenePattern.repo.my_shared_paths.push('/notebooks/' + nb['my_path']);
             }
             else {
-                if (nb['my_path']) GenePattern.repo.other_shared_paths.push('/notebooks/' +encodeURI( nb['my_path']));
+                if (nb['my_path']) GenePattern.repo.other_shared_paths.push('/notebooks/' + nb['my_path']);
             }
         });
     }
@@ -2263,6 +2263,91 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         });
     }
 
+    function open_editing_dialog() {
+        dialog.modal({
+            title : "Current Editors: " + GenePattern.repo.current_editors.join(', '),
+            body : $("<div></div>")
+                .append($("<div></div>")
+                    .addClass("alert alert-warning")
+                    .append("<p>One or more other collaborators are currently editing this notebook. Saving the notebook will overwrite any changes they make.</p>")
+                ),
+            buttons: {"OK": function() {}}
+        });
+    }
+
+    function create_editing_notification() {
+        // Create the notification
+        const notification = $("<div></div>")
+            .attr("id", "repo-editors")
+            .addClass("label label-danger")
+            .append("<span class='repo-editing-count'></span>")
+            .append(" Other")
+            .append("<span class='repo-editing-s'>s</span>")
+            .append(" Editing")
+            .hide()
+            .click(() => open_editing_dialog());
+
+        // Attach it to the toolbar
+        $("#maintoolbar").prepend(notification);
+
+        // Return the notification
+        return notification;
+    }
+
+    function notify_about_editors(editor_list, error_encountered=false) {
+        let editors_notification = $("#repo-editors");
+
+        // Save the list of current editors
+        GenePattern.repo.current_editors = editor_list;
+
+        // Does the editors notification exist? If not, create it
+        if (!editors_notification.length) editors_notification = create_editing_notification();
+
+        // If there are current editors, show the notification and update count
+        if (editor_list.length) {
+            // Update the displayed count
+            $(".repo-editing-count").text(editor_list.length);
+
+            // Show or hide the s in other(s)
+            if (editor_list.length > 1) $(".repo-editing-s").show();
+            else $(".repo-editing-s").hide();
+
+            // Show the notification
+            editors_notification.show();
+        }
+
+        // Otherwise hide it
+        else editors_notification.hide();
+    }
+
+    function collaborator_poll() {
+        // No need to poll if this is not a shared notebook
+        if (!in_shared_notebook()) return;
+
+        // Poll the server for a list of current editors (not including you)
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/sharing/heartbeat/" + Jupyter.notebook.notebook_path,
+            method: ("PUT"),
+            crossDomain: true,
+            dataType: 'json',
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(editor_list) {
+                // Show the notification, if necessary
+                notify_about_editors(editor_list, false);
+            },
+            error: function() {
+                // Show the notification
+                notify_about_editors([], true);
+            },
+            complete: function() {
+                // Poll again in one minute
+                setTimeout(collaborator_poll, 60000);
+            }
+        });
+    }
+
     /*
      * If we are currently viewing the notebook list
      * Attach the repository events if they haven't already been initialized
@@ -2325,7 +2410,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 // Add publish link to the toolbar
                 add_publish_link();
             });
-            get_sharing_list(()=> init_save_sync());
+            get_sharing_list(function() {
+                // Update the shared canonical copy upon save
+                init_save_sync();
+
+                // Notify the user when someone else is editing the notebook
+                collaborator_poll();
+            });
         });
     }
 });

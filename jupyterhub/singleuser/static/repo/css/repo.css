@@ -197,6 +197,13 @@ input.repo-input:invalid, select.repo-input:invalid {
     margin-left: 0;
 }
 
+#repo-editors {
+    position: relative;
+    top: 6px;
+    float: right;
+    font-size: 1em;
+    cursor: pointer;
+}
 
 
 

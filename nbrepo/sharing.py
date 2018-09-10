@@ -66,6 +66,7 @@ class Collaborator(models.Model):
     email = models.CharField(max_length=128)
     token = models.CharField(max_length=128)
     accepted = models.BooleanField(default=False)
+    last_accessed = models.DateTimeField(null=True)
 
     # The file path for the linked file for this particular user, relative to the user's directory
     file_path = models.CharField(max_length=256, null=True)
@@ -88,7 +89,7 @@ class SharingSerializer(serializers.HyperlinkedModelSerializer):
 class CollaboratorSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Collaborator
-        fields = ('share', 'user', 'owner', 'email', 'token', 'accepted', 'file_path')
+        fields = ('share', 'user', 'owner', 'email', 'token', 'accepted', 'last_accessed', 'file_path')
 
 
 #################
@@ -527,6 +528,31 @@ def copy_share(request, pk, local_dir_path):
         return Response('Keeping local copy of shared notebook', status=200)
 
 
+@api_view(['GET', 'PUT'])
+@permission_classes((permissions.AllowAny,))
+def editing_heartbeat(request, file_path):  # Pass in Jupyter.notebook.notebook_path
+
+    # Get the current username
+    username = request.user.username
+
+    # Get the collaborator object
+    collaborator = get_object_or_404(Collaborator, user=username, file_path=file_path)
+
+    # Update the last_accessed timestamp
+    collaborator.last_accessed = datetime.now()  # Update the database
+    collaborator.save()
+
+    # Get who else has a last_accessed within the last minute
+    currently_editing = []
+    all_collaborators = collaborator.share.shared_with.all()
+    for c in all_collaborators:
+        if c.last_accessed is not None and c.last_accessed.timestamp() > (collaborator.last_accessed.timestamp() - 60) and c.user != username:
+            currently_editing.append(c.user)
+
+    # Return list of current editors
+    return Response(currently_editing, status=200)
+
+
 ################
 # From urls.py #
 ################
@@ -540,5 +566,6 @@ urlpatterns = [
     url(r'^services/sharing/sharing/(?P<pk>[0-9]+)/copy/(?P<local_dir_path>.*)$', copy_share),
     url(r'^services/sharing/sharing/begin/', begin_sharing),
     url(r'^services/sharing/sharing/current/(?P<api_path>.*)$', current_collaborators),
+    url(r'^services/sharing/sharing/heartbeat/(?P<file_path>.*)$', editing_heartbeat),
     url(r'^services/sharing/error/$', error_redirect),
 ]

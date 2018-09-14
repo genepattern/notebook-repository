@@ -710,7 +710,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         $("a.item_link").each(function(i, element) {
             // If a notebook matches a path in the shared list
             const href = $(element).attr("href");
-            const fixed_path = href.substring(Jupyter.notebook_list.base_url.length-1);
+            const fixed_path = decodeURI(href.substring(Jupyter.notebook_list.base_url.length-1));
 
             const open_in_new_window = function() {
                 window.open(href);
@@ -1690,7 +1690,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     function create_sidebar_nav(tag, label) {
         const li = $('<li role="presentation"></li>');
         const link = $('<a href="#" data-tag="' + tag + '">' + label + '</a>');
-        if (tag === '-shared-with-me') link.append($('<span class="badge repo-notifications"></span>'));
+        if (tag === '-shared-with-me') link.append($('<span class="badge repo-notifications" title="New Sharing Invites"></span>'));
 
         // Attach the click event
         link.click(function() {
@@ -2042,7 +2042,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 .append(
                     $('<a href="#repository" data-toggle="tab" class="repository_tab_link"></a>')
                         .append("Public Notebooks ")
-                        .append('<span class="badge repo-notifications"></span>')
+                        .append('<span class="badge repo-notifications" title="New Sharing Invites"></span>')
                         .click(function() {
                             window.location.hash = 'repository';
                         })

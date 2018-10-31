@@ -322,7 +322,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                             $("<p></p>")
                                 .append("This notebook was successfully copied from the GenePattern Notebook Repository as: ")
                                 .append($("<br/>"))
-                                .append("<samp style='font-weight: bold;'>" + response['filename'] + "</samp>.")
+                                .append("<samp style='font-weight: bold;'>" + current_directory + '/' + response['filename'] + "</samp>.")
                         ),
                     buttons: {
                         "Open Notebook": {

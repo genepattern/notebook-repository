@@ -9,11 +9,11 @@ from distutils.dir_util import copy_tree
 from distutils.errors import DistutilsFileError
 
 import nbconvert
-import nbformat
 
 from django.contrib.auth.models import User, Group
 from django.conf import settings
 from django.db.models import ObjectDoesNotExist
+from django.shortcuts import redirect
 from django.views.static import serve
 
 from rest_framework import parsers
@@ -244,7 +244,7 @@ class TagViewSet(viewsets.ModelViewSet):
     serializer_class = TagSerializer
 
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @permission_classes((permissions.IsAuthenticatedOrReadOnly,))
 def copy(request, pk, api_path):
     """
@@ -289,6 +289,10 @@ def copy(request, pk, api_path):
         if not copy_url.endswith('/'):
             copy_url += '/'
         copy_url += urllib.parse.quote(file_name_used)
+
+        # If "open" flag is set, redirect to the notebook
+        if request.GET.get('open', False):
+            return redirect('/user/' + username + copy_url)
 
         # Return a JSON object containing the file name and new URL
         return_obj = {"filename": file_name_used, "url": copy_url}

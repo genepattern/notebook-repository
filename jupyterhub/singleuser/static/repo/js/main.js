@@ -1738,7 +1738,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         // Initialize the DataTable
         const dt = table.DataTable({
             "oLanguage": {
-                "sEmptyTable": "No public notebooks are available in the repository."
+                "sEmptyTable": "No public notebooks are in the library."
             },
             "data": notebooks,
             "autoWidth": false,
@@ -2041,7 +2041,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             $('<li></li>')
                 .append(
                     $('<a href="#repository" data-toggle="tab" class="repository_tab_link"></a>')
-                        .append("Public Notebooks ")
+                        .append("Notebook Library ")
                         .append('<span class="badge repo-notifications" title="New Sharing Invites"></span>')
                         .click(function() {
                             window.location.hash = 'repository';

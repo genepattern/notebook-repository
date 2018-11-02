@@ -1541,8 +1541,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         GenePattern.repo.public_notebooks.forEach(function(nb) {
             const tags = build_tag_list(nb);
 
+            // If tag is -my-notebooks, return public notebooks you own
+            if (tag === '-my-notebooks' && nb.owner === GenePattern.repo.username) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
+
             // If no tag specified, return all notebooks without a pinned tag
-            if (!tag && no_pinned_tags(tags)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
+            else if (!tag && no_pinned_tags(tags)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
 
             // Otherwise, check for a matching tag
             else if (tags.includes(tag)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
@@ -1716,6 +1719,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
         // Add the community tag
         nav.append(create_sidebar_nav('', 'community'));
+
+        // Add the My Notebooks tag
+        nav.append(create_sidebar_nav('-my-notebooks', 'my notebooks'));
 
         // Select the first nav
         select_sidebar_nav(nav.find("a:first"));

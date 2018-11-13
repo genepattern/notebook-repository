@@ -140,12 +140,12 @@ def get_weekly_jobs():
     weekly_jobs['prod'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Notebook')
     # weekly_jobs['broad'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Notebook')
     weekly_jobs['iu'] = _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Notebook')
-    weekly_jobs['aws'] = _poll_genepattern('https://gp-beta-ami.genepattern.org', 'GenePattern%20Notebook')
+    weekly_jobs['aws'] = _poll_genepattern('https://cloud.genepattern.org', 'GenePattern%20Notebook')
 
     weekly_jobs['prod-py'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Python%20Client')
     # weekly_jobs['broad-py'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Python%20Client')
     weekly_jobs['iu-py'] = _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Python%20Client')
-    weekly_jobs['aws-py'] = _poll_genepattern('https://gp-beta-ami.genepattern.org', 'GenePattern%20Python%20Client')
+    weekly_jobs['aws-py'] = _poll_genepattern('https://cloud.genepattern.org', 'GenePattern%20Python%20Client')
 
     weekly_jobs['broad'], weekly_jobs['broad-py'] = _read_s3_stats('job_count.log')
 
@@ -509,7 +509,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                     <td>%s</td>
                                 </tr>
                                 <tr>
-                                    <td>GP AWS</td>
+                                    <td>GP Cloud</td>
                                     <td>%s</td>
                                     <td>%s</td>
                                 </tr>
@@ -538,7 +538,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                     <td>%s</td>
                                 </tr>
                                 <tr>
-                                    <td>GP AWS</td>
+                                    <td>GP Cloud</td>
                                     <td>%s</td>
                                     <td>%s</td>
                                 </tr>

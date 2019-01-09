@@ -358,7 +358,7 @@ def get_logins():
     # Move the log to backup
     if not test_run:
         shutil.copyfileobj(file(home_dir + 'nohup.out', 'r'), file(home_dir + 'nohup.out.old', 'w'))
-        open(home_dir + 'nohup.out', 'w').close()
+        commands.getstatusoutput('> ' + home_dir + 'nohup.out')
 
     return logins
 

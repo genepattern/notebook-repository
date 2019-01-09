@@ -16,7 +16,9 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
-from nbrepo.views import NotebookViewSet, TagViewSet, copy, download, obtain_auth_token, preview, migrate_account
+
+from nbrepo.preview import preview
+from nbrepo.views import NotebookViewSet, TagViewSet, copy, download, obtain_auth_token, migrate_account, WebtourViewSet, webtour_seen
 
 from .sharing import SharingViewSet, CollaboratorViewSet, begin_sharing, accept_sharing, current_collaborators, error_redirect, urlpatterns as sharingpatterns
 
@@ -24,6 +26,7 @@ from .sharing import SharingViewSet, CollaboratorViewSet, begin_sharing, accept_
 router = routers.DefaultRouter()
 # router.register(r'users', UserViewSet)
 # router.register(r'groups', GroupViewSet)
+router.register(r'webtours', WebtourViewSet)
 router.register(r'notebooks', NotebookViewSet)
 router.register(r'tags', TagViewSet)
 router.register(r'sharing', SharingViewSet)
@@ -41,8 +44,8 @@ urlpatterns = [
     url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/download/$', download),
     url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/preview/$', preview),
 
-    # Notebook Repository account migration
-    url(r'^migrate/(?P<old_user>.*)/(?P<new_user>.*)/$', migrate_account),
+    # Webtour endpoints
+    url(r'^services/sharing/webtours/(?P<user>.*)/$', webtour_seen),
 ]
 
 # Add the sharing URLs

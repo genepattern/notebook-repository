@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
-from nbrepo.models import Notebook, Tag
+from nbrepo.models import Notebook, Tag, Webtour
 from .sharing import CollaboratorSerializer, SharingSerializer
 
 
@@ -20,6 +20,12 @@ class TagSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Tag
         fields = ('id', 'label', 'protected', 'pinned', 'weight')
+
+
+class WebtourSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Webtour
+        fields = ('user', 'seen')
 
 
 class NotebookSerializer(serializers.HyperlinkedModelSerializer):

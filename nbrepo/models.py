@@ -30,6 +30,11 @@ class Notebook(models.Model):
     tags = models.ManyToManyField(Tag)
 
 
+class Webtour(models.Model):
+    user = models.CharField(max_length=128)
+    seen = models.BooleanField(default=False)
+
+
 # Create tokens for all users
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):

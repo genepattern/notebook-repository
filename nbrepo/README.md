@@ -8,11 +8,14 @@ good candidate for integrating with that API once it is available.
 
 ## Python Package Requirements (all available through PIP)
 * django == 1.10
-* markdown
+* markdown==2.6.6
 * djangorestframework == 3.4.4
-* django-filter
-* django-crispy-forms
+* django-filter==0.14.0
+* django-crispy-forms==1.6.0
 * django-cors-middleware == 1.3.1
+* pyppeteer==0.0.25
+* requests==2.21.0
+* jupyterhub==0.9.4
 
 ## Installation
 1. Install the required packages (listed above).

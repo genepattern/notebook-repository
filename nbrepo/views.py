@@ -8,8 +8,6 @@ import shutil
 from distutils.dir_util import copy_tree
 from distutils.errors import DistutilsFileError
 
-import nbconvert
-
 from django.contrib.auth.models import User, Group
 from django.conf import settings
 from django.db.models import ObjectDoesNotExist
@@ -26,8 +24,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from nbrepo.models import Notebook, Tag
-from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer, TagSerializer
+from nbrepo.models import Notebook, Tag, Webtour
+from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer, TagSerializer, WebtourSerializer
+from .preview import preview, generate_preview
 
 from .sharing import CollaboratorViewSet, SharingViewSet, accept_sharing, begin_sharing, error_redirect
 
@@ -52,6 +51,16 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
 
 
+class WebtourViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows webtour seen to be set
+    """
+    queryset = Webtour.objects.all()
+    serializer_class = WebtourSerializer
+    filter_fields = ('user', 'seen')
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+
+
 class NotebookViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows notebooks to be viewed or edited.
@@ -62,13 +71,36 @@ class NotebookViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
     @staticmethod
-    def _copy_to_file_path(username, model_id, api_path):
-        base_repo_path = settings.BASE_REPO_PATH
+    def _add_publish_metadata(nb_path, nb_url):
+        try:
+            with open(nb_path, 'r') as nb_read:
+                # Get the metadata
+                nb_json = json.load(nb_read)
+                nb_read.close()
+                nb_metadata = nb_json['metadata']
+
+                # Get the GenePattern metadata
+                if 'genepattern' not in nb_metadata:
+                    nb_metadata['genepattern'] = {}
+                nb_genepattern = nb_metadata['genepattern']
+
+                # Set the repository_url
+                nb_genepattern['repository_url'] = nb_url
+
+                # Write back to the file
+                with open(nb_path, 'w') as nb_write:
+                    json.dump(nb_json, nb_write)
+                    nb_write.close()
+
+        except FileNotFoundError:
+            logger.error("Cannot open " + str(nb_path))
+        except KeyError:
+            logger.error("Cannot get metadata for " + str(nb_path))
+
+    @staticmethod
+    def _user_file_path(username, api_path):
         base_user_path = os.path.join(settings.BASE_USER_PATH, username)
 
-        # Get the file name and path
-        api_path_parts = api_path.split('/')
-        file_name = urllib.parse.unquote(api_path_parts[len(api_path_parts)-1])
         if not settings.JUPYTERHUB:  # Handle dev environment
             file_path = urllib.parse.unquote(api_path.split('/', 2)[2])
         else:
@@ -76,6 +108,16 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         # Path to the user's notebook file
         user_nb_path = os.path.join(base_user_path, file_path)
+        return user_nb_path
+
+    @staticmethod
+    def _copy_to_file_path(username, model_id, api_path):
+        base_repo_path = settings.BASE_REPO_PATH
+
+        # Get the file name and path
+        api_path_parts = api_path.split('/')
+        file_name = urllib.parse.unquote(api_path_parts[len(api_path_parts) - 1])
+        user_nb_path = NotebookViewSet._user_file_path(username, api_path)
 
         # Path to the repo's notebook file
         repo_nb_path = os.path.join(base_repo_path, username, str(model_id), file_name)
@@ -144,26 +186,6 @@ class NotebookViewSet(viewsets.ModelViewSet):
         # Return the list of validated tag objects
         return tags_list
 
-    @staticmethod
-    def generate_preview(nb_file_path):
-        # Obtain the file paths
-        dir_path = os.path.dirname(nb_file_path)
-        preview_path = os.path.join(dir_path, 'preview')
-
-        # Generate the preview
-        html_exporter = nbconvert.HTMLExporter()
-        html_exporter.template_path = ['.', os.path.join(os.path.dirname(os.path.abspath(__file__)),  'preview')]
-        html_exporter.template_file = 'genepattern'
-        output, resources = html_exporter.from_file(nb_file_path)
-
-        # Set the notebook name in the metadata
-        # nb_name = os.path.splitext(os.path.basename(nb_file_path))[0]
-        # resources['metadata']['name'] = nb_name
-
-        # Write to disk
-        writer = nbconvert.writers.FilesWriter()
-        writer.write(output, resources, preview_path)
-
     def create(self, request, *args, **kwargs):
         logger.debug("CREATE NOTEBOOK")
 
@@ -175,11 +197,14 @@ class NotebookViewSet(viewsets.ModelViewSet):
         new_id = response.data['id']
         api_path = response.data['api_path']
 
+        # Get the path to the user's copy
+        user_file_path = self._user_file_path(username, api_path)
+
         # Copy the notebook to the file path
         response.data['file_path'] = self._copy_to_file_path(username, new_id, api_path)
 
         # Generate the static preview
-        self.generate_preview(response.data['file_path'])
+        generate_preview(response.data['file_path'])
 
         # Update notebook model with the real file path
         notebook = Notebook.objects.get(id=new_id)
@@ -191,6 +216,10 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         # Save the notebook
         notebook.save()
+
+        # Insert the publishing metadata in the notebook file
+        self._add_publish_metadata(user_file_path, response.data['url'])      # Add to user's copy
+        self._add_publish_metadata(notebook.file_path, response.data['url'])  # Add to canonical copy
 
         # Return response
         return response
@@ -214,7 +243,7 @@ class NotebookViewSet(viewsets.ModelViewSet):
         self._copy_to_file_path(username, old_id, api_path)
 
         # Generate the static preview
-        self.generate_preview(response.data['file_path'])
+        generate_preview(response.data['file_path'])
 
         # Return response
         return response
@@ -234,6 +263,28 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         # Return response
         return response
+
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def webtour_seen(request, user):
+    # Get the notebook model
+    webtours = Webtour.objects.filter(user=user)
+
+    # If haven't been seen
+    if len(webtours.all()) < 1:
+        # Mark is as seen
+        wt = Webtour()
+        wt.user = user
+        wt.seen = True
+        wt.save()
+
+        # Return the response
+        return Response({'seen': False})
+
+    # If it has been seen
+    else:
+        return Response({'seen': True})
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -300,22 +351,6 @@ def copy(request, pk, api_path):
 
     except ObjectDoesNotExist:
         return Response("Notebook does not exist", status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['GET'])
-@permission_classes((permissions.AllowAny,))
-def preview(request, pk):
-    # Get the notebook model
-    notebook = Notebook.objects.get(pk=pk)
-
-    # Lazily generate preview.html, if necessary
-    preview_path = os.path.join(os.path.dirname(notebook.file_path), 'preview.html')
-    if not os.path.exists(preview_path) or not settings.JUPYTERHUB:
-        NotebookViewSet.generate_preview(notebook.file_path)
-
-    # Serve the file
-    response = serve(request, 'preview.html', os.path.dirname(notebook.file_path))
-    return response
 
 
 @api_view(['GET'])

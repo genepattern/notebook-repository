@@ -24,8 +24,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from nbrepo.models import Notebook, Tag, Webtour
-from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer, TagSerializer, WebtourSerializer
+from nbrepo.models import Notebook, Tag, Webtour, Comment
+from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer, TagSerializer, WebtourSerializer, CommentSerializer
 from .preview import preview, generate_preview
 
 from .sharing import CollaboratorViewSet, SharingViewSet, accept_sharing, begin_sharing, error_redirect
@@ -58,6 +58,16 @@ class WebtourViewSet(viewsets.ModelViewSet):
     queryset = Webtour.objects.all()
     serializer_class = WebtourSerializer
     filter_fields = ('user', 'seen')
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows webtour seen to be set
+    """
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    filter_fields = ('notebook', 'user', 'timestamp', 'text')
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
 

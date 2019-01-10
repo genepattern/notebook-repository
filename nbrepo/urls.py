@@ -18,7 +18,7 @@ from django.contrib import admin
 from rest_framework import routers
 
 from nbrepo.preview import preview
-from nbrepo.views import NotebookViewSet, TagViewSet, copy, download, obtain_auth_token, migrate_account, WebtourViewSet, webtour_seen
+from nbrepo.views import NotebookViewSet, TagViewSet, copy, download, obtain_auth_token, WebtourViewSet, webtour_seen, CommentViewSet
 
 from .sharing import SharingViewSet, CollaboratorViewSet, begin_sharing, accept_sharing, current_collaborators, error_redirect, urlpatterns as sharingpatterns
 
@@ -27,6 +27,7 @@ router = routers.DefaultRouter()
 # router.register(r'users', UserViewSet)
 # router.register(r'groups', GroupViewSet)
 router.register(r'webtours', WebtourViewSet)
+router.register(r'comments', CommentViewSet)
 router.register(r'notebooks', NotebookViewSet)
 router.register(r'tags', TagViewSet)
 router.register(r'sharing', SharingViewSet)

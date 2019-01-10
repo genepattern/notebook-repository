@@ -104,6 +104,22 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     }
 
     /**
+     * Returns current time in a datetime string readable by the REST API
+     *
+     * @returns {string}
+     */
+    function now() {
+        const today = new Date();
+        const month = ("0" + (today.getMonth() + 1)).slice(-2);
+        const date = ("0" + today.getDate()).slice(-2);
+        const year = today.getFullYear();
+        const hours = ("0" + today.getHours()).slice(-2);
+        const minutes = ("0" + today.getMinutes()).slice(-2);
+        const seconds = ("0" + today.getSeconds()).slice(-2);
+        return year + '-' + month + '-' + date + "T" + hours + ":" + minutes + ":" + seconds;
+    }
+
+    /**
      * Display the loading screen for the modal dialog
      */
     function modal_loading_screen() {
@@ -1501,6 +1517,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 $("<div></div>")
                     .addClass("repo-dialog-description")
                     .append(notebook['description'])
+            )
+            .append($("<hr/>"))
+            .append(
+                $("<section></section>")
+                    .attr("id", "comment-thread")
             );
 
         // Show the modal dialog
@@ -1508,6 +1529,117 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             title : title,
             body : body,
             buttons: buttons
+        });
+
+        // Load the comment thread
+        setTimeout(function() {
+            load_comments(notebook.url);
+        }, 200);
+    }
+
+    function submit_comment(url, comment) {
+        const comment_obj = {
+            "notebook": url,
+            "user": GenePattern.repo.username,
+            "text": comment,
+            "timestamp": now()
+        };
+
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/comments/",
+            method: "POST",
+            crossDomain: true,
+            dataType: "json",
+            data: comment_obj,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(response) {
+                $("#comment-thread").empty();
+                load_comments(url);
+            },
+            error: function() {
+                console.log("ERROR: Submitting comment");
+            }
+        });
+    }
+
+    function build_comments(url, comment_json) {
+        // Create the wrapper and add the header
+        const wrapper = $("<div></div>");
+        wrapper.append($("<h4>Comments</h4>"));
+
+        // Create the comment table and add each comment
+        const table = $("<table></table>").addClass("table table-striped repo-comment-table");
+        const tbody = $("<tbody></tbody>");
+
+        if (comment_json.results.length) {
+            comment_json.results.forEach(function(comment) {
+                let row = $("<tr></tr>");
+                row.append($("<td></td>").css("width", 150).text(comment.user));
+                row.append($("<td></td>").text(comment.text));
+                tbody.append(row)
+            });
+
+        }
+        else {
+            tbody.append($("<tr><td>This notebook doesn't have any comments</td></tr>"));
+        }
+        table.append(tbody);
+        wrapper.append(table);
+
+        // Create the comment link
+        const toggle_link = $("<a></a>")
+            .addClass("repo-comment-toggle")
+            .append($('<i class="fa fa-comments"></i>'))
+            .append(" Leave a comment")
+            .attr("href", "#")
+            .click(function() {
+                $(".repo-comment-form").toggle("slide", {"direction": "up"});
+                return false;
+            });
+        wrapper.append(toggle_link);
+
+        // Create the comment form
+        const text_area = $("<textarea></textarea>")
+            .addClass("repo-comment-form")
+            .css("width", "100%")
+            .attr("placeholder", "Press enter to leave a comment or shirt+enter for a new line.")
+            .keyup(function (event) {
+                if (event.keyCode === 13) {
+                    if (event.shiftKey) return false;
+                    else submit_comment(url, $(".repo-comment-form").val());
+                }
+            })
+            .hide();
+        wrapper.append(text_area);
+
+        return wrapper;
+    }
+
+    function load_comments(notebook_url) {
+        // Return if the comments have already been loaded
+        const comments_loaded = !!$("#comment-thread").text();
+        if (comments_loaded) return;
+
+        // Get the ID of the notebook
+        let nb_id_from_url = (url) => url.split('/').slice(-2)[0];
+        const nb_id = nb_id_from_url(notebook_url);
+
+        // Load the comments from the server
+        $.ajax({
+            url: GenePattern.repo.repo_url + "/comments/?notebook=" + nb_id,
+            method: "GET",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(response) {
+                $("#comment-thread").append(build_comments(notebook_url, response));
+            },
+            error: function() {
+                $("#comment-thread").append("Error loading comments");
+            }
         });
     }
 
@@ -2016,6 +2148,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 GenePattern.repo.token = data['token'];
                 GenePattern.repo.admin = data['admin'];
                 if (success_callback) success_callback();
+
+                // Trigger the custom event
+                $(document).trigger("gp.repo.auth");
             },
             error: function() {
                 console.log("ERROR: Could not authenticate with GenePattern Notebook Repository.");
@@ -2354,6 +2489,26 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         });
     }
 
+    function is_public_notebook() {
+        return !!Jupyter.notebook.metadata &&
+            !!Jupyter.notebook.metadata.genepattern &&
+            !!Jupyter.notebook.metadata.genepattern.repository_url;
+    }
+
+    function display_comment_dialog() {
+        dialog.modal({
+            title : "Notebook Comments",
+            body : $("<section></section>")
+                .attr("id", "comment-thread"),
+            buttons: {"OK": function() {}}
+        });
+
+        // Load the comment thread
+        setTimeout(function() {
+            load_comments(Jupyter.notebook.metadata.genepattern.repository_url);
+        }, 200);
+    }
+
     /*
      * If we are currently viewing the notebook list
      * Attach the repository events if they haven't already been initialized
@@ -2410,6 +2565,18 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
      * If we are currently viewing a notebook
      */
     if (Jupyter.notebook !== undefined) {
+        // Add the comment button if it has a repo url
+        if (is_public_notebook()) {
+            Jupyter.toolbar.add_buttons_group([{
+                'label'   : 'Comments',
+                'icon'    : 'fa-comments',
+                'id'    : 'genepattern-comments',
+                'callback': function() {
+                    display_comment_dialog();
+                }
+            }]);
+        }
+
         // Authenticate
         do_authentication(function() {
             get_notebooks(function() {

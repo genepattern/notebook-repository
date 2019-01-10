@@ -35,6 +35,13 @@ class Webtour(models.Model):
     seen = models.BooleanField(default=False)
 
 
+class Comment(models.Model):
+    notebook = models.ForeignKey(Notebook, on_delete=models.CASCADE)
+    user = models.CharField(max_length=128)
+    timestamp = models.DateTimeField()
+    text = models.TextField(blank=False)
+
+
 # Create tokens for all users
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):

@@ -24,7 +24,7 @@
 *   jQuery v1.4+
 *   jQuery UI v1.8+
 */
-require(['jquery', 'components/jquery-ui/ui/minified/jquery-ui.min'], function($) {
+require(['jquery', 'jqueryui'], function($) {
     (function($) {
 
         $.widget('ui.tagit', {

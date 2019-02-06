@@ -297,8 +297,41 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
      * @param notebook
      */
     function preview_notebook(notebook) {
+        // Show the loading screen
+        modal_loading_screen();
+
         const preview_url = GenePattern.repo.repo_url + "/notebooks/" + notebook['id'] + "/preview/";
-        window.open(preview_url);
+
+        // Make sure the preview has been generated before forwarding the user
+        $.ajax({
+            url: preview_url,
+            method: "GET",
+            crossDomain: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            },
+            success: function(responseData) {
+                // Close the modal
+                close_modal();
+
+                // Forward the user to the preview
+                window.open(preview_url);
+            },
+            error: function() {
+                // Close the modal
+                close_modal();
+
+                // Show error dialog
+                console.log("ERROR: Failed to generate notebook preview");
+                dialog.modal({
+                    title : "Unable to Generate Preview",
+                    body : $("<div></div>")
+                        .addClass("alert alert-danger")
+                        .append("The GenePattern Notebook Repository encountered an error attempting to generate the notebook preview."),
+                    buttons: {"OK": function() {}}
+                });
+            }
+        });
     }
 
     /**

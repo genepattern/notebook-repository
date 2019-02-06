@@ -1106,6 +1106,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             // Show the modal dialog
             dialog.modal({
                 title : "Share Notebook With Others",
+                keyboard_manager: Jupyter.keyboard_manager,
                 body : body,
                 buttons: buttons
             });
@@ -1427,8 +1428,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         // Decode %20 or similar encodings
         api_path = decodeURI(api_path);
 
+        // Get the base URL
+        const base_url = Jupyter.notebook_list ? Jupyter.notebook_list.base_url.length-1 : Jupyter.notebook.base_url.length-1;
+
         // Removes /users/foo/ if it's prepended to the path
-        const standardized_url = api_path.substring(Jupyter.notebook_list.base_url.length-1);
+        const standardized_url = api_path.substring(base_url);
 
         // Handle notebook URLs
         if (standardized_url.startsWith("/notebooks/")) return standardized_url.substring(11);
@@ -2364,7 +2368,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         }
     }
 
-    // Add publish link to notebook File menu
+    // Add publish and sharing links to notebook File menu
     function add_publish_link() {
         const help_section = $("#file_menu");
         const trust_notebook = help_section.find("#trust_notebook");
@@ -2374,6 +2378,16 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     $("<a href='#' target='_blank'>Publish to Repository</a>")
                         .click(function() {
                             validate_notebook();
+                            return false;
+                        })
+                )
+        );
+        trust_notebook.before(
+            $("<li></li>")
+                .append(
+                    $("<a href='#' target='_blank'>Share with Collaborators</a>")
+                        .click(function() {
+                            share_selected();
                             return false;
                         })
                 )

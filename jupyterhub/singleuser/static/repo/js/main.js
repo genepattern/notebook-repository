@@ -301,23 +301,17 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         modal_loading_screen();
 
         const preview_url = GenePattern.repo.repo_url + "/notebooks/" + notebook['id'] + "/preview/";
-
-        // Make sure the preview has been generated before forwarding the user
-        $.ajax({
-            url: preview_url,
-            method: "GET",
-            crossDomain: true,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
-            },
-            success: function(responseData) {
+        $("<img />")
+            .attr("src", preview_url)
+            .css("display", "none")
+            .on("load", function() {
                 // Close the modal
                 close_modal();
 
                 // Forward the user to the preview
                 window.open(preview_url);
-            },
-            error: function() {
+            })
+            .on("error", function() {
                 // Close the modal
                 close_modal();
 
@@ -330,8 +324,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                         .append("The GenePattern Notebook Repository encountered an error attempting to generate the notebook preview."),
                     buttons: {"OK": function() {}}
                 });
-            }
-        });
+            });
     }
 
     /**
@@ -1508,6 +1501,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             "class": "btn-default",
             "click": function() {
                 preview_notebook(notebook);
+                return false;
             }};
 
         buttons["Run Notebook"] = {

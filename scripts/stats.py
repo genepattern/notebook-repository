@@ -1,19 +1,15 @@
-#!/usr/bin/env python
+#!/home/thorin/config/anaconda/bin/python3
 
-import commands
+import subprocess
 import smtplib
 import datetime
 import sys
 import shutil
 import base64
 import json
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
-
-if sys.version_info.major > 2:
-    import urllib.request as urllib2
-else:
-    import urllib2
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import urllib.request
 
 # Environment configuration
 server_name = "GenePattern Notebook"
@@ -21,7 +17,6 @@ include_extension = True
 data_dir = '/home/user/shared/users'
 stats_dir = '/home/user/scripts/counters/'
 user_dir = '/home/user/'
-stats_dir = '/home/thorin/scripts/counters/'
 sudo_req = 'sudo '  # Make blank if sudo is not required
 test_email = 'user@broadinstitute.org'
 admin_login = 'username:password'
@@ -37,8 +32,8 @@ def _poll_docker(image):
     :param image:
     :return:
     """
-    request = urllib2.Request('https://registry.hub.docker.com/v2/repositories/genepattern/' + image + '/')
-    response = urllib2.urlopen(request)
+    request = urllib.request.Request('https://registry.hub.docker.com/v2/repositories/genepattern/' + image + '/')
+    response = urllib.request.urlopen(request)
     json_str = response.read().decode('utf-8')
     image_json = json.loads(json_str)
     return {'stars': image_json['star_count'], 'pulls': image_json['pull_count']}
@@ -49,9 +44,8 @@ def get_docker():
     Gather all the available Docker stats
     :return:
     """
-    docker = {}
-    docker['notebook'] = _poll_docker('genepattern-notebook')
-    docker['jupyterhub'] = {'stars': 1, 'pulls': 180}
+    docker = {'notebook': _poll_docker('genepattern-notebook'),
+              'jupyterhub': {'stars': 1, 'pulls': 180}}
     return docker
 
 
@@ -63,15 +57,15 @@ def _poll_genepattern(gp_url, tag):
     :return: Return the number of GenePattern Notebook jobs launched on this server
     """
     try:
-        request = urllib2.Request(
+        request = urllib.request.Request(
             gp_url + '/gp/rest/v1/jobs/?tag=' + tag + '&pageSize=1000&includeChildren=true&includeOutputFiles=false&includePermissions=false')
         base64string = base64.encodestring(bytearray(admin_login, 'utf-8')).decode('utf-8').replace('\n', '')
         request.add_header("Authorization", "Basic %s" % base64string)
-        response = urllib2.urlopen(request)
+        response = urllib.request.urlopen(request)
         json_str = response.read().decode('utf-8')
         jobs_json = json.loads(json_str)
         count = 0
-    except urllib2.URLError as e:
+    except urllib.request.URLError:
         print('ERROR getting stats from ' + gp_url)
         return 0
 
@@ -89,7 +83,7 @@ def _poll_genepattern(gp_url, tag):
 
 def get_total_jobs(weekly_jobs):
     # Read the file of total jobs
-    jobs_file = file(stats_dir + 'jobs.lst', 'r')
+    jobs_file = open(stats_dir + 'jobs.lst', 'r')
     jobs_list = jobs_file.readlines()
     jobs_list = [j.strip() for j in jobs_list]  # Clean new lines
 
@@ -106,7 +100,7 @@ def get_total_jobs(weekly_jobs):
 
     # Write the new totals back to the file
     if not test_run:
-        jobs_file = file(stats_dir + 'jobs.lst', 'w')
+        jobs_file = open(stats_dir + 'jobs.lst', 'w')
         jobs_file.write("%s\n" % total_jobs['prod'])
         jobs_file.write("%s\n" % total_jobs['broad'])
         jobs_file.write("%s\n" % total_jobs['iu'])
@@ -126,10 +120,10 @@ def _read_s3_stats(log_file):
     """
 
     # Copy the s3 log file to local disk
-    commands.getstatusoutput('aws s3 cp s3://' + s3_bucket + '/' + log_file + ' ' + stats_dir + log_file)
+    subprocess.getstatusoutput('aws s3 cp s3://' + s3_bucket + '/' + log_file + ' ' + stats_dir + log_file)
 
     # Read the log file
-    jobs_file = file(stats_dir + log_file, 'r')
+    jobs_file = open(stats_dir + log_file, 'r')
     jobs_list = jobs_file.readlines()
     jobs_list = [j.strip() for j in jobs_list]  # Clean new lines
     jobs_file.close()
@@ -141,20 +135,17 @@ def get_weekly_jobs():
     """
     Assemble the number of GenePattern Notebook jobs launched on each server
     """
-    weekly_jobs = {}
-    weekly_jobs['prod'] = 0
-    # weekly_jobs['prod'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Notebook')
-    # weekly_jobs['broad'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Notebook')
-    weekly_jobs['iu'] = _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Notebook')
-    weekly_jobs['aws'] = _poll_genepattern('https://cloud.genepattern.org', 'GenePattern%20Notebook')
+    weekly_jobs = {'prod': 0,  # This server has been decommissioned
+                   'prod-py': 0,
 
-    weekly_jobs['prod-py'] = 0
-    # weekly_jobs['prod-py'] = _poll_genepattern('https://genepattern.broadinstitute.org', 'GenePattern%20Python%20Client')
-    # weekly_jobs['broad-py'] = _poll_genepattern('https://gpbroad.broadinstitute.org', 'GenePattern%20Python%20Client')
-    weekly_jobs['iu-py'] = _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Python%20Client')
-    weekly_jobs['aws-py'] = _poll_genepattern('https://cloud.genepattern.org', 'GenePattern%20Python%20Client')
+                   'iu': _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Notebook'),
+                   'iu-py': _poll_genepattern('https://gp.indiana.edu', 'GenePattern%20Python%20Client'),
 
-    weekly_jobs['broad'], weekly_jobs['broad-py'] = _read_s3_stats('job_count.log')
+                   'aws': _poll_genepattern('https://cloud.genepattern.org', 'GenePattern%20Notebook'),
+                   'aws-py': _poll_genepattern('https://cloud.genepattern.org', 'GenePattern%20Python%20Client'),
+
+                   'broad': _read_s3_stats('job_count.log')[0],
+                   'broad-py': _read_s3_stats('job_count.log')[1]}
 
     return weekly_jobs
 
@@ -168,7 +159,7 @@ def get_user_disk():
     if not test_run:
         # Get the amount of disk usage per user
 
-        cmd_out = commands.getstatusoutput(sudo_req + 'du -h --max-depth=1 ' + data_dir + ' | sort -hr')[1]
+        cmd_out = subprocess.getstatusoutput(sudo_req + 'du -h --max-depth=1 ' + data_dir + ' | sort -hr')[1]
         cmd_lines = cmd_out.split('\n')
 
         # Iterate over each user's line
@@ -200,14 +191,14 @@ def get_disk_usage():
     disk = {}
 
     # Get the amount of general disk space used
-    cmd_out = commands.getstatusoutput('df -h | grep "/dev/xvda1"')[1]
+    cmd_out = subprocess.getstatusoutput('df -h | grep "/dev/xvda1"')[1]
     cmd_parts = cmd_out.split()
     disk["gen_disk_used"] = cmd_parts[2]
     disk["gen_disk_total"] = cmd_parts[3]
     disk["gen_disk_percent"] = cmd_parts[4]
 
     # Get the amount of Docker disk space used
-    cmd_out = commands.getstatusoutput('df -h | grep "tmpfs"')[1]
+    cmd_out = subprocess.getstatusoutput('df -h | grep "tmpfs"')[1]
     cmd_parts = cmd_out.split()
     disk["docker_disk_used"] = cmd_parts[2]
     disk["docker_disk_total"] = cmd_parts[3]
@@ -222,34 +213,32 @@ def get_nb_count():
     """
 
     # Gather a list of all running containers
-    cmd_out = commands.getstatusoutput(sudo_req + 'docker ps')[1]
-    cmd_lines = cmd_out.split('\n')
+    cmd_out = subprocess.getstatusoutput(sudo_req + 'docker ps')[1]
 
     # For each container, get the count
-    nb_count = {}
-    nb_count['week'] = 0
-    nb_count['total'] = 0
-    nb_count['files_week'] = 0
-    nb_count['files_total'] = 0
+    nb_count = {'week': 0,
+                'total': 0,
+                'files_week': 0,
+                'files_total': 0}
 
     if not test_run:
         # Weekly query
-        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
+        cmd_out = subprocess.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
         user_week = int(cmd_out.strip())
         nb_count['week'] += user_week
 
         # Total query
-        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
+        cmd_out = subprocess.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
         user_total = int(cmd_out.strip())
         nb_count['total'] += user_total
 
         # All files query, weekly
-        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
+        cmd_out = subprocess.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
         files_week = int(cmd_out.strip())
         nb_count['files_week'] += files_week - user_week
 
         # All files query, total
-        cmd_out = commands.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' | wc -l")[1]
+        cmd_out = subprocess.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' | wc -l")[1]
         files_total = int(cmd_out.strip())
         nb_count['files_total'] += files_total - user_total
 
@@ -260,20 +249,20 @@ def _genepattern_users():
     """
     Poll the provided GenePattern server for the number of GenePattern Notebook jobs launched in the last week
 
-    :param gp_url: The URL of the GenePattern server, not including /gp...
     :return: Return the number of GenePattern Notebook jobs launched on this server
     """
     try:
         start_date = datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(days=30), "%Y-%m-%d+01:01:01")
-        request = urllib2.Request('https:/cloud.genepattern.org/gp/rest/v1/users/new?start=' + start_date)
+        request = urllib.request.Request('https:/cloud.genepattern.org/gp/rest/v1/users/new?start=' + start_date)
         base64string = base64.encodestring(bytearray(admin_login, 'utf-8')).decode('utf-8').replace('\n', '')
         request.add_header("Authorization", "Basic %s" % base64string)
-        response = urllib2.urlopen(request)
+        response = urllib.request.urlopen(request)
         json_str = response.read().decode('utf-8')
         user_json = json.loads(json_str)
         return user_json['users']
-    except urllib2.URLError:
+    except urllib.request.URLError:
         return 'ERROR'
+
 
 def _genepattern_users_stopgap():
     try:
@@ -281,15 +270,15 @@ def _genepattern_users_stopgap():
         end_date = datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d")
 
         # http://cloud.genepattern.org/gp/rest/v1/usagestats/user_summary/2018-08-14/2018-08-21
-        request = urllib2.Request('https://cloud.genepattern.org/gp/rest/v1/usagestats/user_summary/' + start_date + '/' + end_date)
+        request = urllib.request.Request('https://cloud.genepattern.org/gp/rest/v1/usagestats/user_summary/' + start_date + '/' + end_date)
         base64string = base64.encodestring(bytearray(admin_login, 'utf-8')).decode('utf-8').replace('\n', '')
         request.add_header("Authorization", "Basic %s" % base64string)
-        response = urllib2.urlopen(request)
+        response = urllib.request.urlopen(request)
         json_str = response.read().decode('utf-8')
         user_json = json.loads(json_str)
 
         return user_json['NewUsers']
-    except urllib2.URLError:
+    except urllib.request.URLError:
         return 'ERROR'
 
 
@@ -325,13 +314,14 @@ def get_users():
     users = {}
 
     # Read the file of existing users
-    user_file = file(stats_dir + 'users.lst', 'r')
+    user_file = open(stats_dir + 'users.lst', 'r')
     user_list = user_file.readlines()
     user_list = [u.strip() for u in user_list]  # Clean new lines
 
     # Gather a list of all running containers
     cmd_out = \
-    commands.getstatusoutput("sqlite3 " + user_dir + "jupyterhub.sqlite \"select name from users where last_activity > (SELECT DATETIME('now', '-30 day'));\"")[1]
+        subprocess.getstatusoutput(
+            "sqlite3 " + user_dir + "jupyterhub.sqlite \"select name from users where last_activity > (SELECT DATETIME('now', '-30 day'));\"")[1]
     containers = cmd_out.split('\n')
 
     # Get a list of all new users
@@ -355,7 +345,7 @@ def get_users():
 
     # Update the users file
     if not test_run:
-        user_file = file(stats_dir + 'users.lst', 'w')
+        user_file = open(stats_dir + 'users.lst', 'w')
         for u in (set(user_list) | set(containers)):
             user_file.write("%s\n" % u)
         user_file.close()
@@ -371,11 +361,11 @@ def get_logins():
     logins = {}
 
     # Count the number of logins in the weekly log
-    cmd_out = commands.getstatusoutput('cat ' + user_dir + 'nohup.out | grep -c "User logged in"')[1]
+    cmd_out = subprocess.getstatusoutput('cat ' + user_dir + 'nohup.out | grep -c "User logged in"')[1]
     logins['week'] = int(cmd_out.strip())
 
     # Read the total number of logins
-    login_file = file(stats_dir + 'logins.log', 'r')
+    login_file = open(stats_dir + 'logins.log', 'r')
     total_count = login_file.read().strip()
     if len(total_count) == 0:  # Handle an empty file
         total_count = 0
@@ -386,22 +376,38 @@ def get_logins():
     total_count += logins['week']
     logins['total'] = total_count
     if not test_run:
-        login_file = file(stats_dir + 'logins.log', 'w')
+        login_file = open(stats_dir + 'logins.log', 'w')
         login_file.write(str(total_count))
         login_file.close()
 
     # Move the log to backup
     if not test_run:
-        shutil.copyfileobj(file(user_dir + 'nohup.out', 'r'), file(stats_dir + 'nohup.out.old', 'w'))
-        commands.getstatusoutput('> ' + user_dir + 'nohup.out')
+        shutil.copyfileobj(open(user_dir + 'nohup.out', 'r'), open(stats_dir + 'nohup.out.old', 'w'))
+        subprocess.getstatusoutput('> ' + user_dir + 'nohup.out')
 
     return logins
 
 
-def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, user_disk):
+def get_nb_usage():
+    request = urllib.request.Request('https://notebook.genepattern.org/services/sharing/notebooks/stats/')
+    response = urllib.request.urlopen(request)
+    json_str = response.read().decode('utf-8')
+    usage_json = json.loads(json_str)
+
+    # Sort notebooks by copied
+    sorted_nb_tuples = sorted(usage_json.items(), key=lambda kv: kv[1]['copied'], reverse=True)
+
+    # Create the HTML row list for top 20 notebooks
+    nb_rows = ''
+    for i in range(len(sorted_nb_tuples[:20])):
+        nb_rows += f'<tr><td>{sorted_nb_tuples[i][0]}</td><td>{sorted_nb_tuples[i][1]["copied"]}</td><td>{sorted_nb_tuples[i][1]["launched"]}</td></tr>'
+
+    return nb_rows
+
+
+def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb_usage, user_disk):
     """
     Send the weekly report in an email
-    :param disk:
     :return:
     """
     today = str(datetime.date.today())
@@ -410,12 +416,12 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
     msg = MIMEMultipart()
     msg['From'] = fromaddr
     msg['To'] = toaddr
-    msg['Subject'] = server_name + " Usage Statistics, week ending " + today
+    msg['Subject'] = f"{server_name} Usage Statistics, week ending {today}"
 
-    body = """
+    body = f"""
         <html>
             <body>
-                <h1>%s Report, week ending %s</h1>
+                <h1>{server_name} Report, week ending {today}</h1>
                 <table width="100%%">
                     <tr>
                         <td width="50%%" valign="top">
@@ -428,29 +434,18 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                 </tr>
                                 <tr>
                                     <td>All-time users</td>
-                                    <td>%s</td>
+                                    <td>{users['total']}</td>
                                 </tr>
                                 <tr>
                                     <td>Weekly returning</td>
-                                    <td>%s</td>
+                                    <td>{users['returning']}</td>
                                 </tr>
                                 <tr>
                                     <td>Weekly new</td>
-                                    <td>%s</td>
+                                    <td>{users['new']}</td>
                                 </tr>
                             </table>
-        """ % (
-            # Header
-            server_name,
-            today,
 
-            # Total users
-            users['total'],
-            users['returning'],
-            users['new'],
-        )
-
-    body = body + """
                             <h3>Repository user logins</h3>
                             <table border="1">
                                 <tr>
@@ -459,20 +454,14 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                 </tr>
                                 <tr>
                                     <td>All-time total</td>
-                                    <td>%s</td>
+                                    <td>{logins['total']}</td>
                                 </tr>
                                 <tr>
                                     <td>This week</td>
-                                    <td>%s</td>
+                                    <td>{logins['week']}</td>
                                 </tr>
                             </table>
-        """ % (
-            # Weekly logins
-            logins['total'],
-            logins['week'],
-        )
 
-    body = body + """
                             <h3>Repository notebooks created</h3>
                             <table border="1">
                                 <tr>
@@ -481,20 +470,14 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                 </tr>
                                 <tr>
                                     <td>Total in repository</td>
-                                    <td>%s</td>
+                                    <td>{nb_count['total']}</td>
                                 </tr>
                                 <tr>
                                     <td>Modified this week</td>
-                                    <td>%s</td>
+                                    <td>{nb_count['week']}</td>
                                 </tr>
                             </table>
-        """ % (
-            # Notebook files
-            nb_count['total'],
-            nb_count['week'],
-        )
 
-    body = body + """
                             <h3>Repository non-notebook files</h3>
                             <table border="1">
                                 <tr>
@@ -503,20 +486,14 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                 </tr>
                                 <tr>
                                     <td>Total in repository</td>
-                                    <td>%s</td>
+                                    <td>{nb_count['files_total']}</td>
                                 </tr>
                                 <tr>
                                     <td>Modified this week</td>
-                                    <td>%s</td>
+                                    <td>{nb_count['files_week']}</td>
                                 </tr>
                             </table>
-        """ % (
-            # Other files
-            nb_count['files_total'],
-            nb_count['files_week'],
-        )
 
-    body = body + """
                             <h3>Repository disk space used</h3>
                             <table border="1">
                                 <tr>
@@ -527,45 +504,32 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                 </tr>
                                 <tr>
                                     <td>General Disk</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{disk["gen_disk_used"]}</td>
+                                    <td>{disk["gen_disk_total"]}</td>
+                                    <td>{disk["gen_disk_percent"]}</td>
                                 </tr>
                                 <tr>
                                     <td>Docker Disk</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{disk["docker_disk_used"]}</td>
+                                    <td>{disk["docker_disk_total"]}</td>
+                                    <td>{disk["docker_disk_percent"]}</td>
                                 </tr>
                             </table>
-        """ % (
-            # Disk Usage
-            disk["gen_disk_used"],
-            disk["gen_disk_total"],
-            disk["gen_disk_percent"],
-            disk["docker_disk_used"],
-            disk["docker_disk_total"],
-            disk["docker_disk_percent"],
-        )
 
-    body = body + """
                             <h3>New Users This Week</h3>
                             <table border="1">
                                 <tr>
                                     <th>Username</th>
                                     <th>Email</th>
                                 </tr>
-                                %s
+                                {users['new_users']}
                             </table>
                         </td>
                         <td width="50%%" valign="top">
-        """ % (
-            # List New Users
-            users['new_users'],
-        )
+        """
 
     if include_extension:
-        body = body + """
+        body = body + f"""
                             <h2>Notebook Extension</h2>
                             <h3>Notebook jobs run this week</h3>
                             <table border="1">
@@ -576,23 +540,23 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                 </tr>
                                 <tr>
                                     <td>GP Prod</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{weekly_jobs['prod']}</td>
+                                    <td>{weekly_jobs['prod-py']}</td>
                                 </tr>
                                 <tr>
                                     <td>GP Broad</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{weekly_jobs['broad']}</td>
+                                    <td>{weekly_jobs['broad-py']}</td>
                                 </tr>
                                 <tr>
                                     <td>GP IU</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{weekly_jobs['iu']}</td>
+                                    <td>{weekly_jobs['iu-py']}</td>
                                 </tr>
                                 <tr>
                                     <td>GP Cloud</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{weekly_jobs['aws']}</td>
+                                    <td>{weekly_jobs['aws-py']}</td>
                                 </tr>
                             </table>
 
@@ -605,23 +569,23 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                 </tr>
                                 <tr>
                                     <td>GP Prod</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{total_jobs['prod']}</td>
+                                    <td>{total_jobs['prod-py']}</td>
                                 </tr>
                                 <tr>
                                     <td>GP Broad</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{total_jobs['broad']}</td>
+                                    <td>{total_jobs['broad-py']}</td>
                                 </tr>
                                 <tr>
                                     <td>GP IU</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{total_jobs['iu']}</td>
+                                    <td>{total_jobs['iu-py']}</td>
                                 </tr>
                                 <tr>
                                     <td>GP Cloud</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{total_jobs['aws']}</td>
+                                    <td>{total_jobs['aws-py']}</td>
                                 </tr>
                             </table>
 
@@ -634,14 +598,26 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                 </tr>
                                 <tr>
                                     <td>gp-notebook</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{docker['notebook']['stars']}</td>
+                                    <td>{docker['notebook']['pulls']}</td>
                                 </tr>
                                 <tr>
                                     <td>gp-jupyterhub (retired)</td>
-                                    <td>%s</td>
-                                    <td>%s</td>
+                                    <td>{docker['jupyterhub']['stars']}</td>
+                                    <td>{docker['jupyterhub']['pulls']}</td>
                                 </tr>
+                            </table>
+            """
+
+    body = body + f"""
+                            <h3>Top 20 Public Notebooks Since 2019-02-22</h3>
+                            <table border="1">
+                                <tr>
+                                    <th>Notebook</th>
+                                    <th>Copies</th>
+                                    <th>Launches</th>
+                                </tr>
+                                {nb_usage}
                             </table>
 
                             <h3>User Disk Usage Top 20</h3>
@@ -650,30 +626,9 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
                                     <th>Username</th>
                                     <th>Disk Usage</th>
                                 </tr>
-                                %s
+                                {user_disk}
                             </table>
-            """ % (
-                # Weekly jobs
-                weekly_jobs['prod'], weekly_jobs['prod-py'],
-                weekly_jobs['broad'], weekly_jobs['broad-py'],
-                weekly_jobs['iu'], weekly_jobs['iu-py'],
-                weekly_jobs['aws'], weekly_jobs['aws-py'],
 
-                # Total jobs
-                total_jobs['prod'], total_jobs['prod-py'],
-                total_jobs['broad'], total_jobs['broad-py'],
-                total_jobs['iu'], total_jobs['iu-py'],
-                total_jobs['aws'], total_jobs['aws-py'],
-
-                # Docker stats
-                docker['notebook']['stars'], docker['notebook']['pulls'],
-                docker['jupyterhub']['stars'], docker['jupyterhub']['pulls'],
-
-                # User disk usage
-                user_disk
-            )
-
-    body = body + """
                         </td>
                     </tr>
                 </table>
@@ -689,19 +644,24 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, us
     server.quit()
 
 
-# Make necessary calls
-disk = get_disk_usage()
-nb_count = get_nb_count()
-users = get_users()
-logins = get_logins()
-user_disk = get_user_disk()
+def gather_stats():
+    # Make necessary calls
+    disk = get_disk_usage()
+    nb_count = get_nb_count()
+    users = get_users()
+    logins = get_logins()
+    nb_usage = get_nb_usage()
+    user_disk = get_user_disk()
 
-if include_extension:
-    weekly_jobs = get_weekly_jobs()
-    docker = get_docker()
-    total_jobs = get_total_jobs(weekly_jobs)
-else:
-    weekly_jobs, docker, total_jobs = None, None, None
+    if include_extension:
+        weekly_jobs = get_weekly_jobs()
+        docker = get_docker()
+        total_jobs = get_total_jobs(weekly_jobs)
+    else:
+        weekly_jobs, docker, total_jobs = None, None, None
 
-# Send the email
-send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, user_disk)
+    # Send the email
+    send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb_usage, user_disk)
+
+
+gather_stats()

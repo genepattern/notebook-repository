@@ -2551,6 +2551,22 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         }, 200);
     }
 
+    /**
+     * Call the launched counter endpoint
+     */
+    function call_launched_endpoint() {
+        $.ajax({
+            url: forceHTTPS(Jupyter.notebook.metadata.genepattern.repository_url + "launched/"),
+            method: "PUT",
+            crossDomain: true,
+            // beforeSend: function (xhr) {
+            //     xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+            // },
+            success: () => console.log("Successfully incremented launch counter"),
+            error: () => console.log("Error incrementing launch counter")
+        });
+    }
+
     /*
      * If we are currently viewing the notebook list
      * Attach the repository events if they haven't already been initialized
@@ -2607,8 +2623,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
      * If we are currently viewing a notebook
      */
     if (Jupyter.notebook !== undefined) {
-        // Add the comment button if it has a repo url
+        // Handle public notebooks
         if (is_public_notebook()) {
+
+            // Increment the launched counter
+            call_launched_endpoint();
+
+            // Add the comment button
             Jupyter.toolbar.add_buttons_group([{
                 'label'   : 'Comments',
                 'icon'    : 'fa-comments',

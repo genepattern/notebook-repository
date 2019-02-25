@@ -305,6 +305,39 @@ class TagViewSet(viewsets.ModelViewSet):
     serializer_class = TagSerializer
 
 
+@api_view(['PUT'])
+@permission_classes((permissions.AllowAny,))
+def launch_counter(request, pk):
+    # Get the notebook and increment the counter
+    notebook = Notebook.objects.get(pk=pk)
+    notebook.launched += 1
+    notebook.save()
+
+    # Return an OK response
+    return Response("OK")
+
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def notebook_usage(request):
+    # Get all notebooks
+    notebooks = Notebook.objects.all()
+
+    # Create the usage object to report
+    usage = {}
+
+    # Loop over all notebooks
+    for nb in notebooks:
+        # Create the report object for each notebook
+        report = {'copied': nb.copied, 'launched': nb.launched}
+
+        # Add the report to the usage object
+        usage[nb.name] = report
+
+    # Return the report in a JSON structure
+    return Response(usage)
+
+
 @api_view(['GET', 'POST'])
 @permission_classes((permissions.IsAuthenticatedOrReadOnly,))
 def copy(request, pk, api_path):
@@ -314,6 +347,10 @@ def copy(request, pk, api_path):
     try:
         # Get the notebook
         notebook = Notebook.objects.get(pk=pk)
+
+        # Increment the copied counter
+        notebook.copied += 1
+        notebook.save()
 
         # Get the user's username
         username = request.user.username

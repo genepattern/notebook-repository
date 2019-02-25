@@ -29,6 +29,9 @@ class Notebook(models.Model):
     weight = models.IntegerField(default=0)
     tags = models.ManyToManyField(Tag)
 
+    copied = models.IntegerField(default=1)
+    launched = models.IntegerField(default=1)
+
 
 class Webtour(models.Model):
     user = models.CharField(max_length=128)

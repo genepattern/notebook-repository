@@ -18,7 +18,7 @@ from django.contrib import admin
 from rest_framework import routers
 
 from nbrepo.preview import preview
-from nbrepo.views import NotebookViewSet, TagViewSet, copy, download, obtain_auth_token, WebtourViewSet, webtour_seen, CommentViewSet
+from nbrepo.views import NotebookViewSet, TagViewSet, copy, download, obtain_auth_token, WebtourViewSet, webtour_seen, CommentViewSet, notebook_usage, launch_counter
 
 from .sharing import SharingViewSet, CollaboratorViewSet, begin_sharing, accept_sharing, current_collaborators, error_redirect, urlpatterns as sharingpatterns
 
@@ -41,6 +41,8 @@ urlpatterns = [
     url(r'^services/sharing/api-token-auth/', obtain_auth_token),
 
     # GenePattern Notebook Repo endpoints
+    url(r'^services/sharing/notebooks/stats/$', notebook_usage),
+    url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/launched/$', launch_counter),
     url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/copy/(?P<api_path>.*)$', copy),
     url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/download/$', download),
     url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/preview/$', preview),

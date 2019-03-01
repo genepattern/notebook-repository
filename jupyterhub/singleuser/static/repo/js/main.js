@@ -238,6 +238,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
         // Show the loading screen
         modal_loading_screen();
+        $(".repo-modal-cover").append($("<h3>Uploading Notebook... Generating Preview... Indexing...</h3>"));
 
         // Call the repo service to publish the notebook
         $.ajax({

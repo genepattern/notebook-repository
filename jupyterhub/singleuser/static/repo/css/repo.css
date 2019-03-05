@@ -98,9 +98,20 @@
     float: right;
 }
 
+#repo-header-notebooks {
+    line-height: 29px;
+}
+
+#repository-list > .dataTables_wrapper > .dataTables_filter {
+    display: none;
+}
+
 #repository-search {
     float: right;
     font-weight: normal;
+    margin-right: 10px;
+    margin-top: 5px;
+    border-bottom: none;
 }
 
 #repo-header-label {

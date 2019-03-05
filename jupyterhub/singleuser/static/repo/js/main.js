@@ -1709,8 +1709,11 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             // If tag is -my-notebooks, return public notebooks you own
             if (tag === '-my-notebooks' && nb.owner === GenePattern.repo.username) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
 
-            // If no tag specified, return all notebooks without a pinned tag
-            else if (!tag && no_pinned_tags(tags)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
+            // If -community, return all notebooks without a pinned tag
+            else if (tag === '-community' && no_pinned_tags(tags)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
+
+            // If -all, return all
+            else if (tag === '-all') built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
 
             // Otherwise, check for a matching tag
             else if (tags.includes(tag)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
@@ -1828,6 +1831,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         // Add the new active class
         link.parent().addClass("active");
 
+        // Clear the search box, unless all notebooks
+        if (!link.hasClass('repo-all-notebooks')) $("#repository-search > input").val('');
+
         // Set the header label
         $("#repo-header-label").html(link.html());
 
@@ -1859,6 +1865,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         const li = $('<li role="presentation"></li>');
         const link = $('<a href="#" data-tag="' + tag + '">' + label + '</a>');
         if (tag === '-shared-with-me') link.append($('<span class="badge repo-notifications" title="New Sharing Invites"></span>'));
+        else if (tag === '-all') link.addClass('repo-all-notebooks');
 
         // Attach the click event
         link.click(function() {
@@ -1883,7 +1890,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         });
 
         // Add the community tag
-        nav.append(create_sidebar_nav('', 'community'));
+        nav.append(create_sidebar_nav('-community', 'community'));
+
+        // Add the all notebooks tag
+        nav.append(create_sidebar_nav('-all', 'all notebooks'));
 
         // Add the My Notebooks tag
         nav.append(create_sidebar_nav('-my-notebooks', 'my notebooks'));
@@ -2237,6 +2247,22 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     .append(
                         $('<div class="list_container col-md-10">')
                             .append(
+                                $('<div id="repository-search"></div>')
+                                    .append('Search: ')
+                                    .append(
+                                        $('<input />')
+                                            .attr("type", "search")
+                                            .keyup(function(event) {
+                                                // If all notebooks is not selected, select it
+                                                if (!is_all_nb_selected()) $(".repo-all-notebooks").click();
+
+                                                const search_text = $(event.target).val();
+                                                const filter_input = $("#repository-list input[type=search]");
+                                                filter_input.val(search_text).keyup();
+                                            })
+                                    )
+                            )
+                            .append(
                                 $('<div id="repository-list-header" class="row list_header repo-header"></div>')
                                     .append("<span id='repo-header-label'></span> <span id='repo-header-notebooks'>Notebooks</span>")
                             )
@@ -2258,6 +2284,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         $("#repo-sidebar-shared")
             .append(create_sidebar_nav("-shared-by-me", "Shared by Me"))
             .append(create_sidebar_nav("-shared-with-me", "Shared with Me"));
+    }
+
+    function is_all_nb_selected() {
+        return $(".repo-all-notebooks").parent().hasClass('active');
     }
 
     function lock_notebook(user) {

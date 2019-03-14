@@ -135,6 +135,10 @@
     margin-left: 0;
 }
 
+.repo-update-group {
+    height: 30px;
+}
+
 .repo-modal-cover {
     position: absolute;
     width: 100%;

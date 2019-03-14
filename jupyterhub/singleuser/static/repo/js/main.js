@@ -158,6 +158,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         pub_nb['quality'] = $("#publish-quality").val();
         pub_nb['tags'] = $("#publish-tags").tagit("assignedTags").join(',');
 
+        // Set the API path if it has been toggled
+        if ($("#publish-path").is(":visible")) pub_nb['api_path'] = $("#publish-path").val();
+
         // Set current date as publication date
         pub_nb['publication'] = today();
 
@@ -1178,10 +1181,12 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
     /**
      * Function to call when publishing a notebook
      */
-    function publish_selected() {
-        const nb_path = get_selected_path();
-        const published = is_nb_published(nb_path);
-        const notebook = get_published(nb_path);
+    function publish_selected(nb) {
+        // Get the path and notebook object, depending on whether one has been provided as an argument
+        const nb_path = nb ? nb.api_path : get_selected_path();
+        const published = nb ? true : is_nb_published(nb_path);
+        const notebook = nb ? nb : get_published(nb_path);
+
         const nb_name = notebook ? notebook['name'] : get_selected_name();
         const nb_description = notebook ? notebook['description'] : '';
         const nb_author = notebook ? notebook['author'] : '';
@@ -1192,6 +1197,14 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         const buttons = {};
         buttons["Cancel"] = {"class" : "btn-default"};
         if (published) {
+            buttons["Set Path"] = {
+                "class": "btn-default",
+                "click": function() {
+                    $("#repo-path-group").toggle();
+                    return false;
+                }
+            };
+
             buttons["Unpublish"] = {
                 "class": "btn-danger",
                 "click": function() {
@@ -1212,6 +1225,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     return true;
                 }
             };
+
             buttons["Update"] = {
                 "class" : "btn-primary",
                 "click": function() {
@@ -1260,97 +1274,140 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             $("<form/>")
                 .append(
                     $("<div/>")
-                        .addClass("form-group")
+                        .addClass("form-group repo-update-group")
                         .append(
                             $("<label/>")
-                                .addClass("repo-label")
+                                .addClass("repo-label col-sm-3")
                                 .attr("for", "publish-name")
                                 .append("Notebook Name")
                         )
                         .append(
-                            $("<input/>")
-                                .attr("id", "publish-name")
-                                .addClass("form-control repo-input")
-                                .attr("type", "text")
-                                .attr("required", "required")
-                                .attr("maxlength", 64)
-                                .attr("value", nb_name)
+                            $("<div></div>")
+                                .addClass("col-sm-9")
+                                .append(
+                                    $("<input/>")
+                                        .attr("id", "publish-name")
+                                        .addClass("form-control repo-input")
+                                        .attr("type", "text")
+                                        .attr("required", "required")
+                                        .attr("maxlength", 64)
+                                        .attr("value", nb_name)
+                                )
                         )
                 )
                 .append(
                     $("<div/>")
-                        .addClass("form-group")
+                        .addClass("form-group repo-update-group")
                         .append(
                             $("<label/>")
-                                .addClass("repo-label")
+                                .addClass("repo-label col-sm-3")
                                 .attr("for", "publish-description")
                                 .append("Description")
                         )
                         .append(
-                            $("<input/>")
-                                .attr("id", "publish-description")
-                                .addClass("form-control repo-input")
-                                .attr("type", "text")
-                                .attr("required", "required")
-                                .attr("maxlength", 256)
-                                .attr("value", nb_description)
+                            $("<div></div>")
+                                .addClass("col-sm-9")
+                                .append(
+                                    $("<input/>")
+                                        .attr("id", "publish-description")
+                                        .addClass("form-control repo-input")
+                                        .attr("type", "text")
+                                        .attr("required", "required")
+                                        .attr("maxlength", 256)
+                                        .attr("value", nb_description)
+                                )
                         )
                 )
                 .append(
                     $("<div/>")
-                        .addClass("form-group")
+                        .addClass("form-group repo-update-group")
                         .append(
                             $("<label/>")
-                                .addClass("repo-label")
+                                .addClass("repo-label col-sm-3")
                                 .attr("for", "publish-author")
                                 .append("Authors")
                         )
                         .append(
-                            $("<input/>")
-                                .attr("id", "publish-author")
-                                .addClass("form-control repo-input")
-                                .attr("type", "text")
-                                .attr("required", "required")
-                                .attr("maxlength", 128)
-                                .attr("value", nb_author)
+                            $("<div></div>")
+                                .addClass("col-sm-9")
+                                .append(
+                                    $("<input/>")
+                                        .attr("id", "publish-author")
+                                        .addClass("form-control repo-input")
+                                        .attr("type", "text")
+                                        .attr("required", "required")
+                                        .attr("maxlength", 128)
+                                        .attr("value", nb_author)
+                                )
                         )
                 )
                 .append(
                     $("<div/>")
-                        .addClass("form-group")
+                        .addClass("form-group repo-update-group")
                         .append(
                             $("<label/>")
-                                .addClass("repo-label")
+                                .addClass("repo-label col-sm-3")
                                 .attr("for", "publish-quality")
                                 .append("Quality")
                         )
                         .append(
-                            $("<select/>")
-                                .attr("id", "publish-quality")
-                                .addClass("form-control repo-input")
-                                .attr("required", "required")
-                                .append($("<option></option>"))
-                                .append($("<option>Development</option>"))
-                                .append($("<option>Beta</option>"))
-                                .append($("<option>Release</option>"))
-                                .val(nb_quality)
+                            $("<div></div>")
+                                .addClass("col-sm-9")
+                                .append(
+                                    $("<select/>")
+                                        .attr("id", "publish-quality")
+                                        .addClass("form-control repo-input")
+                                        .attr("required", "required")
+                                        .append($("<option></option>"))
+                                        .append($("<option>Development</option>"))
+                                        .append($("<option>Beta</option>"))
+                                        .append($("<option>Release</option>"))
+                                        .val(nb_quality)
+                                )
                         )
                 )
                 .append(
                     $("<div/>")
-                        .addClass("form-group")
+                        .addClass("form-group repo-update-group")
                         .append(
                             $("<label/>")
-                                .addClass("repo-label")
+                                .addClass("repo-label col-sm-3")
                                 .attr("for", "publish-tags")
                                 .append("Tags")
                         )
                         .append(
-                            $("<input/>")
-                                .attr("id", "publish-tags")
-                                .addClass("form-control repo-input")
-                                .attr("type", "text")
-                                .attr("value", nb_tags)
+                            $("<div></div>")
+                                .addClass("col-sm-9")
+                                .append(
+                                    $("<input/>")
+                                        .attr("id", "publish-tags")
+                                        .addClass("form-control repo-input")
+                                        .attr("type", "text")
+                                        .attr("value", nb_tags)
+                                )
+                        )
+                )
+                .append(
+                    $("<div/>")
+                        .attr("id", "repo-path-group")
+                        .hide()
+                        .addClass("form-group repo-update-group")
+                        .append(
+                            $("<label/>")
+                                .addClass("repo-label col-sm-3")
+                                .attr("for", "publish-path")
+                                .append("API Path")
+                        )
+                        .append(
+                            $("<div></div>")
+                                .addClass("col-sm-9")
+                                .append(
+                                    $("<input/>")
+                                        .attr("id", "publish-path")
+                                        .addClass("form-control repo-input")
+                                        .attr("type", "text")
+                                        .attr("value", nb_path)
+                                )
                         )
                 )
 
@@ -1495,6 +1552,13 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                 "click": function() {
                     remove_notebook(notebook);
                     return false;
+                }};
+
+            buttons["Update"] = {
+                "class": "btn-warning",
+                "click": function() {
+                    publish_selected(notebook);
+                    return true;
                 }};
         }
 
@@ -1696,6 +1760,10 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         return to_return;
     }
 
+    function is_owner(notebook) {
+        return notebook.owner === GenePattern.repo.username;
+    }
+
     /**
      * Transforms the JSON notebooks object into a list of lists,
      * to be consumed by data tables
@@ -1707,7 +1775,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
             const tags = build_tag_list(nb);
 
             // If tag is -my-notebooks, return public notebooks you own
-            if (tag === '-my-notebooks' && nb.owner === GenePattern.repo.username) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
+            if (tag === '-my-notebooks' && is_owner(nb)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
 
             // If -community, return all notebooks without a pinned tag
             else if (tag === '-community' && no_pinned_tags(tags)) built_list.push([nb.id, nb.name, nb.description, nb.author, nb.publication, nb.quality, tags]);
@@ -1884,6 +1952,9 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
         // Empty the sidebar when refreshing the list
         nav.empty();
 
+        // Add the all notebooks tag
+        nav.append(create_sidebar_nav('-all', 'all notebooks'));
+        
         // For each pinned tag, add to the sidebar
         pinned_tags.forEach(function(tag) {
             nav.append(create_sidebar_nav(tag, tag));
@@ -1891,9 +1962,6 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
 
         // Add the community tag
         nav.append(create_sidebar_nav('-community', 'community'));
-
-        // Add the all notebooks tag
-        nav.append(create_sidebar_nav('-all', 'all notebooks'));
 
         // Add the My Notebooks tag
         nav.append(create_sidebar_nav('-my-notebooks', 'my notebooks'));
@@ -2613,7 +2681,7 @@ require(['base/js/namespace', 'jquery', 'base/js/dialog', 'repo/js/jquery.dataTa
                     .addClass("publish-button btn btn-default btn-xs")
                     .attr("title", "Publish selected")
                     .append("Publish")
-                    .click($.proxy(publish_selected, this))
+                    .click(() => publish_selected())
                     .hide()
             )
             .prepend(" ")

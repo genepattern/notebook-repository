@@ -12,75 +12,21 @@ from tornado import gen
 from tornado.httputil import url_concat
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient, HTTPError
 from jupyterhub.auth import Authenticator, LocalAuthenticator
-from oauthenticator.google import GoogleOAuthenticator
 
 # URL of the GenePattern server you are authenticating with
-GENEPATTERN_URL = "https://genepattern.broadinstitute.org/gp"
+GENEPATTERN_URL = "https://cloud.broadinstitute.org/gp"
 
 # Path to write authentication files to, for use with repo service authentication
 # Set to None to turn off writing authentication files
-REPO_AUTH_PATH = "/path/to/auth"
+REPO_AUTH_PATH = None  # "/path/to/auth"
 
 # Path to the directory containing user notebook files
 # Set to None to turn off lazily creating user directories on authentication
-USERS_DIR_PATH = "/path/to/users"
+USERS_DIR_PATH = None  # "/path/to/users"
 
 # Path to the directory containing the default notebooks to give new users
 # Set to None to skip copying any example notebooks
-DEFAULT_NB_DIR = "/path/to/defaults"
-
-
-class GenePatternGoogleAuthenticator(GoogleOAuthenticator):
-    @gen.coroutine
-    def authenticate(self, handler, data=None):
-        code = handler.get_argument("code")
-        handler.settings['google_oauth'] = {
-            'key': self.client_id,
-            'secret': self.client_secret,
-            'scope': self.scope,
-        }
-        user = yield handler.get_authenticated_user(
-            redirect_uri=self.get_callback_url(handler),
-            code=code)
-        access_token = str(user['access_token'])
-
-        http_client = handler.get_auth_http_client()
-
-        response = yield http_client.fetch(
-            self._OAUTH_USERINFO_URL + '?access_token=' + access_token
-        )
-
-        if not response:
-            handler.clear_all_cookies()
-            raise HTTPError(500, 'Google authentication failed')
-
-        bodyjs = json.loads(response.body.decode())
-
-        username = bodyjs['email']
-
-        if self.hosted_domain:
-            if not username.endswith('@' + self.hosted_domain) or \
-                    bodyjs['hd'] != self.hosted_domain:
-                raise HTTPError(403,
-                                "You are not signed in to your {} account.".format(
-                                    self.hosted_domain)
-                                )
-            else:
-                username = username.split('@')[0]
-
-        # If USERS_DIR_PATH is set, lazily create user directory
-        _create_user_directory(username)
-
-        # Attempt to call the scale up script
-        _autoscale()
-
-        return {
-            'name': username,
-            'auth_state': {
-                'access_token': access_token,
-                'google_user': bodyjs,
-            }
-        }
+DEFAULT_NB_DIR = None  # "/path/to/defaults"
 
 
 def _autoscale():

@@ -14,7 +14,7 @@ from tornado.httpclient import HTTPRequest, AsyncHTTPClient, HTTPError
 from jupyterhub.auth import Authenticator, LocalAuthenticator
 
 # URL of the GenePattern server you are authenticating with
-GENEPATTERN_URL = "https://cloud.broadinstitute.org/gp"
+GENEPATTERN_URL = "https://cloud.genepattern.org/gp"
 
 # Path to write authentication files to, for use with repo service authentication
 # Set to None to turn off writing authentication files

@@ -1,4 +1,8 @@
-#header	{
-    background: url("/hub/static/images/background.png") center center;
-    height: 45px;
+body {
+    margin: 0;
+    background-image: url(/hub/static/images/background.jpg);
+    background-position: center center;
+    background-size: cover;
+    height: 100vh;
+    background-attachment: fixed;
 }

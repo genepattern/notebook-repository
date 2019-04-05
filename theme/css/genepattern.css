@@ -6,3 +6,54 @@ body {
     height: 100vh;
     background-attachment: fixed;
 }
+
+body > .navbar {
+    background-color: transparent;
+    border-color: transparent;
+}
+
+body > .navbar > .container-fluid {
+    width: 1170px;
+    padding-top: 30px;
+    padding-bottom: 10px;
+}
+
+#thenavbar > ul > li {
+    display: none;
+}
+
+#thenavbar > ul > li:last-child {
+    display: inline-block;
+    padding-left: 30px;
+}
+
+#thenavbar > ul > li:last-child > a {
+    position: relative;
+    top: 7px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 2px;
+    color: #333;
+    background-color: #fff;
+    border-color: #ccc;
+}
+
+#thenavbar > ul > li:last-child > a:hover {
+    background-color: #eee;
+    border-color: #ccc;
+}
+
+.btn-default {
+    color: #333;
+    background-color: #fff;
+    border-color: #ccc;
+}
+
+.container {
+    padding: 15px;
+    background-color: #fff;
+    box-shadow: 0 0 12px 1px rgba(87, 87, 87, 0.2);
+    min-height: 0;
+    height: auto;
+}

@@ -68,7 +68,7 @@ body > .navbar > .container-fluid {
     border-color: #428bca;
 }
 
-#login-main .auth-form-header {
+#login-main .login-box .auth-form-header {
     color: #fff;
     background-color: #428bca;
     border-color: #428bca;

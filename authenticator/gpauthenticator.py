@@ -28,6 +28,14 @@ USERS_DIR_PATH = None  # "/path/to/users"
 # Set to None to skip copying any example notebooks
 DEFAULT_NB_DIR = None  # "/path/to/defaults"
 
+# Set this to False if you do not want to initialize the above paths from
+# the DATA_DIR environment variable. Useful when overriding above.
+INIT_FROM_ENV = True
+
+if 'DATA_DIR' in os.environ:
+    REPO_AUTH_PATH = os.environ['DATA_DIR'] + "/auth"
+    USERS_DIR_PATH = os.environ['DATA_DIR'] + "/users"
+    DEFAULT_NB_DIR = os.environ['DATA_DIR'] + "/defaults"
 
 def _autoscale():
     # Attempt to call the scale up script
@@ -45,7 +53,7 @@ def _create_user_directory(username):
             os.chmod(specific_user, 0o777)
 
             # Copy over example notebooks if USERS_DIR_PATH is set
-            if DEFAULT_NB_DIR is not None:
+            if DEFAULT_NB_DIR is not None and os.path.exists(DEFAULT_NB_DIR):
                 all_files = os.listdir(DEFAULT_NB_DIR)
                 for f in all_files:
                     file_path = os.path.join(DEFAULT_NB_DIR, f)

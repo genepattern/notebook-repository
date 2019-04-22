@@ -17,7 +17,7 @@
             }
         </style>
 
-        <script type="text/javascript" charset="utf-8" data-requirecontext="_" data-requiremodule="jquery" src="/hub/static/components/jquery/jquery.min.js"></script>
+        <script src="/hub/static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript">
             function load_preview() {
                 const preview_url = "/services/sharing/notebooks/{{ notebook.id }}/preview/image/";
@@ -107,7 +107,7 @@
         </div>
 
         <script type="text/javascript">
-            $(document).ready(load_preview)
+            requirejs(["jquery"], () => $(document).ready(load_preview))
         </script>
     </body>
 

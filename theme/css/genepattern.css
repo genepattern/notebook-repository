@@ -51,7 +51,7 @@ body > .navbar > .container-fluid {
 }
 
 #header {
-    border-bottom: none;
+    border-bottom: none !important;
 }
 
 #header > .container {

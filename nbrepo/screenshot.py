@@ -1,4 +1,5 @@
-#!/home/thorin/config/anaconda/envs/jupyterhub/bin/python
+#!/opt/conda/envs/repository/bin/python
+
 import asyncio
 import os
 import shutil

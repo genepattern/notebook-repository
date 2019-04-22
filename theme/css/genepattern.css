@@ -50,6 +50,14 @@ body > .navbar > .container-fluid {
     border-color: #ccc;
 }
 
+#header {
+    border-bottom: none;
+}
+
+#header > .container {
+    background-color: transparent;
+}
+
 .container {
     padding: 15px;
     background-color: #fff;

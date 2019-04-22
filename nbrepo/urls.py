@@ -17,7 +17,7 @@ from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
 
-from nbrepo.preview import preview
+from nbrepo.preview import preview, preview_image
 from nbrepo.views import NotebookViewSet, TagViewSet, copy, download, obtain_auth_token, WebtourViewSet, webtour_seen, CommentViewSet, notebook_usage, launch_counter
 
 from .sharing import SharingViewSet, CollaboratorViewSet, begin_sharing, accept_sharing, current_collaborators, error_redirect, urlpatterns as sharingpatterns
@@ -46,6 +46,7 @@ urlpatterns = [
     url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/copy/(?P<api_path>.*)$', copy),
     url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/download/$', download),
     url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/preview/$', preview),
+    url(r'^services/sharing/notebooks/(?P<pk>[0-9]+)/preview/image/$', preview_image),
 
     # Webtour endpoints
     url(r'^services/sharing/webtours/(?P<user>.*)/$', webtour_seen),

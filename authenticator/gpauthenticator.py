@@ -16,10 +16,6 @@ from jupyterhub.auth import Authenticator, LocalAuthenticator
 # URL of the GenePattern server you are authenticating with
 GENEPATTERN_URL = "https://cloud.genepattern.org/gp"
 
-# Path to write authentication files to, for use with repo service authentication
-# Set to None to turn off writing authentication files
-REPO_AUTH_PATH = None  # "/path/to/auth"
-
 # Path to the directory containing user notebook files
 # Set to None to turn off lazily creating user directories on authentication
 USERS_DIR_PATH = None  # "/path/to/users"
@@ -33,7 +29,6 @@ DEFAULT_NB_DIR = None  # "/path/to/defaults"
 INIT_FROM_ENV = True
 
 if 'DATA_DIR' in os.environ:
-    REPO_AUTH_PATH = os.environ['DATA_DIR'] + "/auth"
     USERS_DIR_PATH = os.environ['DATA_DIR'] + "/users"
     DEFAULT_NB_DIR = os.environ['DATA_DIR'] + "/defaults"
 
@@ -101,18 +96,6 @@ class GenePatternAuthenticator(Authenticator):
 
         if resp is not None and resp.code == 200:
             response_payload = json.loads(resp.body.decode("utf-8"))
-
-            # If REPO_AUTH_PATH is set, write the authentication file
-            if REPO_AUTH_PATH is not None:
-                auth_dict = {
-                    "username": username,
-                    "token": response_payload['access_token'],
-                    "timestamp": datetime.datetime.now().timestamp(),
-                }
-                auth_file = os.path.join(REPO_AUTH_PATH, username.lower() + '.json')
-                f = open(auth_file, 'w')
-                f.write(json.dumps(auth_dict))
-                f.close()
 
             # If USERS_DIR_PATH is set, lazily create user directory
             _create_user_directory(username)

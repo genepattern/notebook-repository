@@ -8,9 +8,9 @@ from urllib.parse import quote
 from pyppeteer import launch
 
 
-BASE_HUB_URL = "https://notebook.genepattern.org"
-SCREENSHOT_USER = "xxx"
-SCREENSHOT_PASSWORD = "xxx"
+BASE_HUB_URL = getattr(settings, 'BASE_HUB_URL', "https://notebook.genepattern.org")
+SCREENSHOT_USER = getattr(settings, 'SCREENSHOT_USER', "xxx")
+SCREENSHOT_PASSWORD = getattr(settings, 'SCREENSHOT_PASSWORD', "xxx")
 
 
 def patch_pyppeteer():

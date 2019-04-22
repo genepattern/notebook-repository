@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+SITE_ID = 1
+
 
 # Application definition
 
@@ -37,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'django.contrib.redirects',
 
     # Django Rest Framework
     'crispy_forms',
@@ -57,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.contrib.redirects.middleware.RedirectFallbackMiddleware',
 ]
 
 ROOT_URLCONF = 'nbrepo.urls'
@@ -162,7 +167,8 @@ BASE_GENEPATTERN_URL = 'https://genepattern.broadinstitute.org/gp'
 BASE_REPO_PATH = '/Users/tabor/repository'
 BASE_USER_PATH = '/Users/tabor/Notebooks'
 BASE_SHARE_PATH = '/Users/tabor/Notebooks/shared'
-BASE_AUTH_PATH = '/Users/tabor/repository/auth'
 CAN_SET_PROTECTED_TAGS = ['beholdsa', 'tabor', 'admin']
 JUPYTERHUB = False
-OLD_ACCOUNTS_BASE_DIR = '/Users/tabor/Notebooks'
+BASE_HUB_URL = "https://notebook.genepattern.org"
+SCREENSHOT_USER = "xxx"
+SCREENSHOT_PASSWORD = "xxx"

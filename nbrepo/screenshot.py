@@ -6,6 +6,9 @@ import shutil
 import settings
 import sys
 from urllib.parse import quote
+
+# Fix SSL issue with chromium
+os.environ["PYPPETEER_DOWNLOAD_HOST"] = "http://storage.googleapis.com"
 from pyppeteer import launch
 
 

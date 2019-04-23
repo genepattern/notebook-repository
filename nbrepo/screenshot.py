@@ -44,6 +44,14 @@ async def fetch_screenshot(nb_file_path):
     screenshot_path = os.path.join(nb_dir_path, 'preview.png')
     user_dir_path = os.path.join(settings.BASE_USER_PATH, SCREENSHOT_USER)
 
+    # Lazily create directory, if necessary
+    if not os.path.exists(user_dir_path):
+        os.mkdir(user_dir_path)
+
+    # Make sure the directory is a directory
+    if not os.path.isdir(user_dir_path):
+        return 'An error was encountered because the user directory is not a directory'
+
     # Create the browser and page objects
     browser = await launch({'args': ['--no-sandbox']})
     page = await browser.newPage()

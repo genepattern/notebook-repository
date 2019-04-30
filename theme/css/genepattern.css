@@ -18,13 +18,17 @@ body > .navbar > .container-fluid {
     padding-bottom: 10px;
 }
 
-#thenavbar > ul > li {
-    display: none;
-}
-
 #thenavbar > ul > li:last-child {
     display: inline-block;
     padding-left: 30px;
+}
+
+#thenavbar > ul > li > a {
+    display: none;
+}
+
+#thenavbar > ul > li > a[href='/hub/admin'] {
+    display: inline-block;
 }
 
 #thenavbar > ul > li:last-child > a {

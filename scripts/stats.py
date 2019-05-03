@@ -14,11 +14,11 @@ import urllib.request
 # Environment configuration
 server_name = "GenePattern Notebook"
 include_extension = True
-data_dir = '/home/user/shared/users'
-stats_dir = '/home/user/scripts/counters/'
-user_dir = '/home/user/'
+data_dir = '/data/users'
+stats_dir = '/data/counters/'
+user_dir = '/data/'
 sudo_req = 'sudo '  # Make blank if sudo is not required
-test_email = 'user@broadinstitute.org'
+test_email = 'user@domain.org'
 admin_login = 'username:password'
 s3_bucket = 'gpnotebook-backup'
 
@@ -319,8 +319,7 @@ def get_users():
     user_list = [u.strip() for u in user_list]  # Clean new lines
 
     # Gather a list of all running containers
-    cmd_out = \
-        subprocess.getstatusoutput(
+    cmd_out = subprocess.getstatusoutput(
             "sqlite3 " + user_dir + "jupyterhub.sqlite \"select name from users where last_activity > (SELECT DATETIME('now', '-30 day'));\"")[1]
     containers = cmd_out.split('\n')
 
@@ -361,7 +360,7 @@ def get_logins():
     logins = {}
 
     # Count the number of logins in the weekly log
-    cmd_out = subprocess.getstatusoutput('cat ' + user_dir + 'nohup.out | grep -c "User logged in"')[1]
+    cmd_out = subprocess.getstatusoutput('cat ' + user_dir + 'jupyterhub.log | grep -c "User logged in"')[1]
     logins['week'] = int(cmd_out.strip())
 
     # Read the total number of logins
@@ -382,8 +381,8 @@ def get_logins():
 
     # Move the log to backup
     if not test_run:
-        shutil.copyfileobj(open(user_dir + 'nohup.out', 'r'), open(stats_dir + 'nohup.out.old', 'w'))
-        subprocess.getstatusoutput('> ' + user_dir + 'nohup.out')
+        shutil.copyfileobj(open(user_dir + 'jupyterhub.log', 'r'), open(stats_dir + 'jupyterhub.log.old', 'w'))
+        subprocess.getstatusoutput('> ' + user_dir + 'jupyterhub.log')
 
     return logins
 
@@ -411,7 +410,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb
     :return:
     """
     today = str(datetime.date.today())
-    fromaddr = "gp-dev@broadinstitute.org" if not test_run else test_email
+    fromaddr = "gp-info@broadinstitute.org" if not test_run else test_email
     toaddr = "gp-exec@broadinstitute.org, gp-dev@broadinstitute.org" if not test_run else test_email
     msg = MIMEMultipart()
     msg['From'] = fromaddr

@@ -7,7 +7,7 @@ from random import randint
 from time import sleep
 import math
 
-AUTOSCALE_GROUP_NAME = "AUTOSCALE_GROUP_NAME"
+AUTOSCALE_GROUP_NAME = "GPNB-AS-swarm-compute-m3-med-copy"
 MAX_NUM_USER_KERNELS_PER_AMI = 5
 CONTAINER = "genepattern/genepattern-notebook"
 

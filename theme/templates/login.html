@@ -377,39 +377,35 @@
                         url: 'https://cloud.genepattern.org/gp/rest/v1/oauth2/register',
                         crossDomain: true,
                         data: JSON.stringify(formData),
-                        dataType: 'json'
-                    })
+                        dataType: 'json',
+                        success: function (data) {
+                            var username = registration_form.find('input[name=username]').val();
+                            var password = registration_form.find('input[name=password]').val();
 
-                    // Handle the response
-                    .done(function (data) {
-                        var username = registration_form.find('input[name=username]').val();
-                        var password = registration_form.find('input[name=password]').val();
+                            // Submit login form
+                            var login_form = $("#login_form");
+                            login_form.find("input[name=username]").val(username);
+                            login_form.find("input[name=password]").val(password);
+                            login_form.submit();
+                        },
+                        error: function(xhr) {
+                            remove_spinner();
 
-                        // Submit login form
-                        var login_form = $("#login_form");
-                        login_form.find("input[name=username]").val(username);
-                        login_form.find("input[name=password]").val(password);
-                        login_form.submit();
-                    })
+                            // Print to console
+                            console.log("ERROR: " + xhr.statusText);
+                            console.log(xhr);
 
-                    // Handle errors
-                    .error(function(xhr) {
-                        remove_spinner();
-
-                        // Print to console
-                        console.log("ERROR: " + xhr.statusText);
-                        console.log(xhr);
-
-                        // Handle errors
-                        if (xhr.status === 404) {
-                            display_error("Unable to register user. Could not contact the GenePattern server or remote registration unsupported.");
-                        }
-                        else {
-                            try {
-                                display_error(JSON.parse(xhr.responseText).error);
+                            // Handle errors
+                            if (xhr.status === 404) {
+                                display_error("Unable to register user. Could not contact the GenePattern server or remote registration unsupported.");
                             }
-                            catch(e) {
-                                display_error(xhr.responseText);
+                            else {
+                                try {
+                                    display_error(JSON.parse(xhr.responseText).error);
+                                }
+                                catch(e) {
+                                    display_error(xhr.responseText);
+                                }
                             }
                         }
                     });
@@ -437,37 +433,33 @@
                         url: 'https://cloud.genepattern.org/gp/rest/v1/oauth2/forgot-password',
                         crossDomain: true,
                         data: JSON.stringify(formData),
-                        dataType: 'json'
-                    })
-
-                    // Handle the response
-                    .done(function (data) {
-                        // Success!
-                        if (data && data.message === "A new password has been emailed to you.") {
-                            toggle_forgot_password();
-                            hide_errors();
-                            success_message("A new password has been emailed to you.");
-                        }
-
-                        // Error response!
-                        else {
-                            try {
-                                display_error(data.message, "#password_error");
+                        dataType: 'json',
+                        success: function (data) {
+                            // Success!
+                            if (data && data.message === "A new password has been emailed to you.") {
+                                toggle_forgot_password();
+                                hide_errors();
+                                success_message("A new password has been emailed to you.");
                             }
-                            catch(e) {
-                                display_error(data.message, "#password_error");
+
+                            // Error response!
+                            else {
+                                try {
+                                    display_error(data.message, "#password_error");
+                                }
+                                catch(e) {
+                                    display_error(data.message, "#password_error");
+                                }
                             }
+
+                            // Remove the spinner
+                            remove_spinner();
+                        },
+                        error: function(xhr) {
+                            remove_spinner();
+                            display_error("Unable to reset password. Could not contact the GenePattern server or remote password reset unsupported.", "#password_error");
                         }
-
-                        // Remove the spinner
-                        remove_spinner();
                     })
-
-                    // Handle errors
-                    .error(function(xhr) {
-                        remove_spinner();
-                        display_error("Unable to reset password. Could not contact the GenePattern server or remote password reset unsupported.", "#password_error");
-                    });
 
                     // Prevent the normal form submission stuff
                     event.preventDefault();

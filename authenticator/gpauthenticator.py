@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import subprocess
+import urllib.parse
 from tornado import gen
 from tornado.httputil import url_concat
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient, HTTPError
@@ -65,6 +66,15 @@ def _create_user_directory(username):
                         shutil.copy(file_path, specific_user)
 
 
+def _escape_for_jupyterhub(username):
+    return urllib.parse.quote(username, safe='')\
+        .replace('.', '%2e')\
+        .replace('-', '%2d')\
+        .replace('~', '%7e')\
+        .replace('_', '%5f')\
+        .replace('%', '-')
+
+
 class GenePatternAuthenticator(Authenticator):
     @gen.coroutine
     def authenticate(self, handler, data):
@@ -109,6 +119,8 @@ class GenePatternAuthenticator(Authenticator):
 
             # Attempt to call the scale up script
             _autoscale()
+
+            username = _escape_for_jupyterhub(username)
 
             # Return the username
             return {"name": username, "auth_state": {"access_token": response_payload['access_token']}}

@@ -11,6 +11,21 @@ AUTOSCALE_GROUP_NAME = "GPNB-AS-swarm-compute-m3-med-copy"
 MAX_NUM_USER_KERNELS_PER_AMI = 5
 CONTAINER = "genepattern/genepattern-notebook"
 
+# Import config from nbrepo app, if possible
+try:
+    import nbrepo.settings as settings  # nbrepo needs to be on your Python path
+    AUTOSCALE_GROUP_NAME = settings.AUTOSCALE_GROUP_NAME if hasattr(settings, 'AUTOSCALE_GROUP_NAME') else AUTOSCALE_GROUP_NAME
+    MAX_NUM_USER_KERNELS_PER_AMI = settings.MAX_NUM_USER_KERNELS_PER_AMI if hasattr(settings, 'MAX_NUM_USER_KERNELS_PER_AMI') else MAX_NUM_USER_KERNELS_PER_AMI
+    CONTAINER = settings.CONTAINER if hasattr(settings, 'CONTAINER') else CONTAINER
+except ImportError:
+    # Otherwise, import from an environment variable
+    if 'AUTOSCALE_GROUP_NAME' in os.environ:
+        AUTOSCALE_GROUP_NAME = os.environ['AUTOSCALE_GROUP_NAME']
+    if 'MAX_NUM_USER_KERNELS_PER_AMI' in os.environ:
+        MAX_NUM_USER_KERNELS_PER_AMI = os.environ['MAX_NUM_USER_KERNELS_PER_AMI']
+    if 'CONTAINER' in os.environ:
+        CONTAINER = os.environ['CONTAINER']
+
 
 def updateAutoscaleAmiCount():
     print("Checking number of running instances in  ")

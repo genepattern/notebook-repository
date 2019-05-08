@@ -114,13 +114,13 @@ class GenePatternAuthenticator(Authenticator):
         if resp is not None and resp.code == 200:
             response_payload = json.loads(resp.body.decode("utf-8"))
 
+            username = _escape_for_jupyterhub(username)
+
             # If USERS_DIR_PATH is set, lazily create user directory
             _create_user_directory(username)
 
             # Attempt to call the scale up script
             _autoscale()
-
-            username = _escape_for_jupyterhub(username)
 
             # Return the username
             return {"name": username, "auth_state": {"access_token": response_payload['access_token']}}

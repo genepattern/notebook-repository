@@ -13,7 +13,7 @@
                 // Get the status message
                 $.ajax({
                     method: "GET",
-                    url: "https://genepattern.broadinstitute.org/gp/rest/v1/config/system-message",
+                    url: "https://cloud.genepattern.org/gp/rest/v1/config/system-message",
                     timeout: 10000,
                     xhrFields: {
                         withCredentials: true
@@ -113,6 +113,7 @@
 {% endblock %}
 
 {% block login_widget %}
+    <div id="logo-subtitle" style="float: right;font-size: 24pt;text-align: right;line-height: 27pt;font-family: DIN, sans-serif;">NOTEBOOK<br>WORKSPACE</div>
 {% endblock %}
 
 {% block main %}
@@ -121,7 +122,7 @@
       <section class="headintro" style="padding-top: 40%;position: absolute;width: 100%;z-index: -1;">
         <div class="splitback" style="position: absolute;top: 0;left: 0;right: 0;bottom: 0;">
           <div class="main" style="width: 59.16%;background-color: #1c7cc7;position: absolute;top: 0;right: 0;z-index: 2;background-repeat: no-repeat;background-position: 50% 50%;background-size: cover;overflow: hidden;padding-top: 38.3%;">
-            <div style="background-image: url(/hub/static/images/banner.jpg);width: 100%;height: 100%;background-repeat: no-repeat;background-position: 50% 50%;background-size: cover;position: absolute;top: 0;left: 0;transition: 2s;"></div>
+            <div style="background-image: url(/hub/static/images/front.jpg);width: 100%;height: 100%;background-repeat: no-repeat;background-position: 50% 50%;background-size: cover;position: absolute;top: 0;left: 0;transition: 2s;"></div>
             <span class="over" style="position: absolute;top: 0;left: 0;width: 100%;height: 100%;"></span>
           </div>
           <div class="second" style="width: 42.91%;padding-top: 38%;position: absolute;bottom: 0;left: 0;background-color: #1c7cc7;background-repeat: no-repeat;background-position: 50% 50%;background-size: cover;overflow: hidden;"></div>
@@ -167,7 +168,7 @@
                     </div>
 
                     <div class="login-box col-md-4">
-                        <div class="panel panel-default status-panel">
+                        <div class="panel panel-primary status-panel">
                             <div class="panel-heading" style="font-size: large;">GenePattern Server Status</div>
                             <div id="genepattern-status" class="panel-body">
                                 Loading...
@@ -176,9 +177,9 @@
                     </div>
 
                     <div class="login-box col-md-4">
-                        <div class="panel panel-default register-panel">
+                        <div class="panel panel-primary register-panel">
                             <div class="panel-heading" style="font-size: large;">Register GenePattern Account</div>
-                            <div class="panel-body">Log in using your <a target="_BLANK" href="https://genepattern.broadinstitute.org">GenePattern public
+                            <div class="panel-body">Log in using your <a target="_BLANK" href="https://cloud.genepattern.org">GenePattern public
                                 server</a> username and password. If you do not have an account, click the <a onclick="JavaScript:toggle_registration()" href="#">Register
                                 Account</a> button below.<br><br>
                                 <button class="btn btn-default" onclick="JavaScript:toggle_registration()">Register a New GenePattern Account</button>
@@ -226,7 +227,7 @@
     <div id="registration-main" class="container" style="display: none; background: transparent;">
         <div class="row">
             <form id="registration_form" method="POST" class="form-horizontal col-md-8">
-                <div class="panel panel-primary">
+                <div class="panel panel-default">
                     <div class="panel-heading">
                         <h1 class="panel-title">Register a GenePattern Account</h1>
                     </div>
@@ -279,6 +280,7 @@
     {{ super() }}
     <script type="text/javascript">
         function toggle_forgot_password() {
+
             if ($("#password-main:visible").length) {
                 $("#password-main").slideUp();
                 $("#login-main").slideDown();
@@ -288,6 +290,7 @@
                 $("#login-main").slideUp();
             }
         }
+
         function toggle_registration() {
             if ($("#registration-main:visible").length) {
                 $("#registration-main").slideUp();
@@ -385,42 +388,38 @@
                             xhrObj.setRequestHeader("Accept","application/json");
                         },
                         type: 'POST',
-                        url: 'https://genepattern.broadinstitute.org/gp/rest/v1/oauth2/register',
+                        url: 'https://cloud.genepattern.org/gp/rest/v1/oauth2/register',
                         crossDomain: true,
                         data: JSON.stringify(formData),
-                        dataType: 'json'
-                    })
+                        dataType: 'json',
+                        success: function (data) {
+                            var username = registration_form.find('input[name=username]').val();
+                            var password = registration_form.find('input[name=password]').val();
 
-                    // Handle the response
-                    .done(function (data) {
-                        var username = registration_form.find('input[name=username]').val();
-                        var password = registration_form.find('input[name=password]').val();
+                            // Submit login form
+                            var login_form = $("#login_form");
+                            login_form.find("input[name=username]").val(username);
+                            login_form.find("input[name=password]").val(password);
+                            login_form.submit();
+                        },
+                        error: function(xhr) {
+                            remove_spinner();
 
-                        // Submit login form
-                        var login_form = $("#login_form");
-                        login_form.find("input[name=username]").val(username);
-                        login_form.find("input[name=password]").val(password);
-                        login_form.submit();
-                    })
+                            // Print to console
+                            console.log("ERROR: " + xhr.statusText);
+                            console.log(xhr);
 
-                    // Handle errors
-                    .error(function(xhr) {
-                        remove_spinner();
-
-                        // Print to console
-                        console.log("ERROR: " + xhr.statusText);
-                        console.log(xhr);
-
-                        // Handle errors
-                        if (xhr.status === 404) {
-                            display_error("Unable to register user. Could not contact the GenePattern server or remote registration unsupported.");
-                        }
-                        else {
-                            try {
-                                display_error(JSON.parse(xhr.responseText).error);
+                            // Handle errors
+                            if (xhr.status === 404) {
+                                display_error("Unable to register user. Could not contact the GenePattern server or remote registration unsupported.");
                             }
-                            catch(e) {
-                                display_error(xhr.responseText);
+                            else {
+                                try {
+                                    display_error(JSON.parse(xhr.responseText).error);
+                                }
+                                catch(e) {
+                                    display_error(xhr.responseText);
+                                }
                             }
                         }
                     });
@@ -445,39 +444,35 @@
                             xhrObj.setRequestHeader("Accept","application/json");
                         },
                         type: 'PUT',
-                        url: 'https://genepattern.broadinstitute.org/gp/rest/v1/oauth2/forgot-password',
+                        url: 'https://cloud.genepattern.org/gp/rest/v1/oauth2/forgot-password',
                         crossDomain: true,
                         data: JSON.stringify(formData),
-                        dataType: 'json'
-                    })
-
-                    // Handle the response
-                    .done(function (data) {
-                        // Success!
-                        if (data && data.message === "A new password has been emailed to you.") {
-                            toggle_forgot_password();
-                            hide_errors();
-                            success_message("A new password has been emailed to you.");
-                        }
-
-                        // Error response!
-                        else {
-                            try {
-                                display_error(data.message, "#password_error");
+                        dataType: 'json',
+                        success: function (data) {
+                            // Success!
+                            if (data && data.message === "A new password has been emailed to you.") {
+                                toggle_forgot_password();
+                                hide_errors();
+                                success_message("A new password has been emailed to you.");
                             }
-                            catch(e) {
-                                display_error(data.message, "#password_error");
+
+                            // Error response!
+                            else {
+                                try {
+                                    display_error(data.message, "#password_error");
+                                }
+                                catch(e) {
+                                    display_error(data.message, "#password_error");
+                                }
                             }
+
+                            // Remove the spinner
+                            remove_spinner();
+                        },
+                        error: function(xhr) {
+                            remove_spinner();
+                            display_error("Unable to reset password. Could not contact the GenePattern server or remote password reset unsupported.", "#password_error");
                         }
-
-                        // Remove the spinner
-                        remove_spinner();
-                    })
-
-                    // Handle errors
-                    .error(function(xhr) {
-                        remove_spinner();
-                        display_error("Unable to reset password. Could not contact the GenePattern server or remote password reset unsupported.", "#password_error");
                     });
 
                     // Prevent the normal form submission stuff

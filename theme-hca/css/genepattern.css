@@ -1,0 +1,126 @@
+@font-face {
+    font-family: 'DIN';
+    src: url('/hub/static/fonts/din-bold-webfont.eot');
+    src: url('/hub/static/fonts/din-bold-webfont.eot?#iefix') format('embedded-opentype'),
+         url('/hub/static/fonts/din-bold-webfont.woff') format('woff'),
+         url('/hub/static/fonts/din-bold-webfont.ttf') format('truetype'),
+         url('/hub/static/fonts/din-bold-webfont.svg#DINBold') format('svg');
+    font-weight: bold;
+    font-style: normal;
+}
+
+body {
+    background-color: white;
+    color: #333333;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+    line-height: 1.42857;
+    overflow: hidden;
+}
+
+body > .navbar {
+    background-color: transparent;
+    border-color: transparent;
+}
+
+body > .navbar > .container-fluid {
+    width: 1170px;
+    padding-top: 30px;
+    padding-bottom: 10px;
+}
+
+#thenavbar > ul > li:last-child {
+    display: inline-block;
+    padding-left: 30px;
+}
+
+#thenavbar > ul > li > a {
+    display: none;
+}
+
+#thenavbar > ul > li > a[href='/hub/admin'] {
+    display: inline-block;
+}
+
+#thenavbar > ul > li:last-child > a {
+    position: relative;
+    top: 7px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 2px;
+    color: #333;
+    background-color: #fff;
+    border: 1px solid #ccc;
+}
+
+#thenavbar > ul > li:last-child > a:hover {
+    background-color: #eee;
+    border-color: #ccc;
+}
+
+.jpy-logo {
+    height: 72px !important;
+}
+
+.btn-default {
+    color: #333;
+    background-color: #fff;
+    border-color: #ccc;
+}
+
+#header {
+    border-bottom: none !important;
+}
+
+#header > .container {
+    background-color: transparent;
+}
+
+.container {
+    padding: 15px;
+    background-color: #fff;
+    box-shadow: 0 0 12px 1px rgba(87, 87, 87, 0.2);
+    min-height: 0;
+    height: auto;
+}
+
+#login-main {
+    background: transparent;
+    box-shadow: none;
+    position: relative;
+    top: -50px;
+}
+
+#login-main .panel-heading {
+    color: #000;
+    background-color: #f5f5f5;
+    border-color: #ddd;
+}
+
+#login-main .login-box .auth-form-header {
+    color: #000;
+    background-color: #f5f5f5;
+    border-color: #ddd;
+}
+
+#login-main .auth-form-body {
+    background: white;
+}
+
+#login-main .login-box .form-control:focus {
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.075),0 0 8px #428bca;
+    outline-color: #428bca;
+    border-color: #428bca;
+}
+
+#login_submit {
+    color: #fff;
+    background-color: #428bca;
+    border-color: #428bca;
+}
+
+#login_submit:hover {
+    background-color: #529bda;
+    border-color: #428bca;
+}

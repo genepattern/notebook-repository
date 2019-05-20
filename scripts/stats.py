@@ -12,15 +12,15 @@ from email.mime.text import MIMEText
 import urllib.request
 
 # Environment configuration
-server_name = "GenePattern Notebook"
-include_extension = True
-data_dir = '/data/users'
-stats_dir = '/data/counters/'
-user_dir = '/data/'
-sudo_req = 'sudo '  # Make blank if sudo is not required
-test_email = 'user@domain.org'
-admin_login = 'username:password'
-s3_bucket = 'gpnotebook-backup'
+server_name = "GenePattern Notebook"  # Name of the repo server to report
+include_extension = True              # Include the right column that polls GP server?
+data_dir = '/data/users'              # The dir where user data is stored
+stats_dir = '/data/counters/'         # Where to save the stats state
+user_dir = '/data/'                   # Directory with JupyterHub database
+sudo_req = 'sudo '                    # Make blank if sudo is not required
+test_email = 'user@domain.org'        # Email to send to when run with --test
+admin_login = 'username:password'     # Admin login credentials for GP server
+s3_bucket = 'gpnotebook-backup'       # s3 bucket to check for GP Broad stats
 
 # Handle arguments
 test_run = True if (len(sys.argv) >= 2 and sys.argv[1] == '--test') else False
@@ -72,7 +72,7 @@ def _poll_genepattern(gp_url, tag):
     for job in jobs_json['items']:
         timestamp = job['dateSubmitted']
         date = datetime.datetime.strptime(timestamp.split('T')[0], '%Y-%m-%d')
-        if date >= datetime.datetime.now() - datetime.timedelta(days=8):
+        if date >= datetime.datetime.now() - datetime.timedelta(days=7):
             count += 1
         if 'children' in job:
             child_count = len(job['children']['items'])
@@ -82,6 +82,12 @@ def _poll_genepattern(gp_url, tag):
 
 
 def get_total_jobs(weekly_jobs):
+    """
+    Add latest weekly jobs to the total jobs count
+    :param weekly_jobs:
+    :return:
+    """
+
     # Read the file of total jobs
     jobs_file = open(stats_dir + 'jobs.lst', 'r')
     jobs_list = jobs_file.readlines()
@@ -265,6 +271,11 @@ def _genepattern_users():
 
 
 def _genepattern_users_stopgap():
+    """
+    Temporary workaround for retrieving new users from the GP server
+    :return:
+    """
+
     try:
         start_date = datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(days=30), "%Y-%m-%d")
         end_date = datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d")
@@ -283,6 +294,13 @@ def _genepattern_users_stopgap():
 
 
 def _get_user_email(gp_users, user):
+    """
+    Get user email from new user data (both old and temp style JSON structures)
+    :param gp_users:
+    :param user:
+    :return:
+    """
+
     # If list is an error, return error
     if gp_users == 'ERROR':
         return 'ERROR'
@@ -320,7 +338,7 @@ def get_users():
 
     # Gather a list of all running containers
     cmd_out = subprocess.getstatusoutput(
-            "sqlite3 " + user_dir + "jupyterhub.sqlite \"select name from users where last_activity > (SELECT DATETIME('now', '-30 day'));\"")[1]
+            "sqlite3 " + user_dir + "jupyterhub.sqlite \"select name from users where last_activity > (SELECT DATETIME('now', '-7 day'));\"")[1]
     containers = cmd_out.split('\n')
 
     # Get a list of all new users
@@ -388,6 +406,10 @@ def get_logins():
 
 
 def get_nb_usage():
+    """
+    Query repo for notebook usage
+    :return:
+    """
     request = urllib.request.Request('https://notebook.genepattern.org/services/sharing/notebooks/stats/')
     response = urllib.request.urlopen(request)
     json_str = response.read().decode('utf-8')

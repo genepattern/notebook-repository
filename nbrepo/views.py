@@ -133,8 +133,9 @@ class NotebookViewSet(viewsets.ModelViewSet):
         repo_nb_path = os.path.join(base_repo_path, username, str(model_id), file_name)
 
         # Lazily create directories and copy the file
-        os.makedirs(os.path.dirname(repo_nb_path), exist_ok=True)
-        shutil.copy(user_nb_path, repo_nb_path)
+        if os.path.exists(user_nb_path):
+            os.makedirs(os.path.dirname(repo_nb_path), exist_ok=True)
+            shutil.copy(user_nb_path, repo_nb_path)
 
         return repo_nb_path
 

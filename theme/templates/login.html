@@ -109,6 +109,11 @@
                 height: 80vh;
             }
         }
+
+        .popover {
+            max-width: 100% !important;
+            width: 500px;
+        }
     </style>
 {% endblock %}
 
@@ -249,6 +254,7 @@
                                 <input type="submit" class="btn btn-primary btn-lg" value="Register Account" />
                                 <button type="button" class="btn btn-default btn-lg login-return" onclick="JavaScript: toggle_registration()">Return to Login</button>
                                 <span class="spinner-space"></span>
+                                <p style="margin: 10px 0 0 0;">By registering, you agree to the GenePattern Notebook <a href="#" data-toggle="popover" data-placement="top" title="GenePattern Terms of Use" data-trigger="focus" data-content="By registering for GenePattern Notebook, you agree that you will upload only information that can be made available for public consumption and for which you have specific permission.  Do not upload information that identifies specific individuals or that can be associated with them, known as Personally Identifiable Information (PII).  If you have any doubts as to whether specific information can be uploaded, please consult the Compliance Office in your institution.  The Regents of the University of California do not accept any responsibility or liability for any information that you upload that is prohibited above.">terms of use</a>.</p>
                             </div>
                         </div>
                     </div>
@@ -465,6 +471,10 @@
                     event.preventDefault();
                 });
             });
+        });
+
+        $(function () {
+            $('[data-toggle="popover"]').popover()
         });
     </script>
 {% endblock %}

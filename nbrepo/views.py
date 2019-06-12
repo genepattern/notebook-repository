@@ -1,6 +1,10 @@
 import ntpath
 import os
+import smtplib
 import urllib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 import urllib.parse
 import json
 import logging
@@ -197,6 +201,26 @@ class NotebookViewSet(viewsets.ModelViewSet):
         # Return the list of validated tag objects
         return tags_list
 
+    def _send_email(self, notebook):
+        if hasattr(settings, 'NOTIFICATION_EMAIL'):
+            fromaddr = "gp-info@broadinstitute.org"
+            preview = f"{settings.BASE_HUB_URL}/services/sharing/notebooks/{notebook.id}/preview/"
+            body = f"<p>A new notebook has been published to the notebook repository:</p>" + \
+                   f"<p><a href='{preview}'>{preview}</a></p>"
+
+            msg = MIMEMultipart()
+            msg['From'] = fromaddr
+            msg['To'] = settings.NOTIFICATION_EMAIL
+            msg['Subject'] = f"Notebook Published: {notebook.name}"
+            msg.attach(MIMEText(body, 'html'))
+
+            server = smtplib.SMTP(settings.EMAIL_SERVER, 25)
+            if hasattr(settings, 'EMAIL_USERNAME'):
+                server.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
+            text = msg.as_string()
+            server.sendmail(fromaddr, settings.NOTIFICATION_EMAIL.split(', '), text)
+            server.quit()
+
     def create(self, request, *args, **kwargs):
         logger.debug("CREATE NOTEBOOK")
 
@@ -231,6 +255,9 @@ class NotebookViewSet(viewsets.ModelViewSet):
         # Insert the publishing metadata in the notebook file
         self._add_publish_metadata(user_file_path, response.data['url'])      # Add to user's copy
         self._add_publish_metadata(notebook.file_path, response.data['url'])  # Add to canonical copy
+
+        # Send notification email
+        self._send_email(notebook)
 
         # Return response
         return response

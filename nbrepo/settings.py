@@ -175,7 +175,7 @@ SCREENSHOT_PASSWORD = "xxx"
 DEFAULT_NB_DIR = '/Users/tabor/data/defaults'
 AUTOSCALE_SCRIPT = '/Users/tabor/data/autoscale.py'
 
-NOTIFICATION_EMAIL = 'gp-dev@broadinstitute.org'
+NOTIFICATION_EMAIL = None
 EMAIL_SERVER = 'smtp-server'
 EMAIL_USERNAME = 'username'
 EMAIL_PASSWORD = 'password'

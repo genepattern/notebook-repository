@@ -173,6 +173,16 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         return tag_obj_list
 
+    @staticmethod
+    def _no_pinned_tags(tags_list):
+        no_pinned = True
+        for tag in tags_list:
+            if tag.pinned:
+                no_pinned = False
+            if tag.label == 'community':  # Special case for community tag
+                no_pinned = False
+        return no_pinned
+
     def _validate_tags(self, request):
         # Get the list of raw tags
         tags_str = request.data['tags']
@@ -198,11 +208,16 @@ class NotebookViewSet(viewsets.ModelViewSet):
                 if tag.protected:
                     tags_list.remove(tag)
 
+        # Apply community tag if release quality and no pinned tags
+        if request.data['quality'] == 'Release' and self._no_pinned_tags(tags_list):
+            community_tag = Tag.objects.get_or_create(label='community')[0]
+            tags_list.append(community_tag)
+
         # Return the list of validated tag objects
         return tags_list
 
     def _send_email(self, notebook):
-        if hasattr(settings, 'NOTIFICATION_EMAIL'):
+        if hasattr(settings, 'NOTIFICATION_EMAIL') and settings.NOTIFICATION_EMAIL:
             fromaddr = "gp-info@broadinstitute.org"
             preview = f"{settings.BASE_HUB_URL}/services/sharing/notebooks/{notebook.id}/preview/"
             body = f"<p>A new notebook has been published to the notebook repository:</p>" + \

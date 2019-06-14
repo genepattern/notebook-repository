@@ -52,6 +52,10 @@
                              );
                      });
             }
+
+            function toggle_login() {
+                window.location.href = "/hub/login?next=" + encodeURIComponent(window.location.pathname);
+            }
         </script>
     </head>
 
@@ -63,6 +67,11 @@
                         <img src="/hub/logo" alt="JupyterHub" class="jpy-logo" title="Home">
                     </a>
                 </span>
+                {% if not user.is_authenticated %}
+                <div class="pull-right">
+                    <a class="btn btn-default" href="#" onclick="toggle_login()">Login / Register</a>
+                </div>
+                {% endif %}
             </div>
         </div>
 

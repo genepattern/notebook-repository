@@ -7,6 +7,7 @@ import sys
 import shutil
 import base64
 import json
+import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import urllib.request
@@ -324,6 +325,28 @@ def _get_user_email(gp_users, user):
         return ''
 
 
+def get_returning_users(returning_count):
+    """
+    Returns a list of returning users
+    :return:
+    """
+    # Read the exclusion file
+    if os.path.exists(stats_dir + 'exclusion.lst'):
+        exclusion_file = open(stats_dir + 'exclusion.lst', 'r')
+        exclusion_list = exclusion_file.readlines()
+        exclusion_list = [u.strip() for u in exclusion_list]
+    else:
+        exclusion_list = []
+
+    # Read the user database
+    cmd_out = subprocess.getstatusoutput("sqlite3 " + user_dir + "jupyterhub.sqlite \"select name from users order by last_activity\"")[1]
+    all_users = cmd_out.split('\n')
+
+    # Exclude members of the lab
+    users_minus_exclusions = [user for user in all_users if user not in exclusion_list]
+    return users_minus_exclusions[:returning_count]
+
+
 def get_users():
     """
     Counts the number of new and returning users to the GP Notebook Repo
@@ -344,6 +367,10 @@ def get_users():
     # Get a list of all new users
     new_users = list(set(containers) - set(user_list))
 
+    # Get a list of all returning users
+    returning_count = len(set(user_list) & set(containers))
+    returning_users = get_returning_users(returning_count)
+
     # Query the GenePattern public server for info about new users
     gp_users = _genepattern_users_stopgap()
 
@@ -354,11 +381,17 @@ def get_users():
         email = _get_user_email(gp_users, user)
         new_users_rows = new_users_rows + '<tr><td>' + user + '</td><td>' + email + '</td></tr>'
 
+    # Create the HTML row list for all returning users
+    returning_users_rows = ''
+    for user in returning_users:
+        returning_users_rows = returning_users_rows + '<tr><td>' + user + '</td></tr>'
+
     # Get the sets of users
-    users['returning'] = len(set(user_list) & set(containers))
+    users['returning'] = returning_count
     users['new'] = len(set(containers) - set(user_list))
     users['total'] = len(set(user_list) | set(containers))
     users['new_users'] = new_users_rows
+    users['returning_users'] = returning_users_rows
 
     # Update the users file
     if not test_run:
@@ -544,6 +577,14 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb
                                     <th>Email</th>
                                 </tr>
                                 {users['new_users']}
+                            </table>
+                            
+                            <h3>Returning Users This Week</h3>
+                            <table border="1">
+                                <tr>
+                                    <th>Username</th>
+                                </tr>
+                                {users['returning_users']}
                             </table>
                         </td>
                         <td width="50%%" valign="top">

@@ -30,7 +30,7 @@ from rest_framework.views import APIView
 
 from nbrepo.models import Notebook, Tag, Webtour, Comment
 from nbrepo.serializers import UserSerializer, GroupSerializer, NotebookSerializer, AuthTokenSerializer, TagSerializer, WebtourSerializer, CommentSerializer
-from .preview import preview, generate_preview
+from .preview import preview, generate_preview, remove_preview
 
 from .sharing import CollaboratorViewSet, SharingViewSet, accept_sharing, begin_sharing, error_redirect
 
@@ -296,6 +296,7 @@ class NotebookViewSet(viewsets.ModelViewSet):
         self._copy_to_file_path(username, old_id, api_path)
 
         # Generate the static preview
+        remove_preview(response.data['file_path'])
         generate_preview(response.data['file_path'])
 
         # Return response
@@ -313,6 +314,9 @@ class NotebookViewSet(viewsets.ModelViewSet):
 
         # Remove the notebook from the file system
         self._remove_notebook_file(file_path)
+
+        # Remove the preview from the file system
+        remove_preview(response.data['file_path'])
 
         # Return response
         return response

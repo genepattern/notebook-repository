@@ -16,6 +16,13 @@ def generate_preview(nb_file_path):
     os.system("nbrepo/screenshot.py " + shlex.quote(nb_file_path))
 
 
+def remove_preview(nb_file_path):
+    dir = os.path.dirname(nb_file_path)
+    img = os.path.join(dir, 'preview.png')
+    if os.path.exists(img):
+        os.remove(img)
+
+
 @api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def preview(request, pk):

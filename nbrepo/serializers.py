@@ -19,7 +19,7 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
 class TagSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Tag
-        fields = ('id', 'label', 'protected', 'pinned', 'weight')
+        fields = ('id', 'label', 'protected', 'pinned', 'weight', 'description')
 
 
 class WebtourSerializer(serializers.HyperlinkedModelSerializer):

@@ -12,6 +12,7 @@ class Tag(models.Model):
     protected = models.BooleanField(default=False)
     weight = models.IntegerField(default=0)
     pinned = models.BooleanField(default=False)
+    description = models.CharField(max_length=256, null=True)
 
 
 class Notebook(models.Model):

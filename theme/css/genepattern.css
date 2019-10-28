@@ -106,3 +106,7 @@ body > .navbar > .container-fluid {
     background-color: #529bda;
     border-color: #428bca;
 }
+
+.navbar-text {
+    display: none;
+}

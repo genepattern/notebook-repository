@@ -364,7 +364,9 @@ def _send_email(from_email, to_email, subject, message):
             msg['Subject'] = subject
             msg.attach(MIMEText(message, 'html'))
 
-            server = smtplib.SMTP('localhost', 25)
+            server = smtplib.SMTP(settings.EMAIL_SERVER, 25)
+            if hasattr(settings, 'EMAIL_USERNAME'):
+                server.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
             text = msg.as_string()
             server.sendmail(from_email, to_email.split(', '), text)
             server.quit()
@@ -418,7 +420,7 @@ def _create_collaborator(nb, name_or_email):
     if email:
         domain = 'https://notebook.genepattern.org' if settings.JUPYTERHUB else 'http://localhost'
 
-        _send_email("gp-help@broadinstitute.org", email, "Notebook Sharing Invite - GenePattern Notebook Repository", """
+        _send_email("gp-info@broadinstitute.org", email, "Notebook Sharing Invite - GenePattern Notebook Repository", """
         <p>%s has invited you to share the following notebook on the GenePattern Notebook Repository: %s. To accept, just sign in and then click the link below.</p>
 
         <h5>GenePattern Notebook Repository</h5>

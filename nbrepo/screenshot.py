@@ -67,12 +67,41 @@ async def fetch_screenshot(nb_file_path):
     await page.click('#login_submit')
     await page.waitFor(10000)
 
-    # Check for errors and handle them gracefully
-    no_login = await page.querySelector('#ipython-main-app') is None
-    if no_login:
+    # Check for errors and spawning page
+    start_server = await page.querySelector('#start') is not None
+    spawn_form = await page.querySelector('#spawn_form') is not None
+    spawning = await page.querySelector('#progress-message') is not None
+    in_notebook = await page.querySelector('#ipython-main-app') is not None
+    if not start_server and not spawn_form and not spawning and not in_notebook:
         return 'An error was encountered logging in to the notebook repository'
 
+    # If the server is not started, start it and recheck
+    if start_server:
+        await page.click('#start')
+        await page.waitFor(5000)
+        spawning = await page.querySelector('#progress-message') is not None
+        spawn_form = await page.querySelector('#spawn_form') is not None
+
+    # If the server is not started, start it and recheck
+    if spawn_form:
+        await page.click('input.btn-jupyter[value=Spawn]')
+        await page.waitFor(5000)
+        spawning = await page.querySelector('#progress-message') is not None
+
+    # If spawning, continue to wait and recheck
+    if spawning:
+        await page.waitFor(10000)
+        in_notebook = await page.querySelector('#ipython-main-app') is not None
+        if not in_notebook:
+            return 'An error was encountered spawning the notebook server'
+
+    # Wait for the widgets to load
     await page.waitFor(5000)
+
+    # Close the webtour, if visible
+    showing_webtour = await page.querySelector('#gp-hint-box') is not None
+    if showing_webtour:
+        await page.evaluate("$('a.introjs-skipbutton').click();")
 
     # Check for GP Auth widgets and log in
     has_auth_widget = await page.querySelector('.gp-widget-auth') is not None

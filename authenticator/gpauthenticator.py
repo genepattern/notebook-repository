@@ -1,8 +1,9 @@
 """
-Custom Authenticator to use GenePattern OAuth2 with JupyterHub
+Authenticate JupyterHub with a GenePattern server
+
 @author Thorin Tabor
-Adapted from OAuthenticator code
 """
+
 import json
 import os
 import shutil
@@ -11,123 +12,155 @@ import urllib.parse
 from tornado import gen
 from tornado.httputil import url_concat
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient, HTTPError
-from jupyterhub.auth import Authenticator, LocalAuthenticator
-
-
-# Configuration variables
-GENEPATTERN_URL = "https://cloud.genepattern.org/gp"  # URL of the GenePattern server you are authenticating with
-USERS_DIR_PATH = None  # Path to the directory containing user notebook files
-DEFAULT_NB_DIR = None  # Path to the directory containing the default notebooks to give new users
-AUTOSCALE_SCRIPT = None  # Path to script managing compute cluster
-
-# Import config from nbrepo app, if possible
-try:
-    import nbrepo.settings as settings  # nbrepo needs to be on your Python path
-    GENEPATTERN_URL = settings.BASE_GENEPATTERN_URL
-    USERS_DIR_PATH = settings.BASE_USER_PATH
-    DEFAULT_NB_DIR = settings.DEFAULT_NB_DIR
-    AUTOSCALE_SCRIPT = settings.AUTOSCALE_SCRIPT  # '/path/to/updateAutoscaleAMICount.py'
-except ImportError:
-    # Otherwise, import from an environment variable
-    if 'GENEPATTERN_URL' in os.environ:
-        GENEPATTERN_URL = os.environ['GENEPATTERN_URL']
-    if 'DATA_DIR' in os.environ:
-        USERS_DIR_PATH = os.environ['DATA_DIR'] + "/users"
-        DEFAULT_NB_DIR = os.environ['DATA_DIR'] + "/defaults"
-    if 'AUTOSCALE_SCRIPT' in os.environ:
-        AUTOSCALE_SCRIPT = os.environ['AUTOSCALE_SCRIPT']
-
-
-def _autoscale():
-    # Attempt to call the scale up script
-    if AUTOSCALE_SCRIPT:
-        try:
-            print('Calling autoscale script.')
-            subprocess.call(AUTOSCALE_SCRIPT.split())
-        except:
-            print('Could not call autoscale script.')
-
-
-def _create_user_directory(username):
-    if USERS_DIR_PATH is not None:
-        specific_user = os.path.join(USERS_DIR_PATH, username.lower())
-        if not os.path.exists(specific_user):
-            os.makedirs(specific_user)
-            os.chmod(specific_user, 0o777)
-
-            # Copy over example notebooks if USERS_DIR_PATH is set
-            if DEFAULT_NB_DIR is not None and os.path.exists(DEFAULT_NB_DIR):
-                all_files = os.listdir(DEFAULT_NB_DIR)
-                for f in all_files:
-                    file_path = os.path.join(DEFAULT_NB_DIR, f)
-                    if os.path.isdir(file_path):
-                        shutil.copytree(file_path, os.path.join(specific_user, f))
-                    elif os.path.isfile(file_path):
-                        shutil.copy(file_path, specific_user)
-
-
-def _escape_for_jupyterhub(username):
-    return urllib.parse.quote(username, safe='')\
-        .replace('.', '%2e')\
-        .replace('-', '%2d')\
-        .replace('~', '%7e')\
-        .replace('_', '%5f')\
-        .replace('%', '-')
+from jupyterhub.auth import Authenticator
+from traitlets import Unicode, Bool
 
 
 class GenePatternAuthenticator(Authenticator):
+    """Authenticate login with a GenePattern server"""
+
+    # Specify configuration variables
+    genepattern_url = Unicode(
+        "https://cloud.genepattern.org/gp",
+        config=True,
+        help="URL of the GenePattern server you are authenticating with"
+    )
+
+    users_dir_path = Unicode(
+        config=True,
+        default=None,
+        allow_none=True,
+        help="Path to the directory containing user notebook files"
+    )
+
+    default_nb_dir = Unicode(
+        config=True,
+        default=None,
+        allow_none=True,
+        help="Path to the directory containing the default notebooks to give new users"
+    )
+
+    autoscale_script = Unicode(
+        config=True,
+        default=None,
+        allow_none=True,
+        help="Path to script managing compute cluster"
+    )
+
+    load_config_from_repo = Bool(
+        config=True,
+        default=False,
+        help="Load default config from the repository settings file"
+    )
+
+    load_config_from_env = Bool(
+        config=True,
+        default=False,
+        help="Load default config from environment variables"
+    )
+
+    def __init__(self, **kwargs):
+        self.load_config()
+        super().__init__(**kwargs)
+
     @gen.coroutine
     def authenticate(self, handler, data):
-        """Authenticate with GenePattern, and return the username if login is successful.
+        """Authenticate with GenePattern, and return the username if login is successful; return None otherwise."""
 
-        Return None otherwise.
-        """
+        # Initialize the HTTP client
         http_client = AsyncHTTPClient()
         username = data['username']
         password = data['password']
-
-        # if not self.check_whitelist(username):
-        #     return
 
         # Set the necessary params
         params = dict(
             grant_type="password",
             username=username,
             password=password,
-            client_id="GenePatternNotebook"
-        )
+            client_id="GenePatternNotebook")
+        url = url_concat(self.genepattern_url + "/rest/v1/oauth2/token", params)
 
-        url = url_concat(GENEPATTERN_URL + "/rest/v1/oauth2/token", params)
+        # Make the login request -- Body is required for a POST...
+        req = HTTPRequest(url, method="POST", headers={"Accept": "application/json"}, body='')
+        try: resp = yield http_client.fetch(req)
+        # This is likely a 400 Bad Request error due to an invalid username or password
+        except HTTPError as e: return
 
-        req = HTTPRequest(url,
-                          method="POST",
-                          headers={"Accept": "application/json"},
-                          body=''  # Body is required for a POST...
-                          )
-
-        try:
-            resp = yield http_client.fetch(req)
-        except HTTPError as e:
-            # This is likely a 400 Bad Request error due to an invalid username or password
-            return
-
+        # Handle the response
         if resp is not None and resp.code == 200:
             response_payload = json.loads(resp.body.decode("utf-8"))
-
-            username = _escape_for_jupyterhub(username)
-
-            # If USERS_DIR_PATH is set, lazily create user directory
-            _create_user_directory(username)
-
-            # Attempt to call the scale up script
-            _autoscale()
+            username = self.normalize_username(username)
 
             # Return the username
             return {"name": username, "auth_state": {"access_token": response_payload['access_token']}}
-        else:
-            return
+        else: return
 
+    def pre_spawn_start(self, user, spawner):
+        """Create the user directory and tend to the autoscale group before the user server is spawned"""
 
-class LocalGenePatternAuthenticator(LocalAuthenticator, GenePatternAuthenticator):
-    """A version that mixes in local system user creation"""
-    pass
+        # If USERS_DIR_PATH is set, lazily create user directory
+        self.create_user_directory(user.name)
+
+        # Attempt to call the scale up script
+        self.call_autoscale_script()
+
+    def normalize_username(self, username):
+        """Normalize the given username to lowercase and to remove special characters
+
+           Overrides Authenticator.normalize_username()"""
+        return urllib.parse.quote(username.lower(), safe='') \
+            .replace('.', '%2e') \
+            .replace('-', '%2d') \
+            .replace('~', '%7e') \
+            .replace('_', '%5f') \
+            .replace('%', '-')
+
+    def load_config(self):
+        """Load configuration from other sources, if enabled"""
+
+        # Import config from nbrepo app, if possible and enabled
+        if self.load_config_from_repo:
+            try:
+                import nbrepo.settings as settings  # nbrepo needs to be on your Python path
+                self.genepattern_url = settings.BASE_GENEPATTERN_URL
+                self.users_dir_path = settings.BASE_USER_PATH
+                self.default_nb_dir = settings.DEFAULT_NB_DIR
+                self.autoscale_script = settings.AUTOSCALE_SCRIPT
+            except ImportError: pass
+
+        # Otherwise, import from an environment variable if enabled
+        if self.load_config_from_env:
+            if 'GENEPATTERN_URL' in os.environ:
+                self.genepattern_url = os.environ['GENEPATTERN_URL']
+            if 'DATA_DIR' in os.environ:
+                self.users_dir_path = os.environ['DATA_DIR'] + "/users"
+                self.default_nb_dir = os.environ['DATA_DIR'] + "/defaults"
+            if 'AUTOSCALE_SCRIPT' in os.environ:
+                self.autoscale_script = os.environ['AUTOSCALE_SCRIPT']
+
+    def call_autoscale_script(self):
+        """Attempt to call the scale up script"""
+        if self.autoscale_script:
+            try:
+                print('Calling autoscale script.')
+                subprocess.call(self.autoscale_script.split())
+            except:
+                print('Could not call autoscale script.')
+
+    def create_user_directory(self, username):
+        """Lazily create the user directory"""
+        if self.users_dir_path is not None:
+            specific_user = os.path.join(self.users_dir_path, username)
+            if not os.path.exists(specific_user):
+                os.makedirs(specific_user)
+                os.chmod(specific_user, 0o777)
+
+                # Copy over example notebooks if USERS_DIR_PATH is set
+                if self.default_nb_dir is not None and os.path.exists(self.default_nb_dir):
+                    all_files = os.listdir(self.default_nb_dir)
+                    for f in all_files:
+                        file_path = os.path.join(self.default_nb_dir, f)
+                        if os.path.isdir(file_path):
+                            shutil.copytree(file_path, os.path.join(specific_user, f))
+                        elif os.path.isfile(file_path):
+                            shutil.copy(file_path, specific_user)

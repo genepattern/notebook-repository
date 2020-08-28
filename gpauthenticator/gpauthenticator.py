@@ -1,19 +1,16 @@
-"""
-Authenticate JupyterHub with a GenePattern server
-
-@author Thorin Tabor
-"""
-
 import json
 import os
 import shutil
 import subprocess
 import urllib.parse
+
 from tornado import gen
 from tornado.httputil import url_concat
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient, HTTPError
 from jupyterhub.auth import Authenticator
 from traitlets import Unicode, Bool
+
+from gpauthenticator.handlers import LoginHandler
 
 
 class GenePatternAuthenticator(Authenticator):
@@ -59,6 +56,12 @@ class GenePatternAuthenticator(Authenticator):
         help="Load default config from environment variables"
     )
 
+    auto_login = Bool(
+        True,
+        config=True,
+        help="""Automatically begin the login process""",
+    )
+
     def __init__(self, **kwargs):
         self.load_config()
         super().__init__(**kwargs)
@@ -67,33 +70,21 @@ class GenePatternAuthenticator(Authenticator):
     def authenticate(self, handler, data):
         """Authenticate with GenePattern, and return the username if login is successful; return None otherwise."""
 
-        # Initialize the HTTP client
-        http_client = AsyncHTTPClient()
-        username = data['username']
-        password = data['password']
+        # Handle form submission, if included with the request
+        if data: return self.login_from_form(handler, data)
 
-        # Set the necessary params
-        params = dict(
-            grant_type="password",
-            username=username,
-            password=password,
-            client_id="GenePatternNotebook")
-        url = url_concat(self.genepattern_url + "/rest/v1/oauth2/token", params)
+        # Otherwise, attempt to log in via session cookie
+        return self.login_from_cookie(handler)
 
-        # Make the login request -- Body is required for a POST...
-        req = HTTPRequest(url, method="POST", headers={"Accept": "application/json"}, body='')
-        try: resp = yield http_client.fetch(req)
-        # This is likely a 400 Bad Request error due to an invalid username or password
-        except HTTPError as e: return
-
-        # Handle the response
-        if resp is not None and resp.code == 200:
-            response_payload = json.loads(resp.body.decode("utf-8"))
-            username = self.normalize_username(username)
-
-            # Return the username
-            return {"name": username, "auth_state": {"access_token": response_payload['access_token']}}
-        else: return
+    def get_handlers(self, app):
+        genepattern_handlers = [
+            (r'/login/form', LoginHandler),
+            # (r'/signup', SignUpHandler),
+            # (r'/authorize', AuthorizationHandler),
+            # (r'/authorize/([^/]*)', ChangeAuthorizationHandler),
+            # (r'/change-password', ChangePasswordHandler),
+        ]
+        return genepattern_handlers
 
     def pre_spawn_start(self, user, spawner):
         """Create the user directory and tend to the autoscale group before the user server is spawned"""
@@ -114,6 +105,68 @@ class GenePatternAuthenticator(Authenticator):
             .replace('~', '%7e') \
             .replace('_', '%5f') \
             .replace('%', '-')
+
+    def login_from_cookie(self, handler):
+        """Handle login via the GenePattern session cookie"""
+        token = None
+
+        if 'GenePatternAccess' in handler.request.cookies:
+            token = handler.request.cookies['GenePatternAccess'].value
+
+            # Attempt to call the username endpoint
+            http_client = AsyncHTTPClient()
+            url = 'http://127.0.0.1:8080/gp/rest/v1/config/user'  # self.genepattern_url + "/rest/v1/config/user"
+            req = HTTPRequest(url, method="GET", headers={"Authorization": "Bearer " + token})
+            try:
+                resp = yield http_client.fetch(req)
+                resp_json = json.loads(resp.body.decode("utf-8"))
+                username = self.normalize_username(resp_json['result'])
+
+                # Return the username
+                return {"name": username, "auth_state": {"access_token": token}}
+
+            # An error means we can't verify authentication, redirect to login page
+            except HTTPError as e: pass
+
+        # Fall back to logging in via login form if cookie is invalid or not available
+        handler.redirect('/hub/login/form')
+
+    def login_from_form(self, handler, data):
+        """Handle login form submission then return user and auth state"""
+
+        # Initialize the HTTP client
+        http_client = AsyncHTTPClient()
+        username = data['username']
+        password = data['password']
+
+        # Set the necessary params
+        params = dict(
+            grant_type="password",
+            username=username,
+            password=password,
+            client_id="GenePatternNotebook")
+        url = url_concat(self.genepattern_url + "/rest/v1/oauth2/token", params)
+
+        # Make the login request -- Body is required for a POST...
+        req = HTTPRequest(url, method="POST", headers={"Accept": "application/json"}, body='')
+        try:
+            resp = yield http_client.fetch(req)
+        # This is likely a 400 Bad Request error due to an invalid username or password
+        except HTTPError as e:
+            return
+
+        # Handle the response
+        if resp is not None and resp.code == 200:
+            response_payload = json.loads(resp.body.decode("utf-8"))
+            username = self.normalize_username(username)
+
+            # Set the GenePattern access cookie
+            handler.set_cookie('GenePatternAccess', response_payload['access_token'])
+
+            # Return the username
+            return {"name": username, "auth_state": {"access_token": response_payload['access_token']}}
+        else:
+            return
 
     def load_config(self):
         """Load configuration from other sources, if enabled"""

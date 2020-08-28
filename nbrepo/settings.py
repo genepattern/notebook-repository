@@ -164,16 +164,16 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 # Notebook Repository
 BASE_GENEPATTERN_URL = 'https://cloud.genepattern.org/gp'
-BASE_REPO_PATH = '/Users/tabor/repository'
-BASE_USER_PATH = '/Users/tabor/Notebooks'
-BASE_SHARE_PATH = '/Users/tabor/Notebooks/shared'
+BASE_REPO_PATH = './data/repository/'
+BASE_USER_PATH = './data/users/'
+BASE_SHARE_PATH = './data/shared/'
 CAN_SET_PROTECTED_TAGS = ['beholdsa', 'tabor', 'admin']
 JUPYTERHUB = False
 BASE_HUB_URL = "https://notebook.genepattern.org"
 SCREENSHOT_USER = "xxx"
 SCREENSHOT_PASSWORD = "xxx"
-DEFAULT_NB_DIR = '/Users/tabor/data/defaults'
-AUTOSCALE_SCRIPT = '/Users/tabor/data/autoscale.py'
+DEFAULT_NB_DIR = './data/defaults/'
+AUTOSCALE_SCRIPT = None
 
 NOTIFICATION_EMAIL = None
 EMAIL_SERVER = 'smtp-server'

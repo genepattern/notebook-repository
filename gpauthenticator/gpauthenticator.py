@@ -115,7 +115,7 @@ class GenePatternAuthenticator(Authenticator):
 
             # Attempt to call the username endpoint
             http_client = AsyncHTTPClient()
-            url = 'http://127.0.0.1:8080/gp/rest/v1/config/user'  # self.genepattern_url + "/rest/v1/config/user"
+            url = self.genepattern_url + "/rest/v1/config/user"
             req = HTTPRequest(url, method="GET", headers={"Authorization": "Bearer " + token})
             try:
                 resp = yield http_client.fetch(req)

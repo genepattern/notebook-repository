@@ -86,6 +86,15 @@ class GenePatternAuthenticator(Authenticator):
         ]
         return genepattern_handlers
 
+    @gen.coroutine
+    def refresh_user(self, user, handler=None):
+        cookie_login = self.login_from_cookie(handler, redirect=False)
+        if cookie_login:
+            handler.set_cookie('GenePatternAccess', cookie_login['auth_state']['access_token'])
+            return cookie_login
+        else:
+            return False
+
     def pre_spawn_start(self, user, spawner):
         """Create the user directory and tend to the autoscale group before the user server is spawned"""
 
@@ -106,7 +115,7 @@ class GenePatternAuthenticator(Authenticator):
             .replace('_', '%5f') \
             .replace('%', '-')
 
-    def login_from_cookie(self, handler):
+    def login_from_cookie(self, handler, redirect=True):
         """Handle login via the GenePattern session cookie"""
         token = None
 
@@ -129,7 +138,8 @@ class GenePatternAuthenticator(Authenticator):
             except HTTPError as e: pass
 
         # Fall back to logging in via login form if cookie is invalid or not available
-        handler.redirect('/hub/login/form')
+        if redirect: handler.redirect('/hub/login/form')
+        else: return False
 
     def login_from_form(self, handler, data):
         """Handle login form submission then return user and auth state"""

@@ -10,7 +10,7 @@ from tornado.httpclient import HTTPRequest, AsyncHTTPClient, HTTPError
 from jupyterhub.auth import Authenticator
 from traitlets import Unicode, Bool
 
-from gpauthenticator.handlers import LoginHandler
+from gpauthenticator.handlers import LoginHandler, LogoutHandler
 
 
 class GenePatternAuthenticator(Authenticator):
@@ -79,6 +79,7 @@ class GenePatternAuthenticator(Authenticator):
     def get_handlers(self, app):
         genepattern_handlers = [
             (r'/login/form', LoginHandler),
+            (r'/logout', LogoutHandler),
             # (r'/signup', SignUpHandler),
             # (r'/authorize', AuthorizationHandler),
             # (r'/authorize/([^/]*)', ChangeAuthorizationHandler),
@@ -88,10 +89,22 @@ class GenePatternAuthenticator(Authenticator):
 
     @gen.coroutine
     def refresh_user(self, user, handler=None):
-        cookie_login = self.login_from_cookie(handler, redirect=False)
-        if cookie_login:
-            handler.set_cookie('GenePatternAccess', cookie_login['auth_state']['access_token'])
-            return cookie_login
+        if 'GenePatternAccess' in handler.request.cookies:
+            token = handler.request.cookies['GenePatternAccess'].value
+
+            # Attempt to call the username endpoint
+            http_client = AsyncHTTPClient()
+            url = self.genepattern_url + "/rest/v1/config/user"
+            req = HTTPRequest(url, method="GET", headers={"Authorization": "Bearer " + token})
+            try:
+                resp = yield http_client.fetch(req)
+                resp_json = json.loads(resp.body.decode("utf-8"))
+                username = self.normalize_username(resp_json['result'])
+
+                # Set the cookie and return
+                handler.set_cookie('GenePatternAccess', token)
+                return {"name": username, "auth_state": {"access_token": token}}
+            except HTTPError: return False
         else:
             return False
 

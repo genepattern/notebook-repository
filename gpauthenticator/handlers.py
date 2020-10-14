@@ -27,14 +27,15 @@ class LogoutHandler(LogoutHandler):
 
     async def handle_logout(self):
         """Call the genePattern logout endpoint and clear the GenePatternAccess cookie"""
-        token = self.request.cookies['GenePatternAccess'].value
+        if 'GenePatternAccess' in self.request.cookies:
+            token = self.request.cookies['GenePatternAccess'].value
 
-        # Attempt to call the logout endpoint
-        http_client = AsyncHTTPClient()
-        url = self.authenticator.genepattern_url + "/rest/v1/oauth2/logout"
-        req = HTTPRequest(url, method="GET", headers={"Authorization": "Bearer " + token})
-        try: http_client.fetch(req)
-        except HTTPError: pass  # If there's an error, there's nothing we can do, move on
+            # Attempt to call the logout endpoint
+            http_client = AsyncHTTPClient()
+            url = self.authenticator.genepattern_url + "/rest/v1/oauth2/logout"
+            req = HTTPRequest(url, method="GET", headers={"Authorization": "Bearer " + token})
+            try: http_client.fetch(req)
+            except HTTPError: pass  # If there's an error, there's nothing we can do, move on
 
-        # Clear the GenePattern cookie to force re-login
-        self.clear_cookie('GenePatternAccess')
+            # Clear the GenePattern cookie to force re-login
+            self.clear_cookie('GenePatternAccess')

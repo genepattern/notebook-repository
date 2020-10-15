@@ -229,7 +229,6 @@ class GenePatternAuthenticator(Authenticator):
             specific_user = os.path.join(self.users_dir_path, username)
             if not os.path.exists(specific_user):
                 os.makedirs(specific_user)
-                os.chmod(specific_user, 0o777)
 
                 # Copy over example notebooks if USERS_DIR_PATH is set
                 if self.default_nb_dir is not None and os.path.exists(self.default_nb_dir):
@@ -240,3 +239,6 @@ class GenePatternAuthenticator(Authenticator):
                             shutil.copytree(file_path, os.path.join(specific_user, f))
                         elif os.path.isfile(file_path):
                             shutil.copy(file_path, specific_user)
+
+            # Make sure the directory has the correct permissions
+            os.chmod(specific_user, 0o777)

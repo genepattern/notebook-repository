@@ -68,6 +68,7 @@ body > .navbar > .container-fluid {
     box-shadow: 0 0 12px 1px rgba(87, 87, 87, 0.2);
     min-height: 0;
     height: auto;
+    position: relative;
 }
 
 #login-main {
@@ -109,4 +110,179 @@ body > .navbar > .container-fluid {
 
 .navbar-text {
     display: none;
+}
+
+/** Projects Page **/
+
+.nb-workspace {
+    display: inline-block;
+    width: 272px;
+    vertical-align: top;
+    height: 212px;
+    margin-bottom: 10px;
+    margin-right: 10px;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 3px 3px rgba(0, 0, 0, .24);
+    border: lightgray 1px solid;
+    position: relative;
+}
+
+.nb-workspace > .nb-img-top {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+.nb-workspace > .panel-body > .panel-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 265px;
+    display: block;
+    margin: 0 0 10px;
+}
+
+.nb-workspace > .panel-body {
+    padding: 5px;
+}
+
+.nb-workspace > .panel-body > .panel-text {
+    font-size: 0.9em;
+    line-height: 1.2em;
+    overflow: hidden;
+    /* for set '...' in absolute position */
+    position: relative;
+    /* max-height = line-height (1.2) * lines max number (3) */
+    max-height: 3.6em;
+    /* place for '...' */
+    margin-right: -1em;
+    padding-right: 1em;
+}
+
+/* create the ... */
+.nb-workspace > .panel-body > .panel-text:before {
+    /* points in the end */
+    content: '...';
+    /* absolute position */
+    position: absolute;
+    /* set position to right bottom corner of block */
+    right: 15px;
+    bottom: 2px;
+}
+
+/* hide ... if we have text, which is less than or equal to max lines */
+.nb-workspace > .panel-body > .panel-text:after {
+    /* points in the end */
+    content: '';
+    /* absolute position */
+    position: absolute;
+    /* set position to right bottom corner of text */
+    right: 15px;
+    /* set width and height */
+    width: 10px;
+    height: 1em;
+    margin-top: 0.2em;
+    /* bg color = bg color under block */
+    background: white;
+}
+
+.nb-workspace > .panel-body > .nb-tags {
+    position: absolute;
+    bottom: 5px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.nb-workspace > .panel-body > .nb-tags > .badge {
+    display: inline-block;
+    margin-right: 3px;
+}
+
+div.nb-workspace-new {
+    border: lightgray 2px dashed;
+    box-shadow: none;
+}
+
+.nb-icon-space {
+    position: absolute;
+    top: 8px;
+    right: 60px;
+    width: 100px;
+    text-align: right;
+    color: white;
+    padding: 0;
+    margin: 0;
+    z-index: 1;
+}
+
+.nb-published-icon,
+.nb-shared-icon {
+    width: 30px;
+}
+
+.nb-gear-menu {
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: white;
+    border: transparent solid 1px;
+    border-radius: 3px;
+    z-index: 1;
+}
+
+.nb-gear-menu > button {
+    color: white;
+    background-color: transparent;
+    border: none;
+}
+
+.nb-gear-menu > button.dropdown-toggle:hover,
+.nb-gear-menu > button.dropdown-toggle:focus,
+.nb-gear-menu.open > button.dropdown-toggle:hover,
+.nb-gear-menu.open > button.dropdown-toggle:focus {
+    color: white;
+    background-color: transparent;
+}
+
+.nb-gear-menu.open > button.dropdown-toggle {
+    color: white;
+    background-color: transparent;
+}
+
+.nb-gear-menu:hover {
+    border: rgba(255, 255, 255, 0.7) solid 1px;
+    z-index: 2;
+}
+
+.nb-workspace-icon {
+    display: block;
+    opacity: 20%;
+    line-height: 100%;
+    font-size: 70px;
+    text-align: center;
+    padding-top: 15px;
+}
+
+.nb-stopped > img {
+    filter: grayscale(100%) brightness(150%);
+}
+
+.nb-stopped .nb-stop,
+li > a.nb-delete,
+li > a.nb-edit {
+    display: none;
+}
+
+.nb-stopped .nb-delete,
+.nb-stopped .nb-edit {
+    display: block;
+}
+
+#nb-search {
+    width: 25%;
+    right: 25px;
+    position: absolute;
+    top: 40px;
 }

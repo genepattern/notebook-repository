@@ -24,11 +24,11 @@ c.GenePatternAuthenticator.admin_users = ['tabor']
 
 # Spawner connfig
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
-c.DockerSpawner.image = 'genepattern/genepattern-notebook:20.10'
+c.DockerSpawner.image = 'genepattern/genepattern-notebook:20.11'
 c.DockerSpawner.remove_containers = True
 c.DockerSpawner.image_whitelist = {
-    'Legacy': 'genepattern/genepattern-notebook:20.10',
-    'R 3.6': 'genepattern/notebook-r36:20.07'
+    'Legacy': 'genepattern/genepattern-notebook:20.11',
+    'R 3.6': 'genepattern/notebook-r36:20.10'
 }
 c.DockerSpawner.volumes = {
     os.path.join(os.getcwd(), './data/users/{raw_username}/{servername}'): '/home/jovyan',  # Mount users directory

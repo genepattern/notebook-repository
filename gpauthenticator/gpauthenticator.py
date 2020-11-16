@@ -99,7 +99,7 @@ class GenePatternAuthenticator(Authenticator):
             try:
                 resp = yield http_client.fetch(req)
                 resp_json = json.loads(resp.body.decode("utf-8"))
-                username = self.normalize_username(resp_json['result'])
+                username = resp_json['result']
 
                 # Set the cookie and return
                 handler.set_cookie('GenePatternAccess', token)
@@ -142,7 +142,7 @@ class GenePatternAuthenticator(Authenticator):
             try:
                 resp = yield http_client.fetch(req)
                 resp_json = json.loads(resp.body.decode("utf-8"))
-                username = self.normalize_username(resp_json['result'])
+                username = resp_json['result']
 
                 # Return the username
                 return {"name": username, "auth_state": {"access_token": token}}
@@ -181,7 +181,6 @@ class GenePatternAuthenticator(Authenticator):
         # Handle the response
         if resp is not None and resp.code == 200:
             response_payload = json.loads(resp.body.decode("utf-8"))
-            username = self.normalize_username(username)
 
             # Set the GenePattern access cookie
             handler.set_cookie('GenePatternAccess', response_payload['access_token'])

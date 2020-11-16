@@ -1,7 +1,7 @@
 {% extends "page.html" %}
 
 {% block meta %}
-    <meta http-equiv="refresh" content="60">
+    <meta http-equiv="refresh" content="300">
 {% endblock %}
 
 {% block main %}
@@ -88,7 +88,7 @@
         </div>
     {% endcall %}
 
-    {% call modal('Edit Workspace', btn_class='btn-warning edit-button') %}
+    {% call modal('Edit Workspace', btn_label='Save', btn_class='btn-warning edit-button') %}
         <div class="form-horizontal">
             <div class="form-group">
                 <label for="name" class="control-label col-sm-4">Workspace Name*</label>
@@ -155,7 +155,6 @@
 
         // Edit workspace
         function edit_workspace(workspace) {
-            console.log('called');
             const edit_dialog = $('#edit-workspace-dialog').modal();
             const workspace_name = edit_dialog.find('[name=name]').val($(workspace).data('name'));
             const image = edit_dialog.find('[name=image]').val($(workspace).data('image'));

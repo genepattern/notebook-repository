@@ -1,5 +1,6 @@
 import ntpath
 import os
+import re
 import smtplib
 import urllib
 from email.mime.multipart import MIMEMultipart
@@ -114,14 +115,19 @@ class NotebookViewSet(viewsets.ModelViewSet):
     @staticmethod
     def _user_file_path(username, api_path):
         base_user_path = os.path.join(settings.BASE_USER_PATH, username)
+        decoded_api_path = urllib.parse.unquote(api_path)
 
-        if not settings.JUPYTERHUB:  # Handle dev environment
-            file_path = urllib.parse.unquote(api_path.split('/', 2)[2])
-        else:
-            file_path = urllib.parse.unquote(api_path.split('/', 4)[4])
+        # Get the file path relative to the Jupyter server's home directory
+        file_path = re.search('/notebooks/(.+?)$', decoded_api_path).group(1)
+
+        # If named servers are enabled, get the server name
+        try:
+            named_server = re.search('/user/.*/(.+?)/notebooks/', decoded_api_path).group(1)
+        except AttributeError:
+            named_server = ''
 
         # Path to the user's notebook file
-        user_nb_path = os.path.join(base_user_path, file_path)
+        user_nb_path = os.path.join(base_user_path, named_server, file_path)
         return user_nb_path
 
     @staticmethod
@@ -316,7 +322,7 @@ class NotebookViewSet(viewsets.ModelViewSet):
         self._remove_notebook_file(file_path)
 
         # Remove the preview from the file system
-        remove_preview(response.data['file_path'])
+        remove_preview(file_path)
 
         # Return response
         return response
@@ -402,8 +408,14 @@ def copy(request, pk, api_path):
         # Get the user's username
         username = request.user.username
 
+        # If named servers are enabled, get the server name
+        try:
+            named_server = re.search('/user/.*/(.+?)/tree', request.META['HTTP_REFERER']).group(1)
+        except AttributeError:
+            named_server = ''
+
         # Get the user's current directory
-        base_user_path = os.path.join(settings.BASE_USER_PATH, username)
+        base_user_path = os.path.join(settings.BASE_USER_PATH, username, named_server)
         copy_to_dir = os.path.join(base_user_path, urllib.parse.unquote(api_path))
         if not copy_to_dir.endswith('/'):
             copy_to_dir += '/'

@@ -27,9 +27,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 
-# This file contains experimental notebook sharing code.
-# This code is not yet functional in production.
-
 ##################
 # From models.py #
 ##################
@@ -117,6 +114,14 @@ class CollaboratorViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.AllowAny, )
 
 
+def _extract_server_name(request):
+    # If named servers are enabled, get the server name
+    try:
+        return re.search('/user/.*/(.+?)/tree', request.META['HTTP_REFERER']).group(1)
+    except AttributeError:
+        return ''
+
+
 def _create_new_share(owner, api_path, file_path):
     notebook = Share()
     notebook.name = api_path.split('/')[-1]
@@ -185,8 +190,11 @@ def begin_sharing(request):
     # The original owner of the notebook
     owner = request.data['shared_by'] if 'shared_by' in request.data else None
 
+    # If named servers are enabled, get the server name
+    named_server = _extract_server_name(request)
+
     # Escape nb_path and prepend owner
-    api_path = str(owner) + '/' + nb_path
+    api_path = os.path.join(str(owner), named_server, nb_path)
 
     # Handle the case of sharing with nobody
     if not api_path or not users or not owner:
@@ -204,8 +212,9 @@ def begin_sharing(request):
 
     # Update the shared notebook on the file system
     try:
-        local_path = os.path.join(settings.BASE_USER_PATH, request.user.username, nb_path) if settings.JUPYTERHUB else os.path.join(settings.BASE_USER_PATH, nb_path)
+        local_path = os.path.join(settings.BASE_USER_PATH, request.user.username, named_server, nb_path)
         share_path = os.path.join(settings.BASE_SHARE_PATH, api_path)
+
         os.makedirs(os.path.dirname(share_path), exist_ok=True)  # Lazily create the directory, if necessary
         copyfile(local_path, share_path)
     except Exception as e:
@@ -391,12 +400,12 @@ def _create_collaborator(nb, name_or_email):
 
     # If invalid username, throw an error
     # TODO: Implement better check
-    if not is_email:
-        try:
-            u = User.objects.get(username=name.lower())
-            email = '' if u.email is None else u.email
-        except User.DoesNotExist:
-            raise Exception("Unknown user")
+    # if not is_email:
+    #     try:
+    #         u = User.objects.get(username=name.lower())
+    #         email = '' if u.email is None else u.email
+    #     except User.DoesNotExist:
+    #         raise Exception("Unknown user")
 
     # If email, make the username match the email for now
     if is_email:
@@ -434,8 +443,10 @@ def _create_collaborator(nb, name_or_email):
 @api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def current_collaborators(request, api_path):
-    nb_path = urllib.parse.unquote(api_path)
-    matches = Collaborator.objects.filter(share__api_path=nb_path)
+    decoded_path = urllib.parse.unquote(api_path)
+    user = decoded_path.split('/', 2)[0]
+    nb_path = decoded_path.split('/', 2)[1]
+    matches = Collaborator.objects.filter(share__api_path__startswith=user, share__api_path__endswith=nb_path)
 
     return_list = []
     for c in matches:
@@ -497,13 +508,16 @@ def copy_share(request, pk, local_dir_path):
     # Get the current collaborator
     collaborator = get_object_or_404(Collaborator, user=username, share=nb)
 
+    # If named servers are enabled, get the server name
+    named_server = _extract_server_name(request)
+
     # Does the collaborator already have a file path? If not, add one
     if not collaborator.file_path:
         collaborator.file_path = os.path.join(local_dir_path, nb.name)
         collaborator.save()
 
     # Either way, get the local path
-    local_path = Path(os.path.join(settings.BASE_USER_PATH, request.user.username, collaborator.file_path)) if settings.JUPYTERHUB else Path(os.path.join(settings.BASE_USER_PATH, collaborator.file_path))
+    local_path = Path(os.path.join(settings.BASE_USER_PATH, request.user.username, named_server, collaborator.file_path)) if settings.JUPYTERHUB else Path(os.path.join(settings.BASE_USER_PATH, named_server, collaborator.file_path))
 
     # Check to see if the notebook exists, if not copy the shared notebook there and return
     if not local_path.exists():

@@ -53,6 +53,17 @@ from jupyter_client.localinterfaces import public_ips
 ip = public_ips()[0]
 c.JupyterHub.hub_ip = ip
 
+# Enable CORS
+origin = '*'
+c.Spawner.args = [f'--NotebookApp.allow_origin={origin}', '--NotebookApp.allow_credentials=True', "--NotebookApp.tornado_settings={\"headers\":{\"Referrer-Policy\":\"no-referrer-when-downgrade\"}}"]
+c.JupyterHub.tornado_settings = {
+    'headers': {
+        'Referrer-Policy': 'no-referrer-when-downgrade',
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Credentials': 'true',
+    },
+}
+
 # Configuration file for jupyterhub.
 
 #------------------------------------------------------------------------------

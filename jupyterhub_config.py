@@ -6,12 +6,12 @@ from jupyterhub.handlers import BaseHandler
 from tornado.web import authenticated
 
 
-# class ProjectsHandler(BaseHandler):
-#     """Serve the projects page from its template: theme/templates/projects.html"""
-#
-#     @authenticated
-#     def get(self):
-#         self.write(self.render_template('projects.html'))
+class UserHandler(BaseHandler):
+    """Serve the user info from its template: theme/templates/user.json"""
+
+    @authenticated
+    def get(self):
+        self.write(self.render_template('user.json'))
 
 
 c = get_config()
@@ -45,7 +45,7 @@ copy_tree('./theme/images/', os.path.join(static_path, 'images'), update=1)
 # Named server config
 c.JupyterHub.allow_named_servers = True
 c.JupyterHub.default_url = '/home'
-#c.JupyterHub.extra_handlers = [('projects', ProjectsHandler)]
+c.JupyterHub.extra_handlers = [('user.json', UserHandler)]
 c.DockerSpawner.name_template = "{prefix}-{username}-{servername}"
 
 # Ensure that JupyterHub can connect to the singleuser images

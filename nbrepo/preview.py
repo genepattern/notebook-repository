@@ -13,7 +13,7 @@ from nbrepo.models import Notebook
 
 def generate_preview(nb_file_path):
     # Generate the preview screenshot and save it to the preview directory
-    os.system("nbrepo/screenshot.py " + shlex.quote(nb_file_path))
+    os.system("/srv/notebook-repository/nbrepo/screenshot.py " + shlex.quote(nb_file_path))
 
 
 def remove_preview(nb_file_path):

@@ -119,7 +119,10 @@ def _extract_server_name(request):
     try:
         return re.search('/user/.*/(.+?)/tree', request.META['HTTP_REFERER']).group(1)
     except AttributeError:
-        return ''
+        try:
+            return re.search('/user/.*/(.+?)/notebooks/', request.META['HTTP_REFERER']).group(1)
+        except AttributeError:
+            return ''
 
 
 def _create_new_share(owner, api_path, file_path):

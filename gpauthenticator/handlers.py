@@ -1,6 +1,5 @@
 import os
-from jinja2 import ChoiceLoader, FileSystemLoader
-from jupyterhub.handlers import BaseHandler, LoginHandler, LogoutHandler
+from jupyterhub.handlers import  LoginHandler, LogoutHandler
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest, HTTPError
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
@@ -18,8 +17,10 @@ class LoginHandler(LoginHandler):
             self.set_login_cookie(user)
             self.redirect(self.get_next_url(user), permanent=False)
         else:
-            username = self.get_argument('username', default='')
-            self.finish(self._render(username=username))
+            template = self.render_template('login.html')
+            if not isinstance(template, str):
+                template = await template
+            self.write(template)
 
 
 class LogoutHandler(LogoutHandler):

@@ -8,7 +8,8 @@
     {% set named_spawners = user.all_spawners(include_default=False)|list %}
 
     <div class="container">
-        <div id="messages"></div>
+        <div id="messages">
+        </div>
         <h1>Notebook Projects</h1>
         <p class="lead">Launch, create or share notebook projects.</p>
         <input type="search" id="nb-search" placeholder="Search Projects" class="form-control" />
@@ -56,6 +57,12 @@
             {% endfor %}
         </div>
     </div>
+
+    {% call modal('Introducing Notebook Projects', btn_label='OK', btn_class='btn-default ok-button') %}
+        <p>The GenePattern Notebook Workspace now allows you to divide your work into multiple “projects,” each with its
+            own environment and extensions. For more information about notebook projects,
+            <a href="https://notebook.genepattern.org/basic-features/#notebook-projects" target="_blank">see our documentation</a>.</p>
+    {% endcall %}
 
     {% call modal('Delete Project', btn_class='btn-danger delete-button') %}
         <p>Are you sure that you want to delete this project?</p>
@@ -268,5 +275,8 @@
         $('.nb-stop').click((event) => stop_project($(event.target).closest('.nb-project')));
         $('.nb-delete').click((event) => delete_project($(event.target).closest('.nb-project')));
         $('.nb-edit').click((event) => edit_project($(event.target).closest('.nb-project')));
+
+        // Display the info dialog
+        $('#introducing-notebook-projects-dialog').modal().find("button:first-child").hide();
     </script>
 {% endblock %}

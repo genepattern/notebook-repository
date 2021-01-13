@@ -280,9 +280,13 @@ li > a.nb-edit {
     display: block;
 }
 
+#nb-header {
+    position: relative;
+}
+
 #nb-search {
     width: 25%;
     right: 25px;
     position: absolute;
-    top: 40px;
+    top: 0;
 }

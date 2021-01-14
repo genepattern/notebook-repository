@@ -61,7 +61,7 @@ for user in users:
     username = user[1]
 
     # Insert a new project into the servers table
-    user_options = '{"image": "Legacy", "name": "Legacy Workspace", "description": "Your notebook workspace prior to migration to notebook projects."}'
+    user_options = '{"image": "Legacy", "name": "Legacy Notebook Workspace", "description": "Click here to access your previous notebooks."}'
     sql = 'INSERT INTO spawners(user_id, server_id, state, name, started, last_activity, user_options) ' + \
           f"VALUES({user_id}, null, null, 'legacy_project', null, null, '{user_options}')"
     cur.execute(sql)

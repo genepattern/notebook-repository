@@ -9,30 +9,21 @@
 
     <div class="container">
         <div id="messages">
-            <div class="alert alert-info">
-            <p>The GenePattern Notebook Workspace now allows you to divide your work into multiple “projects,” each with its
-                own environment and extensions. For more information about notebook projects,
-                <a href="https://notebook.genepattern.org/basic-features/#notebook-projects" target="_blank">see our documentation</a>.</p>
+            <div class="alert alert-success">
+                <p><strong>Looking for your notebooks? They have been migrated to the project named Legacy Notebook Workspace.</strong></p>
+                <p>The GenePattern Notebook Workspace now allows you to divide your work into multiple “projects,” each with its
+                    own environment and extensions. For more information about notebook projects,
+                    <a href="https://notebook.genepattern.org/basic-features/#notebook-projects" target="_blank">see our documentation</a>.</p>
             </div>
         </div>
 
         <div id="nb-header">
             <h1>Notebook Projects</h1>
-            <p class="lead">Launch, create or share notebook projects.</p>
+            <p class="lead">Launch, create or edit notebook projects.</p>
             <input type="search" id="nb-search" placeholder="Search Projects" class="form-control" />
         </div>
 
         <div id="projects">
-            <div class="panel nb-project nb-project-new" data-api="{{ base_url }}api/users/{{ user.name }}/servers/" data-get="{{ base_url }}user/{{ user.name }}/">
-                <div class="nb-img-top" style="background: rgba(0, 0, 0, 0.05) none repeat scroll 0% 0%;">
-                    <i class="fa fa-plus-circle nb-project-icon"></i>
-                </div>
-                <div class="panel-body">
-                    <h8 class="panel-title">New Project</h8>
-                    <p class="panel-text">Create a New Notebook Project</p>
-                </div>
-            </div>
-
             {% for spawner in named_spawners %}
 
                 <div class="panel nb-project {% if not spawner.active %}nb-stopped{% endif %}" data-name="{{ spawner.user_options['name'] or spawner.name }}" data-image="{{ spawner.user_options['image'] }}" data-description="{{ spawner.user_options['description'] }}" data-post="{{ base_url }}spawn/{{ user.name }}/{{ spawner.name }}" data-get="{{ user.server_url(spawner.name) }}" data-api="{{ base_url }}api/users/{{ user.name }}/servers/{{ spawner.name }}">
@@ -63,6 +54,16 @@
                     </div>
                 </div>
             {% endfor %}
+
+            <div class="panel nb-project nb-project-new" data-api="{{ base_url }}api/users/{{ user.name }}/servers/" data-get="{{ base_url }}user/{{ user.name }}/">
+                <div class="nb-img-top" style="background: rgba(0, 0, 0, 0.05) none repeat scroll 0% 0%;">
+                    <i class="fa fa-plus-circle nb-project-icon"></i>
+                </div>
+                <div class="panel-body">
+                    <h8 class="panel-title">New Project</h8>
+                    <p class="panel-text">Create a New Notebook Project</p>
+                </div>
+            </div>
         </div>
     </div>
 

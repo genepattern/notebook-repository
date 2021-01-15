@@ -20,7 +20,8 @@ class LoginHandler(LoginHandler):
             template = self.render_template('login.html')
             if not isinstance(template, str):
                 template = await template
-            self.write(template)
+            username = self.get_argument('username', default='')
+            self.write(self._render(username=username))
 
 
 class LogoutHandler(LogoutHandler):

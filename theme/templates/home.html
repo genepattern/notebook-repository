@@ -49,7 +49,9 @@
                         <h8 class="panel-title">{{ spawner.user_options['name'] or spawner.name }}</h8>
                         <p class="panel-text">{{ spawner.user_options['description'] or spawner.last_activity }}</p>
                         <div class="panel-text nb-tags">
-                            <span class="badge badge-secondary">{{ spawner.user_options['image'] or 'Unknown' }}</span>
+                            <span class="badge badge-secondary">Project</span>
+                            {# TODO: RE-ENABLE FOR RELEASE 2 #}
+{#                            <span class="badge badge-secondary">{{ spawner.user_options['image'] or 'Unknown' }}</span>#}
                         </div>
                     </div>
                 </div>
@@ -79,16 +81,18 @@
                     <input name="name" type="text" class="form-control" />
                 </div>
             </div>
-            <div class="form-group">
-                <label for="image" class="control-label col-sm-4">Environment*</label>
-                <div class="col-sm-8">
-                    <select name="image" class="form-control">
-                        {% for image in user.spawner.image_whitelist.keys() %}
-                            <option value="{{ image }}">{{ image }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
+            <input type="hidden" name="image" value="Legacy" />
+            {# TODO: RE-ENABLE FOR RELEASE 2 #}
+{#            <div class="form-group">#}
+{#                <label for="image" class="control-label col-sm-4">Environment*</label>#}
+{#                <div class="col-sm-8">#}
+{#                    <select name="image" class="form-control">#}
+{#                        {% for image in user.spawner.image_whitelist.keys() %}#}
+{#                            <option value="{{ image }}">{{ image }}</option>#}
+{#                        {% endfor %}#}
+{#                    </select>#}
+{#                </div>#}
+{#            </div>#}
             <div class="form-group">
                 <label for="description" class="control-label col-sm-4">Description</label>
                 <div class="col-sm-8">
@@ -106,16 +110,18 @@
                     <input name="name" type="text" class="form-control" />
                 </div>
             </div>
-            <div class="form-group">
-                <label for="image" class="control-label col-sm-4">Environment*</label>
-                <div class="col-sm-8">
-                    <select name="image" class="form-control">
-                        {% for image in user.spawner.image_whitelist.keys() %}
-                            <option value="{{ image }}">{{ image }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
+            <input type="hidden" name="image" value="Legacy" />
+            {# TODO: RE-ENABLE FOR RELEASE 2 #}
+{#            <div class="form-group">#}
+{#                <label for="image" class="control-label col-sm-4">Environment*</label>#}
+{#                <div class="col-sm-8">#}
+{#                    <select name="image" class="form-control">#}
+{#                        {% for image in user.spawner.image_whitelist.keys() %}#}
+{#                            <option value="{{ image }}">{{ image }}</option>#}
+{#                        {% endfor %}#}
+{#                    </select>#}
+{#                </div>#}
+{#            </div>#}
             <div class="form-group">
                 <label for="description" class="control-label col-sm-4">Description</label>
                 <div class="col-sm-8">

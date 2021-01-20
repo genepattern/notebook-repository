@@ -87,19 +87,27 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 text-right">
-                            <strong>
-                                Authors<br>
-                                Quality<br>
-                                Owner<br>
-                                Updated
-                            </strong>
-                        </div>
-                        <div class="col-md-6 text-left">
-                            {{ notebook.author }}<br>
-                            {{ notebook.quality }}<br>
-                            {{ notebook.owner }}<br>
-                            {{ notebook.publication }}
+                        <div class="col-md-12" style="padding-left: 50px; padding-right: 50px;">
+                            <table class="table table-striped">
+                                <tbody>
+                                    <tr>
+                                        <td class="col-md-6 text-right"><strong>Authors</strong></td>
+                                        <td class="col-md-6 text-left">{{ notebook.author }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="col-md-6 text-right"><strong>Quality</strong></td>
+                                        <td>{{ notebook.quality }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="col-md-6 text-right"><strong>Owner</strong></td>
+                                        <td>{{ notebook.owner }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="col-md-6 text-right"><strong>Updated</strong></td>
+                                        <td>{{ notebook.publication }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 

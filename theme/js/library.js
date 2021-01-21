@@ -301,44 +301,79 @@ define("library", [
         // Show the loading screen
         modal_loading_screen();
 
-        let current_directory = 'legacy_project/';
+        lazily_create_project().then((project) => {
+            // Call the repo service to publish the notebook
+            let current_directory = 'legacy_project/';
+            $.ajax({
+                url: GenePattern.repo.repo_url + "/notebooks/" + notebook['id'] + "/copy/" + current_directory,
+                method: "POST",
+                crossDomain: true,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
+                },
+                success: function(responseData) {
+                    // Close the modal
+                    close_modal();
 
-        // Call the repo service to publish the notebook
-        $.ajax({
-            url: GenePattern.repo.repo_url + "/notebooks/" + notebook['id'] + "/copy/" + current_directory,
-            method: "POST",
-            crossDomain: true,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("Authorization", "Token " + GenePattern.repo.token);
-            },
-            success: function(responseData) {
-                // Close the modal
-                close_modal();
+                    // Parse the data
+                    const response = JSON.parse(responseData);
 
-                // Parse the data
-                const response = JSON.parse(responseData);
+                    // Launch the legacy project
+                    open_project(project, (project) => {
+                        const get_url = project.data('get');
+                        window.open(get_url + '/notebooks/' + response['filename']);
+                        window.location.reload();
+                    });
+                },
+                error: function() {
+                    // Close the modal
+                    close_modal();
 
-                // Launch the legacy project
-                const project = $('div.nb-project[data-name="legacy_project"]');
-                open_project(project, (project) => {
-                    const get_url = project.data('get');
-                    window.open(get_url + '/notebooks/' + response['filename'])
-                });
-            },
-            error: function() {
-                // Close the modal
-                close_modal();
-
-                // Show error dialog
-                console.log("ERROR: Failed to copy from repository");
-                dialog.modal({
-                    title : "Failed to Copy Notebook",
-                    body : $("<div></div>")
+                    // Show error dialog
+                    console.log("ERROR: Failed to copy from repository");
+                    $("<div></div>")
                         .addClass("alert alert-danger")
-                        .append("The GenePattern Notebook Repository encountered an error when attempting to copy the notebook."),
-                    buttons: {"OK": function() {}}
-                });
+                        .append("The GenePattern Notebook Repository encountered an error when attempting to copy the notebook.")
+                        .prependTo("#repository-container");
+                }
+            });
+        });
+    }
+
+    function lazily_create_project() {
+        return new Promise((resolve, reject) => {
+            // Does the legacy project exist?
+            const project = $(`div.nb-project[data-api="/hub/api/users/${GenePattern.repo.username}/servers/legacy_project"]`);
+            if (project.length) {
+                resolve(project);
+                return;
             }
+
+            // Otherwise, lazily create the legacy project
+            const api_url = `/hub/api/users/${GenePattern.repo.username}/servers/`;
+            const safe_name = 'legacy_project';
+            const project_name = 'Default Project';
+            const image = 'Legacy';
+            const description = 'A default project for running and reproducing public notebooks.';
+
+            $.ajax({
+                method: 'POST',
+                url: api_url + safe_name,
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    "name": project_name,
+                    "image": image,
+                    "description": description
+                }),
+                success: () => {
+                    resolve($('<div></div>')
+                        .data('get', `/user/${GenePattern.repo.username}/legacy_project`));
+                },
+                error: () => {
+                    $('#repository-container').prepend($('<div class="alert alert-danger">Unable to create project.</div>'));
+                    reject();
+                }
+            });
         });
     }
 

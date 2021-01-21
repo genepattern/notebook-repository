@@ -18,7 +18,7 @@
         </div>
 
         <div id="nb-header">
-            <h1>Notebook Projects</h1>
+            <h1>Your Projects</h1>
             <p class="lead">Launch, create or edit notebook projects.</p>
             <input type="search" id="nb-search" placeholder="Search Projects" class="form-control" />
         </div>
@@ -67,6 +67,11 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div id="repository-container" class="container">
+        <h1>Public Notebooks</h1>
+        <p class="lead">Browse, launch and reproduce public notebooks.</p>
     </div>
 
     {% call modal('Delete Project', btn_class='btn-danger delete-button') %}
@@ -234,11 +239,17 @@
         }
 
         // Launch or open an existing project
-        function open_project(project) {
+        function open_project(project, callback) {
+            // If a custom callback is not defined, use the default one
+            const get_url = project.data('get');
+            if (!callback) callback = () => {
+                // Open the project in a new tab
+                window.open(get_url);
+            };
+
             let running = !project.hasClass('nb-stopped');
             if (running) { // If running, just open a new tab
-                const get_url = project.data('get');
-                window.open(get_url);
+                callback(project);
             }
             else { // Otherwise, launch the server
                 let image = project.data('image');
@@ -257,14 +268,13 @@
                         "image": image,
                         "description": description
                     }),
-                    success: () => console.log(get_url),
+                    success: () => {},
                     error: () => $('#messages').append(
                         $('<div class="alert alert-danger">Unable to edit project.</div>')
                     )
                 });
 
-                // Open the project in a new tab
-                window.open(get_url);
+                callback(project);
 
                 // Older implementation using the POST URL, for some reason wouldn't preserve name & description, remove when no longer needed
                 {#$(`<form action="${post_url}" method="POST" target="_blank" class="hidden"></form>`)#}
@@ -311,5 +321,13 @@
         $('.nb-stop').click((event) => stop_project($(event.target).closest('.nb-project')));
         $('.nb-delete').click((event) => delete_project($(event.target).closest('.nb-project')));
         $('.nb-edit').click((event) => edit_project($(event.target).closest('.nb-project')));
+    </script>
+
+    {# TODO: Replace with new functionality for Release 2  #}
+    <script type="text/javascript" src="/hub/static/js/library.js"></script>
+    <script type="text/javascript">
+        requirejs(["library"], function(library) {
+            library.tree_init();
+        });
     </script>
 {% endblock %}

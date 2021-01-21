@@ -42,6 +42,7 @@ c.JupyterHub.template_paths = ['./theme/templates']
 static_path = os.path.join(Path(sys.executable).parent.parent, 'share', 'jupyterhub', 'static')
 copy_tree('./theme/css/', os.path.join(static_path, 'css'), update=1)
 copy_tree('./theme/images/', os.path.join(static_path, 'images'), update=1)
+copy_tree('./theme/js/', os.path.join(static_path, 'js'), update=1)
 
 # Named server config
 c.JupyterHub.allow_named_servers = True

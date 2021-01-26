@@ -13,6 +13,15 @@ class UserHandler(BaseHandler):
     def get(self):
         self.write(self.render_template('user.json'))
 
+# NEWER VERSIONS OF TORNADO MAY REQUIRE ASYNC:
+
+# class UserHandler(BaseHandler):
+#     """Serve the user info from its template: theme/templates/user.json"""
+#
+#     @authenticated
+#     async def get(self):
+#         self.write(await self.render_template('user.json'))
+
 
 c = get_config()
 

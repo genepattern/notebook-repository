@@ -27,7 +27,7 @@
         <div id="projects">
             {% for spawner in named_spawners %}
 
-                <div class="panel nb-project {% if not spawner.active %}nb-stopped{% endif %}" data-name="{{ spawner.user_options['name'] or spawner.name }}" data-image="{{ spawner.user_options['image'] }}" data-description="{{ spawner.user_options['description'] }}" data-post="{{ base_url }}spawn/{{ user.name }}/{{ spawner.name }}" data-get="{{ user.server_url(spawner.name) }}" data-api="{{ base_url }}api/users/{{ user.name }}/servers/{{ spawner.name }}">
+                <div class="panel nb-project {% if not spawner.active %}nb-stopped{% endif %}" data-name="{{ spawner.user_options['name'] or spawner.name }}" data-image="{{ spawner.user_options['image'] }}" data-description="{{ spawner.user_options['description'] }}" data-safename="{{ spawner.name }}" data-post="{{ base_url }}spawn/{{ user.name }}/{{ spawner.name }}" data-get="{{ user.server_url(spawner.name) }}" data-api="{{ base_url }}api/users/{{ user.name }}/servers/{{ spawner.name }}">
                     <div class="nb-icon-space hidden">
                         <i title="Shared" class="fa fa-share nb-shared-icon"></i>
                         <i title="Published" class="fa fa-newspaper-o nb-published-icon"></i>
@@ -140,6 +140,19 @@
 {% block script %}
     {{ super() }}
     <script type="text/javascript">
+        function project_exists(project_name) {
+            const project_nodes = $("#projects > .nb-project");
+            let found_name = false;
+            project_nodes.each((i, e) => {
+                const safe_name = $(e).data('safename');
+                if (project_name === safe_name) {
+                    found_name = true;
+                    return false;
+                }
+            });
+            return found_name;
+        }
+
         function new_project_dialog(project) {
             const create_dialog = $('#create-new-project-dialog');
             create_dialog.modal()
@@ -151,6 +164,14 @@
                     const safe_name = project_name.toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
                     const image = create_dialog.find('[name=image]').val();
                     const description = create_dialog.find('[name=description]').val();
+
+                    // Make sure there isn't already a project named this
+                    if (project_exists(safe_name)) {
+                        $('#messages').append(
+                            $('<div class="alert alert-danger">Please choose a different name. A project already exists with that name.</div>')
+                        );
+                        return;
+                    }
 
                     // Make the AJAX request
                     $.ajax({

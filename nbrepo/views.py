@@ -446,6 +446,8 @@ def copy(request, pk, api_path):
         if not copy_url.endswith('/'):
             copy_url += '/'
         copy_url += urllib.parse.quote(file_name_used)
+        if named_server:
+            copy_url = "/" + named_server + copy_url
 
         # If "open" flag is set, redirect to the notebook
         if request.GET.get('open', False):

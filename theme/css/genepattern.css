@@ -291,6 +291,13 @@ li > a.nb-edit {
     top: 0;
 }
 
+#nb-new {
+    width: 25%;
+    right: 25px;
+    position: absolute;
+    top: 50px;
+}
+
 /* NOTEBOOK LIBRARY STOPGAP */
 /* TODO: REMOVE ONCE RELEASE 2 IS MADE */
 

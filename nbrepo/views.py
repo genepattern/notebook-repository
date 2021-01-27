@@ -413,6 +413,8 @@ def copy(request, pk, api_path):
             named_server = re.search('/user/.*/(.+?)/tree', request.META['HTTP_REFERER']).group(1)
         except AttributeError:
             named_server = ''
+        except KeyError:
+            named_server = ''
 
         # Get the user's current directory
         base_user_path = os.path.join(settings.BASE_USER_PATH, username, named_server)

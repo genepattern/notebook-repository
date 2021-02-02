@@ -135,6 +135,11 @@
             </div>
         </div>
     {% endcall %}
+
+    {% call modal('Welcome to GenePattern Notebook') %}
+        <p class="lead text-center">Initializing your environment.<br/>Don't worry, this is a one time thing.</p>
+        <p class="text-center"><i class="fa fa-spinner fa-spin fa-3x fa-fw repo-modal-spinner"></i></p>
+    {% endcall %}
 {% endblock %}
 
 {% block script %}
@@ -151,6 +156,28 @@
                 }
             });
             return found_name;
+        }
+
+        function init_legacy() {
+            if (!project_exists('legacy_project')) {
+                const create_dialog = $('#welcome-to-genepattern-notebook-dialog');
+                create_dialog.modal().find('button').hide();
+
+                // Make the AJAX request
+                $.ajax({
+                    method: 'POST',
+                    url: "{{ base_url }}api/users/{{ user.name }}/servers/legacy_project",
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        "name": "Default Project",
+                        "image": "Legacy",
+                        "description": "Click here to access your previous notebooks."
+                    }),
+                    success: () => {
+                        window.location.reload();
+                    }
+                });
+            }
         }
 
         function new_project_dialog(project) {
@@ -242,6 +269,15 @@
 
         // Delete project
         function delete_project(project) {
+            {# Remove check in Release 2 #}
+            const safename = project.data('safename');
+            if (safename === 'legacy_project') {
+                $('#messages').append(
+                    $('<div class="alert alert-danger">Sorry. You cannot delete the default project.</div>')
+                );
+                return;
+            }
+
             $('#delete-project-dialog').modal()
                 .find(".delete-button").off('click').one('click', () => {
                     // Make the call to delete the project
@@ -367,6 +403,10 @@
         $('.nb-stop').click((event) => stop_project($(event.target).closest('.nb-project')));
         $('.nb-delete').click((event) => delete_project($(event.target).closest('.nb-project')));
         $('.nb-edit').click((event) => edit_project($(event.target).closest('.nb-project')));
+
+        {# TODO: Remove in Release 2  #}
+        // Initialize the legacy_project if necessary
+        init_legacy();
     </script>
 
     {# TODO: Replace with new functionality for Release 2  #}

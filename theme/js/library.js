@@ -1390,15 +1390,16 @@ define("library", [
      * @returns {string}
      */
     function extract_username() {
-        let username = null;
+        let extracted_username = username || null;
 
         // Try to get username from GPNB cookie
         const cookie_map = cookie_to_map();
-        if (cookie_map['gpnb-username'] !== undefined &&
+        if (extracted_username === null &&
+            cookie_map['gpnb-username'] !== undefined &&
             cookie_map['gpnb-username'] !== null &&
             cookie_map['gpnb-username'] !== 'undefined' &&
             cookie_map['gpnb-username'] !== 'null') {
-            username = cookie_map['gpnb-username'];
+            extracted_username = cookie_map['gpnb-username'];
         }
 
         // Try the GenePattern token
@@ -1406,44 +1407,39 @@ define("library", [
             cookie_map['GenePattern'] !== null &&
             cookie_map['GenePattern'] !== 'undefined' &&
             cookie_map['GenePattern'] !== 'null') {
-            username = normalize_username(cookie_map['GenePattern'].split('|')[0]);
+            extracted_username = normalize_username(cookie_map['GenePattern'].split('|')[0]);
         }
 
         // Try to get username from JupyterHub cookie
-        if (username === null) {
+        if (extracted_username === null) {
             $.each(cookie_map, function(i) {
                 if (i.startsWith("jupyter-hub-token-")) {
-                    username = decodeURIComponent(i.match(/^jupyter-hub-token-(.*)/)[1]);
+                    extracted_username = decodeURIComponent(i.match(/^jupyter-hub-token-(.*)/)[1]);
                 }
             });
         }
 
-        // Try to get it from a global variable
-        if (window.username) {
-            username = window.username;
-        }
-
         // Try to get the username from the URL
-        if (username === null) {
+        if (extracted_username === null) {
             const url_parts = window.location.href.split('/');
             if (url_parts.length >= 5 &&
                 url_parts[0] === window.location.protocol &&
                 url_parts[1] === '' &&
                 url_parts[2] === window.location.host &&
                 url_parts[3] === 'user') {
-                username = decodeURI(url_parts[4])
+                extracted_username = decodeURI(url_parts[4])
             }
         }
 
         // If all else fails, prompt the user
-        if (username === null) {
-            username = prompt("What is your username?", "");
+        if (extracted_username === null) {
+            extracted_username = prompt("What is your username?", "");
         }
 
         // Set a GPNB cookie
-        document.cookie = 'gpnb-username' + '=' + username;
+        document.cookie = 'gpnb-username' + '=' + extracted_username;
 
-        return username;
+        return extracted_username;
     }
 
     function show_repo() {

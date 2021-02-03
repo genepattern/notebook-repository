@@ -332,8 +332,9 @@
                         $('<div class="alert alert-danger">Unable to edit project.</div>')
                     )
                 });
-
-                callback(project);
+                setTimeout(() => {
+                    callback(project);
+                }, 500);
 
                 // Older implementation using the POST URL, for some reason wouldn't preserve name & description, remove when no longer needed
                 {#$(`<form action="${post_url}" method="POST" target="_blank" class="hidden"></form>`)#}

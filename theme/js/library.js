@@ -322,7 +322,7 @@ define("library", [
                     open_project(project, (project) => {
                         const get_url = project.data('get');
                         window.open(get_url + '/notebooks/' + response['filename']);
-                        window.location.reload();
+                        project.removeClass('nb-stopped');
                     });
                 },
                 error: function() {

@@ -145,6 +145,8 @@
 {% block script %}
     {{ super() }}
     <script type="text/javascript">
+        const username = "{{ user.name }}";
+
         function project_exists(project_name) {
             const project_nodes = $("#projects > .nb-project");
             let found_name = false;

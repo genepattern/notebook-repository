@@ -1375,6 +1375,15 @@ define("library", [
         return cookie_map;
     }
 
+    function normalize_username(username) {
+        return encodeURIComponent(username.toLowerCase())
+            .replaceAll('.', '%2e')
+            .replaceAll('-', '%2d')
+            .replaceAll('~', '%7e')
+            .replaceAll('_', '%5f')
+            .replaceAll('%', '-');
+    }
+
     /**
      * Gets the username from a variety of possible sources
      *
@@ -1392,6 +1401,14 @@ define("library", [
             username = cookie_map['gpnb-username'];
         }
 
+        // Try the GenePattern token
+        if (cookie_map['GenePattern'] !== undefined &&
+            cookie_map['GenePattern'] !== null &&
+            cookie_map['GenePattern'] !== 'undefined' &&
+            cookie_map['GenePattern'] !== 'null') {
+            username = normalize_username(cookie_map['GenePattern'].split('|')[0]);
+        }
+
         // Try to get username from JupyterHub cookie
         if (username === null) {
             $.each(cookie_map, function(i) {
@@ -1399,6 +1416,11 @@ define("library", [
                     username = decodeURIComponent(i.match(/^jupyter-hub-token-(.*)/)[1]);
                 }
             });
+        }
+
+        // Try to get it from a global variable
+        if (window.username) {
+            username = window.username;
         }
 
         // Try to get the username from the URL

@@ -10,17 +10,18 @@ class UserHandler(BaseHandler):
     """Serve the user info from its template: theme/templates/user.json"""
 
     @authenticated
-    def get(self):
-        self.write(self.render_template('user.json'))
+    async def get(self):
+        template = await self.render_template('user.json')
+        self.write(template)
 
-# NEWER VERSIONS OF TORNADO MAY REQUIRE ASYNC:
-
+# OLDER VERSIONS OF JUPYTERHUB MAY REQUIRE NON-ASYNC:
+#
 # class UserHandler(BaseHandler):
 #     """Serve the user info from its template: theme/templates/user.json"""
 #
 #     @authenticated
-#     async def get(self):
-#         self.write(await self.render_template('user.json'))
+#     def get(self):
+#         self.write(self.render_template('user.json'))
 
 
 c = get_config()
@@ -74,6 +75,18 @@ c.JupyterHub.tornado_settings = {
         'Access-Control-Allow-Credentials': 'true',
     },
 }
+
+# Services
+
+c.JupyterHub.services = [
+    {
+        'name': 'projects',
+        'admin': True,
+        'url': 'http://127.0.0.1:3000/',
+        'cwd': '.',
+        'command': ['python', 'projects/service.py']
+    },
+]
 
 # Configuration file for jupyterhub.
 

@@ -19,7 +19,7 @@
 
         <div id="nb-header">
             <h1>Your Projects</h1>
-            <p class="lead">Launch, create or edit notebook projects.</p>
+            <p class="lead">Launch, create or share notebook projects.</p>
             <input type="search" id="nb-search" placeholder="Search Projects" class="form-control" />
             <button id ="nb-new" class="btn btn-primary"><i class="fa fa-plus-circle"></i> New Project</button>
         </div>
@@ -50,8 +50,7 @@
                         <h8 class="panel-title">{{ spawner.user_options['name'] or spawner.name }}</h8>
                         <p class="panel-text">{{ spawner.user_options['description'] or spawner.last_activity }}</p>
                         <div class="panel-text nb-tags">
-                            {# TODO: RE-ENABLE FOR RELEASE 2 #}
-{#                            <span class="badge badge-secondary">{{ spawner.user_options['image'] or 'Unknown' }}</span>#}
+                            <span class="badge badge-secondary">{{ spawner.user_options['image'] or 'Unknown' }}</span>
                         </div>
                     </div>
                 </div>
@@ -86,18 +85,16 @@
                     <input name="name" type="text" class="form-control" />
                 </div>
             </div>
-            <input type="hidden" name="image" value="Legacy" />
-            {# TODO: RE-ENABLE FOR RELEASE 2 #}
-{#            <div class="form-group">#}
-{#                <label for="image" class="control-label col-sm-4">Environment*</label>#}
-{#                <div class="col-sm-8">#}
-{#                    <select name="image" class="form-control">#}
-{#                        {% for image in user.spawner.image_whitelist.keys() %}#}
-{#                            <option value="{{ image }}">{{ image }}</option>#}
-{#                        {% endfor %}#}
-{#                    </select>#}
-{#                </div>#}
-{#            </div>#}
+            <div class="form-group">
+                <label for="image" class="control-label col-sm-4">Environment*</label>
+                <div class="col-sm-8">
+                    <select name="image" class="form-control">
+                        {% for image in user.spawner.image_whitelist.keys() %}
+                            <option value="{{ image }}">{{ image }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
             <div class="form-group">
                 <label for="description" class="control-label col-sm-4">Description</label>
                 <div class="col-sm-8">
@@ -115,18 +112,16 @@
                     <input name="name" type="text" class="form-control" />
                 </div>
             </div>
-            <input type="hidden" name="image" value="Legacy" />
-            {# TODO: RE-ENABLE FOR RELEASE 2 #}
-{#            <div class="form-group">#}
-{#                <label for="image" class="control-label col-sm-4">Environment*</label>#}
-{#                <div class="col-sm-8">#}
-{#                    <select name="image" class="form-control">#}
-{#                        {% for image in user.spawner.image_whitelist.keys() %}#}
-{#                            <option value="{{ image }}">{{ image }}</option>#}
-{#                        {% endfor %}#}
-{#                    </select>#}
-{#                </div>#}
-{#            </div>#}
+            <div class="form-group">
+                <label for="image" class="control-label col-sm-4">Environment*</label>
+                <div class="col-sm-8">
+                    <select name="image" class="form-control">
+                        {% for image in user.spawner.image_whitelist.keys() %}
+                            <option value="{{ image }}">{{ image }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
             <div class="form-group">
                 <label for="description" class="control-label col-sm-4">Description</label>
                 <div class="col-sm-8">
@@ -134,11 +129,6 @@
                 </div>
             </div>
         </div>
-    {% endcall %}
-
-    {% call modal('Welcome to GenePattern Notebook') %}
-        <p class="lead text-center">Initializing your environment.<br/>Don't worry, this is a one time thing.</p>
-        <p class="text-center"><i class="fa fa-spinner fa-spin fa-3x fa-fw repo-modal-spinner"></i></p>
     {% endcall %}
 {% endblock %}
 
@@ -158,28 +148,6 @@
                 }
             });
             return found_name;
-        }
-
-        function init_legacy() {
-            if (!project_exists('legacy_project')) {
-                const create_dialog = $('#welcome-to-genepattern-notebook-dialog');
-                create_dialog.modal().find('button').hide();
-
-                // Make the AJAX request
-                $.ajax({
-                    method: 'POST',
-                    url: "{{ base_url }}api/users/{{ user.name }}/servers/legacy_project",
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        "name": "Default Project",
-                        "image": "Legacy",
-                        "description": "Click here to access your previous notebooks."
-                    }),
-                    success: () => {
-                        window.location.reload();
-                    }
-                });
-            }
         }
 
         function new_project_dialog(project) {
@@ -271,15 +239,6 @@
 
         // Delete project
         function delete_project(project) {
-            {# Remove check in Release 2 #}
-            const safename = project.data('safename');
-            if (safename === 'legacy_project') {
-                $('#messages').append(
-                    $('<div class="alert alert-danger">Sorry. You cannot delete the default project.</div>')
-                );
-                return;
-            }
-
             $('#delete-project-dialog').modal()
                 .find(".delete-button").off('click').one('click', () => {
                     // Make the call to delete the project
@@ -335,14 +294,6 @@
                 setTimeout(() => {
                     callback(project);
                 }, 500);
-
-                // Older implementation using the POST URL, for some reason wouldn't preserve name & description, remove when no longer needed
-                {#$(`<form action="${post_url}" method="POST" target="_blank" class="hidden"></form>`)#}
-                {#    .append($(`<input name="image" type="hidden" value="${image}"/>`))#}
-                {#    .append($(`<input name="name" type="hidden" value="${name}"/>`))#}
-                {#    .append($(`<input name="description" type="hidden" value="${description}"/>`))#}
-                {#    .appendTo('body')#}
-                {#    .submit();#}
 
                 project.removeClass('nb-stopped'); // Mark as running
             }
@@ -406,17 +357,13 @@
         $('.nb-stop').click((event) => stop_project($(event.target).closest('.nb-project')));
         $('.nb-delete').click((event) => delete_project($(event.target).closest('.nb-project')));
         $('.nb-edit').click((event) => edit_project($(event.target).closest('.nb-project')));
-
-        {# TODO: Remove in Release 2  #}
-        // Initialize the legacy_project if necessary
-        init_legacy();
     </script>
 
     {# TODO: Replace with new functionality for Release 2  #}
     <script type="text/javascript" src="/hub/static/js/library.js"></script>
     <script type="text/javascript">
-        requirejs(["library"], function(library) {
-            library.tree_init();
-        });
+        {# requirejs(["library"], function(library) {#}
+        {#    library.tree_init();#}
+        {# });#}
     </script>
 {% endblock %}

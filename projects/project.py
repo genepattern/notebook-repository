@@ -4,7 +4,6 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
-
 from projects.zip import zip_dir
 
 Base = declarative_base()
@@ -23,6 +22,7 @@ class Project(Base):
     quality = Column(String(255), default='')
 
     tags = relationship('Tag', secondary='project_tags', lazy='subquery', backref=backref('projects', lazy=True))
+    updates = relationship('Update', lazy='subquery')
 
     created = Column(DateTime, default=datetime.utcnow)
     updated = Column(DateTime, default=datetime.utcnow)
@@ -40,7 +40,9 @@ class Project(Base):
         try:
             if isinstance(spec, str): spec = json.loads(spec)   # Parse the JSON, if necessary
             for key in Project.__dict__:                        # Assign attributes from the json
-                if key in spec: setattr(self, key, spec[key])
+                if key in spec:
+                    if isinstance(spec[key], str): setattr(self, key, spec[key].strip())
+                    else: setattr(self, key, spec[key])
         except json.JSONDecodeError:
             raise Project.SpecError('Error parsing json')
 
@@ -48,11 +50,10 @@ class Project(Base):
         return Project.get(owner=self.owner, dir=self.dir) is not None
 
     def zip(self):
-        if not self.dir or not self.name or not self.author or not self.quality or not self.owner:
-            raise Project.SpecError('Missing required attributes')
+        if not self.min_metadata(): raise Project.SpecError('Missing required attributes')
         project_dir = os.path.join(users_path, self.owner, self.dir)            # Path to the source project
         zip_path = os.path.join(repository_path, self.owner, f'{self.dir}.zip') # Path to the zipped project
-        os.makedirs(os.path.dirname(zip_path), mode=0o777, exist_ok=False)      # Lazily create directories
+        os.makedirs(os.path.dirname(zip_path), mode=0o777, exist_ok=True)       # Lazily create directories
         if os.path.exists(zip_path): os.remove(zip_path)                        # Remove the old copy if one exists
         zip_dir(project_dir, zip_path)                                          # Create the zip file
 
@@ -67,10 +68,26 @@ class Project(Base):
 
     def save(self):
         # Ensure that the project has all of the required information
-        if not self.dir or not self.name or not self.author or not self.quality or not self.owner:
-            raise Project.SpecError('Missing required attributes')
+        if not self.min_metadata(): raise Project.SpecError('Missing required attributes')
+        # Add initial update to updates table, if necessary
+        if not len(self.updates): Update(self, f'Initial release of {self.name}')
         # Save the project to the database and return the json representation
-        return Project.put(self)
+        project_json = Project.put(self)
+        return project_json
+
+    def update(self, merge):
+        if 'name' in merge: self.name = merge['name'].strip()               # Merge updated metadata
+        if 'description' in merge: self.description = merge['description'].strip()
+        if 'author' in merge: self.author = merge['author'].strip()
+        if 'quality' in merge: self.quality = merge['quality'].strip()
+        if 'comment' in merge: Update(self, merge['comment'].strip())       # Create the Update object
+        self.updated = datetime.now()                                       # Set last updated
+        # Ensure that the new metadata meets the minimum requirements
+        if not self.min_metadata() or 'comment' not in merge or not merge['comment'].strip():
+            raise Project.SpecError(f'name={self.name}, author={self.author}, quality={self.quality}')
+
+    def min_metadata(self):
+        return self.dir and self.name and self.author and self.quality and self.owner
 
     def json(self):
         data = { c.name: getattr(self, c.name) for c in self.__table__.columns }
@@ -95,9 +112,9 @@ class Project(Base):
     def get(id=None, owner=None, dir=None):
         session = Session()
         query = session.query(Project)
-        if id is not None:      query.filter(Project.id == id)
-        if owner is not None:   query.filter(Project.owner == owner)
-        if dir is not None:     query.filter(Project.dir == dir)
+        if id is not None:      query = query.filter(Project.id == id)
+        if owner is not None:   query = query.filter(Project.owner == owner)
+        if dir is not None:     query = query.filter(Project.dir == dir)
         project = query.first()
         session.close()
         return project
@@ -115,8 +132,8 @@ class Project(Base):
     def get_all(include_deleted=False):
         session = Session()
         query = session.query(Project)
-        if include_deleted: results = query.all()
-        else: results = query.filter(Project.deleted == False).all()
+        if not include_deleted: query = query.filter(Project.deleted == False)
+        results = query.all()
         session.close()
         return results
 
@@ -138,6 +155,22 @@ class ProjectTags(Base):
 
     projects_id = Column('projects_id', Integer, ForeignKey('projects.id'), primary_key=True)
     tags_id = Column('tags_id', Integer, ForeignKey('tags.id'), primary_key=True)
+
+
+class Update(Base):
+    """Orm model for project updates"""
+    __tablename__ = 'updates'
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'))
+    project = relationship('Project', back_populates='updates')
+    updated = Column(DateTime, default=datetime.utcnow)
+    comment = Column(String(255), default='')
+
+    def __init__(self, project, comment=''):
+        self.project = project
+        self.project_id = project.id
+        self.comment = comment
 
 
 # Set configuration

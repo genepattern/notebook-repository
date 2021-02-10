@@ -57,7 +57,7 @@ class PublishHandler(HubAuthenticated, RequestHandler):
         """Delete a project"""
         try:
             project = Project.get(id=id)        # Get the project
-            if not self._owner(project):        # Protect again deleting projects that are not your own
+            if not self._owner(project):        # Protect against deleting projects that are not your own
                 raise Project.PermissionError
             project.delete_zip()                # Delete the zip bundle
             project.delete()                    # Mark the database entry as deleted
@@ -69,8 +69,27 @@ class PublishHandler(HubAuthenticated, RequestHandler):
     @authenticated
     def put(self, id=None):
         """Update a project"""
-        # TODO: Implement
-        pass
+        try:
+            if id is None:                      # Ensure that a project id was included in the request
+                raise Project.SpecError('Missing project id')
+            project = Project.get(id=id)        # Load the project from the database
+            if project is None:                 # Ensure that an existing project was found
+                raise Project.ExistsError
+            if not self._owner(project):        # Protect against updating projects that are not your own
+                raise Project.PermissionError
+            # Update the project ORM object with the contents of the request
+            update_json = json.loads(to_basestring(self.request.body))
+            project.update(update_json)
+            # Bundle the zip, save the project and return the JSON in the response
+            project.zip()                       # Bundle the project into a zip artifact
+            resp = project.save()               # Save the project to the database
+            self.write(resp)                    # Return the project json
+        except Project.SpecError as e:            # Bad Request
+            self.send_error(400, reason=f'Error updating project, bad specification in the request: {e}')
+        except Project.ExistsError:               # Bad Request
+            self.send_error(400, reason='Error updating project, id does not exists')
+        except Project.PermissionError:           # Forbidden
+            self.send_error(403, reason='You are not the owner of this project')
 
     def _owner(self, project):
         """Is the current user the owner of this project?"""
@@ -105,8 +124,8 @@ class EndpointHandler(RequestHandler):
     @addslash
     def get(self):
         self.write({
-            'user.json': 'Notebook projects information about the current user',
-            'library':   'Browse, publish or copy public notebook projects from the library',
+            '/services/projects/user.json': 'Notebook projects information about the current user',
+            '/services/projects/library':   'Browse, publish or copy public notebook projects from the library',
         })
 
 
@@ -114,6 +133,7 @@ def make_app():
     urls = [
         (r"/services/projects/", EndpointHandler),
         (r"/services/projects/user.json", UserHandler),
+        (r"/services/projects/library", PublishHandler),
         (r"/services/projects/library/", PublishHandler),
         (r"/services/projects/library/(?P<id>\w+)/", PublishHandler),
     ]

@@ -6,12 +6,6 @@ from jupyterhub.services.auth import HubAuthenticated
 from projects.hub import hub_db
 from projects.project import Project
 
-# base_api_url = self.hub_auth.api_url
-# token = self.hub_auth.api_token
-# r = requests.get(base_api_url + '/users/tabor', headers={
-#         'Authorization': 'token %s' % token,
-#     })
-
 
 class PublishHandler(HubAuthenticated, RequestHandler):
     """Endpoint for publishing, editing and deleting notebook projects"""
@@ -20,9 +14,12 @@ class PublishHandler(HubAuthenticated, RequestHandler):
     def get(self, id=None):
         """Get the list of all published projects or information about a single project"""
         if id is None:  # List all published projects
-            pass
+            all_projects = Project.get_all()
+            all_json = [p.json() for p in all_projects]
+            self.write({'projects': all_json})
         else:           # List a single project with the specified id
-            pass
+            project = Project.get(id=id)
+            self.write(project.json())
 
     @addslash
     @authenticated
@@ -33,6 +30,8 @@ class PublishHandler(HubAuthenticated, RequestHandler):
                 project = Project(to_basestring(self.request.body))  # Create a project from the request body
                 if project.exists():                  # If the project already exists, throw an exception
                     raise Project.ExistsError
+                if not self._owner(project):          # Ensure the correct username is set
+                    raise Project.PermissionError
                 project.zip()                         # Bundle the project into a zip artifact
                 resp = project.save()                 # Save the project to the database
                 self.write(resp)                      # Return the project json
@@ -40,21 +39,42 @@ class PublishHandler(HubAuthenticated, RequestHandler):
                 self.send_error(400, reason=f'Error creating project, bad specification in the request: {e}')
             except Project.ExistsError:               # Bad Request
                 self.send_error(400, reason='Error creating project, already exists')
+            except Project.PermissionError:           # Forbidden
+                self.send_error(403, reason='You are not the owner of this project')
 
         else:                                         # Copy a public project
             pass  # TODO: Implement
+
+    # base_api_url = self.hub_auth.api_url
+    # token = self.hub_auth.api_token
+    # r = requests.get(base_api_url + '/users/tabor', headers={
+    #         'Authorization': 'token %s' % token,
+    #     })
 
     @addslash
     @authenticated
     def delete(self, id=None):
         """Delete a project"""
-        pass
+        try:
+            project = Project.get(id=id)        # Get the project
+            if not self._owner(project):        # Protect again deleting projects that are not your own
+                raise Project.PermissionError
+            project.delete_zip()                # Delete the zip bundle
+            project.delete()                    # Mark the database entry as deleted
+            self.write(project.json())          # Return the project json one final time
+        except Project.PermissionError:         # Forbidden
+            self.send_error(403, reason='You are not the owner of this project')
 
     @addslash
     @authenticated
     def put(self, id=None):
         """Update a project"""
+        # TODO: Implement
         pass
+
+    def _owner(self, project):
+        """Is the current user the owner of this project?"""
+        return project.owner == self.get_current_user()['name']
 
 
 class UserHandler(HubAuthenticated, RequestHandler):

@@ -1,8 +1,11 @@
 import json
+import os
 from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
+
+from projects.zip import zip_dir
 
 Base = declarative_base()
 
@@ -42,21 +45,32 @@ class Project(Base):
             raise Project.SpecError('Error parsing json')
 
     def exists(self):
-        return Project.get(self.owner, self.dir) is not None
+        return Project.get(owner=self.owner, dir=self.dir) is not None
 
     def zip(self):
-        pass  # TODO: Implement
+        if not self.dir or not self.name or not self.author or not self.quality or not self.owner:
+            raise Project.SpecError('Missing required attributes')
+        project_dir = os.path.join(users_path, self.owner, self.dir)            # Path to the source project
+        zip_path = os.path.join(repository_path, self.owner, f'{self.dir}.zip') # Path to the zipped project
+        os.makedirs(os.path.dirname(zip_path), mode=0o777, exist_ok=False)      # Lazily create directories
+        if os.path.exists(zip_path): os.remove(zip_path)                        # Remove the old copy if one exists
+        zip_dir(project_dir, zip_path)                                          # Create the zip file
+
+    def delete_zip(self):
+        zip_path = os.path.join(repository_path, self.owner, f'{self.dir}.zip')  # Path to the zipped project
+        if os.path.exists(zip_path): os.remove(zip_path)                         # Remove the zip file
+
+    def delete(self):
+        self.deleted = True
+        self.updated = datetime.now()
+        return self.save()
 
     def save(self):
-        if self.id is not None:     # Already has a row id, do an update
-            pass  # TODO: Implement
-
-        else:                   # No row id, do an insert
-            # Ensure that the project has all of the required information
-            if not self.dir or not self.name or not self.author or not self.quality or not self.owner:
-                raise Project.SpecError('Missing required attributes')
-            # Save the project to the database and return the json representation
-            return Project.put(self)
+        # Ensure that the project has all of the required information
+        if not self.dir or not self.name or not self.author or not self.quality or not self.owner:
+            raise Project.SpecError('Missing required attributes')
+        # Save the project to the database and return the json representation
+        return Project.put(self)
 
     def json(self):
         data = { c.name: getattr(self, c.name) for c in self.__table__.columns }
@@ -73,10 +87,18 @@ class Project(Base):
         """Error to return if attempting to initialize a project from a bad specification"""
         pass
 
+    class PermissionError(RuntimeError):
+        """Error to return if attempting to edit a project you do not own"""
+        pass
+
     @staticmethod
-    def get(owner, dir):
+    def get(id=None, owner=None, dir=None):
         session = Session()
-        project = session.query(Project).filter(Project.owner == owner).filter(Project.dir == dir).first()
+        query = session.query(Project)
+        if id is not None:      query.filter(Project.id == id)
+        if owner is not None:   query.filter(Project.owner == owner)
+        if dir is not None:     query.filter(Project.dir == dir)
+        project = query.first()
         session.close()
         return project
 
@@ -88,6 +110,15 @@ class Project(Base):
         d = project.json()
         session.close()
         return d  # Return the json representation
+
+    @staticmethod
+    def get_all(include_deleted=False):
+        session = Session()
+        query = session.query(Project)
+        if include_deleted: results = query.all()
+        else: results = query.filter(Project.deleted == False).all()
+        session.close()
+        return results
 
 
 class Tag(Base):
@@ -109,8 +140,12 @@ class ProjectTags(Base):
     tags_id = Column('tags_id', Integer, ForeignKey('tags.id'), primary_key=True)
 
 
+# Set configuration
+db_url = 'sqlite:///projects.sqlite'    # TODO: Make these easily configurable
+users_path = './data/users/'
+repository_path = './data/repository/'
+
 # Initialize the database singletons
-db_url = 'sqlite:///projects.sqlite'
 db = create_engine(db_url, echo=True)
 Session = sessionmaker(bind=db)
 Base.metadata.create_all(db)

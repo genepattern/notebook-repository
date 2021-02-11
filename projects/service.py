@@ -3,7 +3,7 @@ from tornado.escape import to_basestring
 from tornado.web import Application, RequestHandler, authenticated, addslash
 from tornado.ioloop import IOLoop
 from jupyterhub.services.auth import HubAuthenticated
-from projects.hub import hub_db
+from projects.hub import create_named_server, hub_db
 from projects.project import Project
 
 
@@ -25,31 +25,40 @@ class PublishHandler(HubAuthenticated, RequestHandler):
     @authenticated
     def post(self, id=None):
         """Publish a new project or copy a project"""
-        if id is None:                                # Publish a new project
-            try:
-                project = Project(to_basestring(self.request.body))  # Create a project from the request body
-                if project.exists():                  # If the project already exists, throw an exception
-                    raise Project.ExistsError
-                if not self._owner(project):          # Ensure the correct username is set
-                    raise Project.PermissionError
-                project.zip()                         # Bundle the project into a zip artifact
-                resp = project.save()                 # Save the project to the database
-                self.write(resp)                      # Return the project json
-            except Project.SpecError as e:            # Bad Request
-                self.send_error(400, reason=f'Error creating project, bad specification in the request: {e}')
-            except Project.ExistsError:               # Bad Request
-                self.send_error(400, reason='Error creating project, already exists')
-            except Project.PermissionError:           # Forbidden
-                self.send_error(403, reason='You are not the owner of this project')
+        if id is None: self._create()                 # Publish a new project
+        else: self._copy(id)                          # Copy a public project
 
-        else:                                         # Copy a public project
-            pass  # TODO: Implement
+    def _copy(self, id):
+        project = Project.get(id=id)    # Get the project
+        if project is None:             # Ensure that an existing project was found
+            raise Project.ExistsError
+        # Check to see if the dir directory exists, if so find a good dir name
+        user = self.get_current_user()['name']
+        dir_name = Project.unused_dir(user, project.dir)
+        # Unzip to the current user's dir directory
+        project.unzip(user, dir_name)
+        # Call JupyterHub API to create a new named server
+        url = create_named_server(self.hub_auth, user, dir_name, project.json())
+        self.write({'url': url})
+        # Increment project.copied
+        project.mark_copied()
 
-    # base_api_url = self.hub_auth.api_url
-    # token = self.hub_auth.api_token
-    # r = requests.get(base_api_url + '/users/tabor', headers={
-    #         'Authorization': 'token %s' % token,
-    #     })
+    def _create(self):
+        try:
+            project = Project(to_basestring(self.request.body))  # Create a project from the request body
+            if project.exists():  # If the project already exists, throw an exception
+                raise Project.ExistsError
+            if not self._owner(project):  # Ensure the correct username is set
+                raise Project.PermissionError
+            project.zip()  # Bundle the project into a zip artifact
+            resp = project.save()  # Save the project to the database
+            self.write(resp)  # Return the project json
+        except Project.SpecError as e:  # Bad Request
+            self.send_error(400, reason=f'Error creating project, bad specification in the request: {e}')
+        except Project.ExistsError:  # Bad Request
+            self.send_error(400, reason='Error creating project, already exists')
+        except Project.PermissionError:  # Forbidden
+            self.send_error(403, reason='You are not the owner of this project')
 
     @addslash
     @authenticated
@@ -57,6 +66,8 @@ class PublishHandler(HubAuthenticated, RequestHandler):
         """Delete a project"""
         try:
             project = Project.get(id=id)        # Get the project
+            if project is None:                 # Ensure that an existing project was found
+                raise Project.ExistsError
             if not self._owner(project):        # Protect against deleting projects that are not your own
                 raise Project.PermissionError
             project.delete_zip()                # Delete the zip bundle

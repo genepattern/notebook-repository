@@ -1,4 +1,23 @@
+import json
+
+import requests
 from sqlalchemy import create_engine
+
+
+def create_named_server(hub_auth, user, server_name, spec):
+    base_api_url = hub_auth.api_url
+    token = hub_auth.api_token
+    # Make the request to the JupyterHub API
+    response = requests.post(f'{base_api_url}/users/{user}/servers/{server_name}',
+          headers={ 'Authorization': 'token %s' % token },
+          data=json.dumps({
+              'image': spec['image'],
+              'name': spec['name'],
+              'description': spec['description']
+          }))
+    response.raise_for_status()
+    return f'/users/{user}/servers/{server_name}'
+
 
 
 class HubDatabase:

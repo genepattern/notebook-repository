@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
-from projects.zip import zip_dir
+from projects.zip import zip_dir, unzip_dir
 
 Base = declarative_base()
 
@@ -15,6 +15,7 @@ class Project(Base):
 
     id = Column(Integer, primary_key=True)
     dir = Column(String(255))
+    image = Column(String(255))
 
     name = Column(String(255))
     description = Column(String(255), default='')
@@ -61,6 +62,12 @@ class Project(Base):
         zip_path = os.path.join(repository_path, self.owner, f'{self.dir}.zip')  # Path to the zipped project
         if os.path.exists(zip_path): os.remove(zip_path)                         # Remove the zip file
 
+    def unzip(self, target_user, dir):
+        zip_path = os.path.join(repository_path, self.owner, f'{self.dir}.zip')  # Path to the zipped project
+        target_dir = os.path.join(users_path, target_user, dir)                  # Path in which to unzip
+        os.makedirs(os.path.dirname(target_dir), mode=0o777, exist_ok=True)      # Lazily create directories
+        unzip_dir(zip_path, target_dir)                                          # Unzip to directory
+
     def delete(self):
         self.deleted = True
         self.updated = datetime.now()
@@ -80,6 +87,7 @@ class Project(Base):
         if 'description' in merge: self.description = merge['description'].strip()
         if 'author' in merge: self.author = merge['author'].strip()
         if 'quality' in merge: self.quality = merge['quality'].strip()
+        if 'image' in merge: self.image = merge['image'].strip()
         if 'comment' in merge: Update(self, merge['comment'].strip())       # Create the Update object
         self.updated = datetime.now()                                       # Set last updated
         # Ensure that the new metadata meets the minimum requirements
@@ -87,7 +95,7 @@ class Project(Base):
             raise Project.SpecError(f'name={self.name}, author={self.author}, quality={self.quality}')
 
     def min_metadata(self):
-        return self.dir and self.name and self.author and self.quality and self.owner
+        return self.dir and self.image and self.name and self.author and self.quality and self.owner
 
     def json(self):
         data = { c.name: getattr(self, c.name) for c in self.__table__.columns }
@@ -95,6 +103,10 @@ class Project(Base):
             if isinstance(data[k], datetime):
                 data[k] = str(data[k])
         return data
+
+    def mark_copied(self):
+        self.copied += 1
+        Project.put(self)
 
     class ExistsError(RuntimeError):
         """Error to return if trying to create a project that already exists"""
@@ -107,6 +119,18 @@ class Project(Base):
     class PermissionError(RuntimeError):
         """Error to return if attempting to edit a project you do not own"""
         pass
+
+    @staticmethod
+    def unused_dir(user, dir_name):
+        count = 1
+        checked_name = dir_name
+        while True:
+            project_dir = os.path.join(users_path, user, checked_name)  # Path to directory to check
+            if os.path.exists(project_dir):                             # If it exists, append a number and try again
+                checked_name = f'{dir_name}{count}'
+                count += 1
+            else:
+                return checked_name
 
     @staticmethod
     def get(id=None, owner=None, dir=None):
@@ -179,6 +203,6 @@ users_path = './data/users/'
 repository_path = './data/repository/'
 
 # Initialize the database singletons
-db = create_engine(db_url, echo=True)
+db = create_engine(db_url, echo=False)
 Session = sessionmaker(bind=db)
 Base.metadata.create_all(db)

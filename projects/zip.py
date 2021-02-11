@@ -1,20 +1,10 @@
-import os
-import zipfile
+import shutil
 
 
 def zip_dir(src_path, dest_path):
-    archive = zipfile.ZipFile(dest_path, 'w', zipfile.ZIP_DEFLATED)
-    for root, dirs, files in os.walk(src_path):
-        for file in files:
-            archive.write(os.path.join(root, file))
-    archive.close()
+    if dest_path.endswith('.zip'): dest_path = dest_path[:-4]
+    shutil.make_archive(dest_path, 'zip', src_path)
 
 
-def extract_dir(src_path, dest_path):
-    # TODO: Implement
-    pass
-    # archive = zipfile.ZipFile(dest_path, 'w', zipfile.ZIP_DEFLATED)
-    # for root, dirs, files in os.walk(src_path):
-    #     for file in files:
-    #         archive.write(os.path.join(root, file))
-    # archive.close()
+def unzip_dir(src_path, dest_path):
+    shutil.unpack_archive(src_path, dest_path, 'zip')

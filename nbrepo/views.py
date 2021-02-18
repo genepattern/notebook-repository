@@ -416,6 +416,13 @@ def copy(request, pk, api_path):
         except KeyError:
             named_server = ''
 
+        # If the preview page, assume legacy_project server
+        try:
+            if not named_server and re.search('/services/sharing/notebooks/.*/preview/', request.META['HTTP_REFERER']).group(0):
+                named_server = 'legacy_project'
+        except AttributeError: pass
+        except KeyError: pass
+
         # Get the user's current directory
         base_user_path = os.path.join(settings.BASE_USER_PATH, username, named_server)
         copy_to_dir = os.path.join(base_user_path, urllib.parse.unquote(api_path))

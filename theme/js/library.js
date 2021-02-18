@@ -1344,6 +1344,16 @@ define("library", [
         });
     }
 
+    function featured_nb_exists() {
+        let featured_exists = false;
+        GenePattern.repo.public_notebooks.forEach((nb) => {
+            if (build_tag_list(nb).includes('featured')) featured_exists = true;
+            return false;
+        });
+
+        return featured_exists;
+    }
+
     function select_remembered_tag(tab, tag) {
         // Get the remembered tag's li
         const sidebar = $('.repo-sidebar');
@@ -1352,7 +1362,10 @@ define("library", [
         // If no remembered tag or no li found, select the featured tag
         if (!to_select.length || !tag) to_select = sidebar.find("li:contains('featured')");
 
-        // If featured wasn't found, select first li
+        // If featured wasn't found or is empty, select all notebooks
+        if (!to_select.length || !featured_nb_exists()) to_select = sidebar.find("li:contains('all notebooks')");
+
+        // If all notebooks wasn't found, select first li
         if (!to_select.length) to_select = sidebar.find("li:first");
 
         select_sidebar_nav(tab, to_select.find('a'));

@@ -420,6 +420,7 @@ def copy(request, pk, api_path):
         try:
             if not named_server and re.search('/services/sharing/notebooks/.*/preview/', request.META['HTTP_REFERER']).group(0):
                 named_server = 'legacy_project'
+                api_path = ''
         except AttributeError: pass
         except KeyError: pass
 

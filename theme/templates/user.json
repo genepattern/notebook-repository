@@ -1,17 +1,19 @@
 {% set named_spawners = user.all_spawners(include_default=False)|list %}
 {
     "name": "{{ user.name }}",
+    "base_url": "{{ base_url }}",
     "projects": [
         {% for spawner in named_spawners %}
         {
             "name": "{{ spawner.name }}",
+            "active": {{ spawner.active|lower }},
+            "last_activity": "{{ spawner.last_activity }}",
             "metadata": {
                 "name": "{{ spawner.user_options['name'] or spawner.name }}",
                 "image": "{{ spawner.user_options['image'] }}",
                 "description": "{{ spawner.user_options['description'] }}"
             }
-        },
+        }{% if not loop.last %},{% endif %}
         {% endfor %}
-        {}
     ]
 }

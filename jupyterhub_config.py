@@ -34,10 +34,10 @@ c.GenePatternAuthenticator.admin_users = ['tabor']
 
 # Spawner config
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
-c.DockerSpawner.image = 'genepattern/genepattern-notebook:20.11.1'
+c.DockerSpawner.image = 'genepattern/genepattern-notebook:21.02.1'
 c.DockerSpawner.remove_containers = True
 c.DockerSpawner.image_whitelist = {
-    'Legacy': 'genepattern/genepattern-notebook:20.11.1',
+    'Legacy': 'genepattern/genepattern-notebook:21.02.1',
     'R 3.6': 'genepattern/notebook-r36:20.10'
 }
 c.DockerSpawner.pre_spawn_hook = lambda spawner: os.makedirs(os.path.join('./data/users', spawner.user.name, spawner.name), 0o777, exist_ok=True)

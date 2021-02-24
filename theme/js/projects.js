@@ -47,21 +47,12 @@ class Project {
         this.element = new DOMParser().parseFromString(this.template, "text/html")
             .querySelector('div.nb-project');
 
-        // Apply data attributes
-        this.element.dataset.name = this.model.metadata.name || this.model.name;
-        this.element.dataset.image = this.model.metadata.image;
-        this.element.dataset.description = this.model.metadata.description || this.model.last_activity;
-        this.element.dataset.safename = this.model.name;
-        this.element.dataset.post = `${GenePattern.projects.base_url}spawn/${GenePattern.projects.username}/${this.model.name}`;
-        this.element.dataset.get = `/user/${GenePattern.projects.username}/${this.model.name}`;
-        this.element.dataset.api = `${GenePattern.projects.base_url}api/users/${GenePattern.projects.username}/servers/${this.model.name}`;
-
         // Mark as active or stopped
         if (!this.model.active) this.element.classList.add('nb-stopped');
 
         // Display name and other metadata
         this.element.querySelector('.panel-title').innerHTML = this.display_name();
-        this.element.querySelector('.panel-text').innerHTML = this.model.metadata.description || this.model.last_activity;
+        this.element.querySelector('.panel-text').innerHTML = this.description();
 
         // Display the tags
         this._apply_tags();
@@ -70,129 +61,126 @@ class Project {
     init_events() {
         // Handle click events on projects
         $(this.element).click((event) => {
-            // Ignore clicks on the gear menu
-            if ($(event.target).closest('.dropdown').length) return;
-
-            // If any other project is clicked
-            else this.open_project($(event.currentTarget));
+            // Ignore clicks on the gear menu, If any other project is clicked
+            if (!$(event.target).closest('.dropdown').length) this.open_project();
         });
 
         // Handle menu clicks
-        $(this.element).find('.nb-stop').click((event) => this.stop_project($(event.target).closest('.nb-project')));
-        $(this.element).find('.nb-delete').click((event) => this.delete_project($(event.target).closest('.nb-project')));
-        $(this.element).find('.nb-edit').click((event) => this.edit_project($(event.target).closest('.nb-project')));
+        $(this.element).find('.nb-stop').click((event) => this.stop_project());
+        $(this.element).find('.nb-delete').click((event) => this.delete_project());
+        $(this.element).find('.nb-edit').click((event) => this.edit_project());
     }
 
     display_name() {
-        return this.model.metadata.name || this.model.name;
+        return this.model.display_name || this.model.slug;
+    }
+
+    description() {
+        return this.model.description || this.model.last_activity;
+    }
+
+    slug() {
+        this.model.slug;
+    }
+
+    image() {
+        return this.model.image;
+    }
+
+    get_url() {
+        return `/user/${GenePattern.projects.username}/${this.model.slug}`;
+    }
+
+    api_url() {
+        return `${GenePattern.projects.base_url}api/users/${GenePattern.projects.username}/servers/${this.model.slug}`;
     }
 
     _apply_tags() {
         let tag = document.createElement('span');
         tag.classList.add('badge', 'badge-secondary');
-        tag.innerHTML = this.model.metadata.image || 'Unknown';
+        tag.innerHTML = this.model.image || 'Unknown';
         this.element.querySelector('.nb-tags').append(tag);
     }
 
-    edit_project(project) {
+    edit_project() {
         const edit_dialog = $('#edit-project-dialog').modal();
-        const project_name = edit_dialog.find('[name=name]').val($(project).data('name'));
-        const image = edit_dialog.find('[name=image]').val($(project).data('image'));
-        const description = edit_dialog.find('[name=description]').val($(project).data('description'));
+        const project_name = edit_dialog.find('[name=name]').val(this.display_name());
+        const image = edit_dialog.find('[name=image]').val(this.image());
+        const description = edit_dialog.find('[name=description]').val(this.description());
 
         edit_dialog.find(".edit-button").off('click').one('click', () => {
-            // Prepare the form data
-            const api_url = project.data('api');
-
             // Make the AJAX request
             $.ajax({
                 method: 'POST',
-                url: api_url,
+                url: this.api_url(),
                 contentType: 'application/json',
                 data: JSON.stringify({
                     "name": project_name.val(),
                     "image": image.val(),
                     "description": description.val()
                 }),
-                success: () => window.location.reload(),
-                error: () => $('#messages').append(
-                    $('<div class="alert alert-danger">Unable to edit project.</div>')
-                )
+                success: () => redraw_projects(),
+                error: () => error_message('Unable to edit project.')
             });
         });
     }
 
-    stop_project(project) {
-        const api_url = project.data('api');
+    stop_project() {
         $.ajax({
             method: 'DELETE',
-            url: api_url,
+            url: this.api_url(),
             contentType: 'application/json',
             data: '{ "remove": false }',
-            success: () => project.addClass('nb-stopped'),
-            error: () => $('#messages').append(
-                $('<div class="alert alert-danger">Unable to stop project.</div>')
-            )
+            success: () => this.element.classList.add('nb-stopped'),
+            error: () => error_message('Unable to stop project.')
         });
     }
 
-    delete_project(project) {
+    delete_project() {
         $('#delete-project-dialog').modal()
             .find(".delete-button").off('click').one('click', () => {
                 // Make the call to delete the project
-                const api_url = project.data('api');
                 $.ajax({
                     method: 'DELETE',
-                    url: api_url,
+                    url: this.api_url(),
                     contentType: 'application/json',
                     data: '{ "remove": true }',
-                    success: () => project.remove(),
-                    error: () => $('#messages').append(
-                        $('<div class="alert alert-danger">Unable to delete project.</div>')
-                    )
+                    success: () => $(this.element).remove(),
+                    error: () => error_message('Unable to delete project.')
                 });
             });
     }
 
-    open_project(project, callback) {
+    open_project(callback) {
         // If a custom callback is not defined, use the default one
-        const get_url = project.data('get');
         if (!callback) callback = () => {
             // Open the project in a new tab
-            window.open(get_url);
+            window.open(this.get_url());
         };
 
-        let running = !project.hasClass('nb-stopped');
+        let running = !this.element.classList.contains('nb-stopped');
         if (running) { // If running, just open a new tab
-            callback(project);
+            callback(this);
         }
         else { // Otherwise, launch the server
-            let image = project.data('image');
-            let name = project.data('name');
-            let description = project.data('description');
-            const api_url = project.data('api');
-            const get_url = project.data('get');
-
             // Make the AJAX request
             $.ajax({
                 method: 'POST',
-                url: api_url,
+                url: this.api_url(),
                 contentType: 'application/json',
                 data: JSON.stringify({
-                    "name": name,
-                    "image": image,
-                    "description": description
+                    "name": this.display_name(),
+                    "image": this.image(),
+                    "description": this.description()
                 }),
                 success: () => {},
-                error: () => $('#messages').append(
-                    $('<div class="alert alert-danger">Unable to edit project.</div>')
-                )
+                error: () => error_message('Unable to edit project.')
             });
             setTimeout(() => {
-                callback(project);
+                callback(this);
             }, 500);
 
-            project.removeClass('nb-stopped'); // Mark as running
+            this.element.classList.remove('nb-stopped'); // Mark as running
         }
     }
 }
@@ -260,9 +248,7 @@ class NewProject {
 
                 // Make sure there isn't already a project named this
                 if (this.project_exists(safe_name)) {
-                    $('#messages').append(
-                        $('<div class="alert alert-danger">Please choose a different name. A project already exists with that name.</div>')
-                    );
+                    error_message('Please choose a different name. A project already exists with that name.');
                     return;
                 }
 
@@ -281,9 +267,7 @@ class NewProject {
                         window.open(get_url + safe_name);
                         redraw_projects();
                     },
-                    error: () => $('#messages').append(
-                        $('<div class="alert alert-danger">Unable to create project.</div>')
-                    )
+                    error: () => error_message('Unable to create project.')
                 });
             });
     }
@@ -320,6 +304,12 @@ function redraw_projects() {
         if (!GenePattern.projects.new_project) GenePattern.projects.new_project = new NewProject();
         document.querySelector('#projects').append(GenePattern.projects.new_project.element);
     });
+}
+
+function error_message(message) {
+    $('#messages').append(
+        $(`<div class="alert alert-danger">${message}</div>`)
+    )
 }
 
 function initialize_search() {

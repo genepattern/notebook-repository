@@ -2,6 +2,11 @@
 {
     "name": "{{ user.name }}",
     "base_url": "{{ base_url }}",
+    "images": [
+        {% for image in user.spawner.image_whitelist.keys() %}
+            "{{ image }}"{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ],
     "projects": [
         {% for spawner in named_spawners %}
         {
@@ -11,9 +16,9 @@
             "display_name": "{{ spawner.user_options['name'] or spawner.name }}",
             "image": "{{ spawner.user_options['image'] }}",
             "description": "{{ spawner.user_options['description'] }}",
-            "name": "{{ spawner.name }}",
-            "metadata": {
-                "name": "{{ spawner.user_options['name'] or spawner.name }}",
+            "name": "{{ spawner.name }}", {# Retained for backwards compatibility with 21.02 release #}
+            "metadata": {                 {# Retained for backwards compatibility with 21.02 release #}
+                "name": "{{ spawner.user_options['name'] or spawner.name }}"
             }
         }{% if not loop.last %},{% endif %}
         {% endfor %}

@@ -2,6 +2,7 @@ var GenePattern = GenePattern || {};
 GenePattern.projects = GenePattern.projects || {};
 GenePattern.projects.username = GenePattern.projects.username || [];
 GenePattern.projects.base_url = GenePattern.projects.base_url || '';
+GenePattern.projects.images = GenePattern.projects.images || [];
 GenePattern.projects.new_project = GenePattern.projects.new_project || null;
 GenePattern.projects.my_projects = GenePattern.projects.my_projects || [];
 
@@ -69,6 +70,7 @@ class Project {
         $(this.element).find('.nb-stop').click((event) => this.stop_project());
         $(this.element).find('.nb-delete').click((event) => this.delete_project());
         $(this.element).find('.nb-edit').click((event) => this.edit_project());
+        $(this.element).find('.nb-publish').click((event) => this.publish_project());
     }
 
     display_name() {
@@ -102,27 +104,37 @@ class Project {
         this.element.querySelector('.nb-tags').append(tag);
     }
 
-    edit_project() {
-        const edit_dialog = $('#edit-project-dialog').modal();
-        const project_name = edit_dialog.find('[name=name]').val(this.display_name());
-        const image = edit_dialog.find('[name=image]').val(this.image());
-        const description = edit_dialog.find('[name=description]').val(this.description());
+    publish_project() {
+        // TODO: Implement
+    }
 
-        edit_dialog.find(".edit-button").off('click').one('click', () => {
-            // Make the AJAX request
-            $.ajax({
-                method: 'POST',
-                url: this.api_url(),
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    "name": project_name.val(),
-                    "image": image.val(),
-                    "description": description.val()
-                }),
-                success: () => redraw_projects(),
-                error: () => error_message('Unable to edit project.')
+    edit_project() {
+        // Lazily create the edit dialog
+        if (!this.edit_dialog)
+            this.edit_dialog = new Modal('edit-project-dialog', {
+                title: 'Edit Project',
+                body: project_form_spec(this),
+                button_label: 'Save',
+                button_class: 'btn-warning edit-button',
+                callback: (form_data) => {
+                    // Make the AJAX request
+                    $.ajax({
+                        method: 'POST',
+                        url: this.api_url(),
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            "name": form_data['name'],
+                            "image": form_data['image'],
+                            "description": form_data['description']
+                        }),
+                        success: () => redraw_projects(),
+                        error: () => error_message('Unable to edit project.')
+                    });
+                }
             });
-        });
+
+        // Show the delete dialog
+        this.edit_dialog.show();
     }
 
     stop_project() {
@@ -137,18 +149,28 @@ class Project {
     }
 
     delete_project() {
-        $('#delete-project-dialog').modal()
-            .find(".delete-button").off('click').one('click', () => {
-                // Make the call to delete the project
-                $.ajax({
-                    method: 'DELETE',
-                    url: this.api_url(),
-                    contentType: 'application/json',
-                    data: '{ "remove": true }',
-                    success: () => $(this.element).remove(),
-                    error: () => error_message('Unable to delete project.')
-                });
+        // Lazily create the delete dialog
+        if (!this.delete_dialog)
+            this.delete_dialog = new Modal('delete-project-dialog', {
+                title: 'Delete Project',
+                body: '<p>Are you sure that you want to delete this project?</p>',
+                button_label: 'Delete',
+                button_class: 'btn-danger delete-button',
+                callback: () => {
+                    // Make the call to delete the project
+                    $.ajax({
+                        method: 'DELETE',
+                        url: this.api_url(),
+                        contentType: 'application/json',
+                        data: '{ "remove": true }',
+                        success: () => $(this.element).remove(),
+                        error: () => error_message('Unable to delete project.')
+                    });
+                }
             });
+
+        // Show the delete dialog
+        this.delete_dialog.show();
     }
 
     open_project(callback) {
@@ -208,25 +230,25 @@ class NewProject {
         // Parse the template
         this.element = new DOMParser().parseFromString(this.template, "text/html")
             .querySelector('div.nb-project-new');
-
-        // Apply data attributes
-        this.element.dataset.get = `/user/${GenePattern.projects.username}/`;
-        this.element.dataset.api = `${GenePattern.projects.base_url}api/users/${GenePattern.projects.username}/servers/`;
     }
 
     init_events() {
         // Handle click events on new project
-        $(this.element).click((event) => {
-            this.new_project_dialog($(event.currentTarget));
-        });
+        $(this.element).click(() => this.new_project_dialog());
     }
 
-    project_exists(project_name) {
-        const project_nodes = $("#projects > .nb-project");
+    get_url() {
+        return `/user/${GenePattern.projects.username}/`;
+    }
+
+    api_url() {
+        return `${GenePattern.projects.base_url}api/users/${GenePattern.projects.username}/servers/`;
+    }
+
+    project_exists(slug) {
         let found_name = false;
-        project_nodes.each((i, e) => {
-            const safe_name = $(e).data('safename');
-            if (project_name === safe_name) {
+        GenePattern.projects.my_projects.forEach(project => {
+            if (project.slug() === slug) {
                 found_name = true;
                 return false;
             }
@@ -235,42 +257,176 @@ class NewProject {
     }
 
     new_project_dialog(project) {
-        const create_dialog = $('#create-new-project-dialog');
-        create_dialog.modal()
-            .find(".create-button").off('click').one('click', () => {
-                // Get the form data
-                const api_url = project.data('api');
-                const get_url = project.data('get');
-                const project_name = create_dialog.find('[name=name]').val();
-                const safe_name = project_name.toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
-                const image = create_dialog.find('[name=image]').val();
-                const description = create_dialog.find('[name=description]').val();
+        // Lazily create the new project dialog
+        if (!this.project_dialog)
+            this.project_dialog = new Modal('new-project-dialog', {
+                title: 'Create New Project',
+                body: project_form_spec(),
+                button_label: 'Create Project',
+                button_class: 'btn-success create-button',
+                callback: (form_data) => {
+                    // Generate the slug
+                    const slug = form_data['name'].toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
 
-                // Make sure there isn't already a project named this
-                if (this.project_exists(safe_name)) {
-                    error_message('Please choose a different name. A project already exists with that name.');
-                    return;
+                    // Make sure there isn't already a project named this
+                    if (this.project_exists(slug)) {
+                        error_message('Please choose a different name. A project already exists with that name.');
+                        return;
+                    }
+
+                    // Make the AJAX request
+                    $.ajax({
+                        method: 'POST',
+                        url: this.api_url() + slug,
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            "name": form_data['name'],
+                            "image": form_data['image'],
+                            "description": form_data['description']
+                        }),
+                        success: () => {
+                            // Open the project and refresh the page
+                            window.open(this.get_url() + slug);
+                            redraw_projects();
+                        },
+                        error: () => error_message('Unable to create project.')
+                    });
                 }
-
-                // Make the AJAX request
-                $.ajax({
-                    method: 'POST',
-                    url: api_url + safe_name,
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        "name": project_name,
-                        "image": image,
-                        "description": description
-                    }),
-                    success: () => {
-                        // Open the project and refresh the page
-                        window.open(get_url + safe_name);
-                        redraw_projects();
-                    },
-                    error: () => error_message('Unable to create project.')
-                });
             });
+
+        // Show the delete dialog
+        this.project_dialog.show();
     }
+}
+
+class Modal {
+    element = null;
+    id = null;
+    title = null;
+    body = null;
+    footer = null;
+    callback = null;
+    template = `
+        <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                            <span class="sr-only">Close</span>
+                        </button>
+                        <h4 class="modal-title"></h4>
+                    </div>
+                    <div class="modal-body"></div>
+                    <div class="modal-footer"></div>
+                </div>
+            </div>
+        </div>`;
+
+    constructor(id, { title = null, body = '', buttons = null, button_label = 'OK', button_class = 'btn-primary', callback = () => {} } = {}) {
+        this.id = id;
+        this.title = title || id;
+        this.body = typeof body === 'string' ? body : this.form_builder(body);
+        this.footer = buttons || this.default_buttons(button_label, button_class);
+        this.callback = callback;
+        this.build();
+        this.attach_callback();
+    }
+
+    build() {
+        // Parse the template
+        this.element = new DOMParser().parseFromString(this.template, "text/html")
+            .querySelector('div.modal');
+
+        this.element.setAttribute('id', this.id);                               // Set the id
+        this.element.querySelector('.modal-title').innerHTML = this.title;      // Set the title
+        this.element.querySelector('.modal-body').innerHTML = this.body;        // Set the body
+        this.element.querySelector('.modal-footer').innerHTML = this.footer;    // Set the footer
+    }
+
+    show() {
+        const attached = document.body.querySelector(`#${this.id}`);
+        if (attached) attached.remove();                                        // Remove old dialog, if one exists
+        document.body.append(this.element);                                     // Attach this modal dialog
+        $(this.element).modal();                            // Display the modal dialog using JupyterHub's modal call
+    }
+
+    form_builder(body_spec) {
+        // Assume body is a list of objects
+        // {
+        //     label: str,
+        //     name: str,
+        //     required: boolean,
+        //     value: str,
+        //     options: list
+        // }
+        const form = $('<div class="form-horizontal"></div>');
+        body_spec.forEach((param) => {
+            const grouping = $('<div class="form-group"></div>');
+            const asterisk = param['required'] ? '*' : '';
+            grouping.append($(`<label for="${param['name']}" class="control-label col-sm-4">${param['label']}${asterisk}</label>`));
+            if (!param['options'] || !param['options'].length) {        // Handle text parameters
+                grouping.append($(`<div class="col-sm-8"><input name="${param['name']}" type="text" class="form-control" value="${param['value']}" /></div>`));
+            }
+            else {                                                      // Handle select parameters
+                const div = $('<div class="col-sm-8"></div>');
+                const select = $(`<select name="${param['name']}" class="form-control"></select>`).appendTo(div);
+                param['options'].forEach((option) => {
+                    if (option === param['value']) select.append($(`<option value="${option}" selected>${option}</option>`))
+                    else select.append($(`<option value="${option}">${option}</option>`))
+                });
+                grouping.append(div);
+            }
+            form.append(grouping);
+        });
+        return form[0].outerHTML;
+    }
+
+    default_buttons(button_label, button_class) {
+        return `
+            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            <button type="button" class="btn ${button_class}" data-dismiss="modal">${button_label}</button>`;
+    }
+
+    gather_form_data() {
+        const form_data = {};
+        const inputs = this.element.querySelectorAll('input, select');
+        inputs.forEach(i => form_data[i.getAttribute('name')] = i.value);
+        return form_data;
+    }
+
+    attach_callback() {
+        // IMPLEMENT: Handle a list of callbacks for cases where there is more than one button in the footer
+        const buttons = this.element.querySelector('.modal-footer').querySelectorAll('.btn');
+        if (buttons.length) buttons[buttons.length - 1].addEventListener("click", () => {
+            const form_data = this.gather_form_data();
+            this.callback(form_data);
+        });
+    }
+}
+
+function project_form_spec(project = null) {
+    return [
+        {
+            label: "Project Name",
+            name: "name",
+            required: true,
+            value: project ? project.display_name() : ''
+        },
+        {
+            label: "Environment",
+            name: "image",
+            required: true,
+            value: project ? project.image() : '',
+            options: GenePattern.projects.images
+        },
+        {
+            label: "Description",
+            name: "description",
+            required: false,
+            value: project ? project.description() : ''
+        }
+    ];
 }
 
 function query_projects() {
@@ -288,6 +444,7 @@ function query_projects() {
         .then(response => {
             GenePattern.projects.username = response['name'];
             GenePattern.projects.base_url = response['base_url'];
+            GenePattern.projects.images = response['images'];
             GenePattern.projects.my_projects = [];                          // Clean the my_projects list
             response['projects'].forEach((p) => GenePattern.projects.my_projects.push(new Project(p)));
             GenePattern.projects.my_projects.sort(sort);                    // Sort the my_projects list

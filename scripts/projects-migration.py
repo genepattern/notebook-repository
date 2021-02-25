@@ -71,3 +71,32 @@ for user in users:
 # Close the connection to the database
 db.close()
 
+##########################################
+# Update publish and share paths         #
+##########################################
+
+# docker exec -it
+# cd /srv/notebook-repository/
+# source activate repository
+# ./manage.py shell
+
+from nbrepo.models import Notebook, Share
+
+
+def update_publish_path(orig_path):
+    parts = orig_path.split('/notebooks/', 1)
+    return parts[0] + '/legacy_project/notebooks/' + parts[1]
+
+
+def update_share_path(orig_path):
+    parts = orig_path.split('/', 1)
+    return parts[0] + '/legacy_project/' + parts[1]
+
+
+for nb in Notebook.objects.all():
+    nb.api_path = update_publish_path(nb.api_path)
+    nb.save()
+
+for s in Share.objects.all():
+    s.api_path = update_share_path(s.api_path)
+    s.save()

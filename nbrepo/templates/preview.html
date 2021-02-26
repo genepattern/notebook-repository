@@ -23,6 +23,7 @@
         </style>
 
         <script src="https://code.jquery.com/jquery-3.4.0.min.js" integrity="sha256-BJeo0qm959uMBGb65z40ejJYGSgR7REI4+CW1fNKwOg=" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
         <script type="text/javascript">
             function load_preview() {
                 const preview_url = "/services/sharing/notebooks/{{ notebook.id }}/preview/image/";
@@ -114,7 +115,7 @@
                     <div class="row">
                         <div class="col-md-12 padding-lg">
                             <a class="btn btn-default btn-lg" href="/services/sharing/notebooks/{{ notebook.id }}/download/">Download</a>
-                            <a class="btn btn-primary btn-lg" href="/hub/login?next=%2Fservices%2Fsharing%2Fnotebooks%2F{{ notebook.id }}%2Fcopy%2Flegacy_project%2F%3Fopen%3Dtrue">Run Notebook</a>
+                            <a class="btn btn-primary btn-lg" data-toggle="tooltip" title="This notebook will be copied to your Default Project." href="/hub/login?next=%2Fservices%2Fsharing%2Fnotebooks%2F{{ notebook.id }}%2Fcopy%2Flegacy_project%2F%3Fopen%3Dtrue">Run Notebook</a>
                         </div>
                     </div>
 
@@ -130,6 +131,9 @@
 
         <script type="text/javascript">
             $(document).ready(load_preview);
+            $(document).ready(function(){
+                $('[data-toggle="tooltip"]').tooltip();
+            });
         </script>
     </body>
 

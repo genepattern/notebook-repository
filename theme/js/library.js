@@ -845,7 +845,7 @@ define("library", [
               <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-default preview" data-dismiss="modal">Preview</button>
-                <button type="button" class="btn btn-primary run" data-dismiss="modal">Run Notebook</button>
+                <button type="button" class="btn btn-primary run" data-dismiss="modal" data-toggle="tooltip" title="This notebook will be copied to your Default Project.">Run Notebook</button>
               </div>
             </div>
           </div>
@@ -859,6 +859,7 @@ define("library", [
         });
         $('body').append(modal_frame);
         modal_frame.modal();
+        $('[data-toggle="tooltip"]').tooltip();
     }
 
     /**

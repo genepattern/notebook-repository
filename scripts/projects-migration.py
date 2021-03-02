@@ -71,3 +71,18 @@ for user in users:
 # Close the connection to the database
 db.close()
 
+##########################################
+# Updated published & shared notebooks   #
+##########################################
+
+# from nbrepo.models import Notebook, Share
+#
+#
+# def update_published(nb):
+#     parts = nb.api_path.split('/notebooks/', 1)
+#     return parts[0] + '/legacy_project/notebooks/' + parts[1]
+#
+#
+# for nb in Notebook.objects.all():
+#     nb.api_path = update_published(nb)
+#     nb.save()

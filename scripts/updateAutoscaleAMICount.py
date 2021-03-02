@@ -31,7 +31,7 @@ def updateAutoscaleAmiCount():
     print("Checking number of running instances in  ")
     # look at docker and see how many containers are running now
     print(f"docker ps | grep \"{CONTAINER}\" | wc -l")
-    dockerPsCount = int(os.popen(f"docker ps | grep \"{CONTAINER}\" | wc -l").read())
+    dockerPsCount = int(os.popen(f"docker service ls | grep \"{CONTAINER}\" | wc -l").read())
 
     print("Currently have user kernels running: " + str(dockerPsCount))
 

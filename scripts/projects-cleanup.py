@@ -11,33 +11,12 @@ import shutil
 ##########################################
 
 # Handle the userdir and database arguments
-parser = argparse.ArgumentParser(description='Migrate the notebook workspace to support notebook projects')
+parser = argparse.ArgumentParser(description='Cleanup old project directories the notebook workspace')
 parser.add_argument('-u', '--userdir', type=str, default='/data/users/', help='Path to the users directory')
 parser.add_argument('-d', '--database', type=str, default='/data/jupyterhub.sqlite', help='Path to JupyterHub database')
 
 # Parse the arguments
 args = parser.parse_args()
-
-# ##########################################
-# # Migrate user directories               #
-# ##########################################
-#
-# # Get the list of all user directories
-# user_directories = [f for f in os.listdir(args.userdir) if os.path.isdir(os.path.join(args.userdir, f))]
-#
-# # For each user, move the contents of their user directory to a legacy project directory
-# for user_name in user_directories:
-#     user_dir = os.path.join(args.userdir, user_name)
-#
-#     # Create the directory for the legacy project
-#     legacy_path = os.path.join(user_dir, 'legacy_project')
-#     os.makedirs(legacy_path, exist_ok=True)
-#
-#     # Move the user directory's contents to the legacy project directory
-#     all_files = os.listdir(user_dir)
-#     for file_name in all_files:
-#         if file_name != 'legacy_project':
-#             shutil.move(os.path.join(user_dir, file_name), os.path.join(legacy_path, file_name))
 
 
 def normalize_username(username):
@@ -53,7 +32,7 @@ def normalize_username(username):
 
 
 ##########################################
-# Create named servers                   #
+# Iterate through user directories       #
 ##########################################
 
 # Get a connection to the database
@@ -77,7 +56,7 @@ for user in users:
 
     # Check to make sure that the user directory exists
     if not os.path.exists(user_directory):
-        print(f"User directory does not exist: {user_directory}")
+        # print(f"User directory does not exist: {user_directory}")
         continue
 
     # Get a list of all projects belonging to the user
@@ -88,12 +67,14 @@ for user in users:
     contents = os.listdir(user_directory)
     for p in contents:
         # Only check directories, not files
-        if not os.path.isdir(os.path.join(user_directory, p)):
+        project_path = os.path.join(user_directory, p)
+        if not os.path.isdir(project_path):
             continue
 
         # If the directory doesn't have a project in the database
         if p not in projects:
-            print(f'CLEAN UP NEEDED: {encoded_username}/{p}')  # Replace this with automated delete once the script has been tested enough
+            print(f'REMOVING {project_path}')
+            shutil.rmtree(project_path)
 
 # Close the connection to the database
 db.close()

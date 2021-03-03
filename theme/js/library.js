@@ -1442,7 +1442,8 @@ define("library", [
         }
 
         // Try the GenePattern token
-        if (cookie_map['GenePattern'] !== undefined &&
+        if (extracted_username === null &&
+            cookie_map['GenePattern'] !== undefined &&
             cookie_map['GenePattern'] !== null &&
             cookie_map['GenePattern'] !== 'undefined' &&
             cookie_map['GenePattern'] !== 'null') {

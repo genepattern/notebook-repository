@@ -179,7 +179,7 @@ define("library", [
      * Display the loading screen for the modal dialog
      */
     function modal_loading_screen() {
-        const to_cover = $(".modal-body");
+        const to_cover = $(".library-modal").find(".modal-body");
         const cover = $("<div></div>")
             .addClass("repo-modal-cover")
             .append($('<i class="fa fa-spinner fa-spin fa-3x fa-fw repo-modal-spinner"></i>'));
@@ -1819,7 +1819,7 @@ define("library", [
 
         // Add the warning message
         setTimeout(function() {
-            $(".library-modal").find(".modal-body").prepend(
+            $(".modal-body").prepend(
                 $("<div></div>")
                     .addClass("alert alert-danger")
                     .text("You are about to move or rename a shared notebook. Doing this may cause problems accessing the notebook from the Notebook Library.")

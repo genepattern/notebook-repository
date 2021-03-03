@@ -190,9 +190,12 @@
                     const api_url = project.data('api');
                     const get_url = project.data('get');
                     const project_name = create_dialog.find('[name=name]').val();
-                    const safe_name = project_name.toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
+                    let safe_name = project_name.toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
                     const image = create_dialog.find('[name=image]').val();
                     const description = create_dialog.find('[name=description]').val();
+
+                    // Ensure the slug doesn't end with an underscore (because that won't work with docker swarm)
+                    if (safe_name.endsWith('_')) safe_name += 'project';
 
                     // Make sure there isn't already a project named this
                     if (project_exists(safe_name)) {

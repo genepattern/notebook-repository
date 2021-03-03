@@ -855,11 +855,36 @@ define("library", [
             preview_notebook(notebook);
         });
         modal_frame.find('.run').click(() => {
-            copy_notebook(notebook);
+            legacy_warning(notebook);
         });
         $('body').append(modal_frame);
         modal_frame.modal();
         $('[data-toggle="tooltip"]').tooltip();
+    }
+
+    function legacy_warning(notebook) {
+        let modal_frame = $(`
+        <div class="modal fade"tabindex="-1" role="dialog" aria-labelledby="frame-project-label" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title">Run Notebook in Default Project</h4>
+              </div>
+              <div class="modal-body">
+                <p class="alert alert-info">This notebook will be copied to your Default Project's files tab.</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default run" data-dismiss="modal">OK</button>
+              </div>
+            </div>
+          </div>
+        </div>`);
+        modal_frame.find('.run').click(() => {
+            copy_notebook(notebook);
+        });
+        $('body').append(modal_frame);
+        modal_frame.modal();
     }
 
     /**

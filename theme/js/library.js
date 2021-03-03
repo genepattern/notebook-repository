@@ -834,7 +834,7 @@ define("library", [
 
         // Show the modal dialog
         let modal_frame = $(`
-        <div class="modal fade"tabindex="-1" role="dialog" aria-labelledby="frame-project-label" aria-hidden="true">
+        <div class="modal fade library-modal"tabindex="-1" role="dialog" aria-labelledby="frame-project-label" aria-hidden="true">
           <div class="modal-dialog">
             <div class="modal-content">
               <div class="modal-header">
@@ -1819,7 +1819,7 @@ define("library", [
 
         // Add the warning message
         setTimeout(function() {
-            $(".modal-body").prepend(
+            $(".library-modal").find(".modal-body").prepend(
                 $("<div></div>")
                     .addClass("alert alert-danger")
                     .text("You are about to move or rename a shared notebook. Doing this may cause problems accessing the notebook from the Notebook Library.")

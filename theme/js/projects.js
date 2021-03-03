@@ -266,7 +266,8 @@ class NewProject {
                 button_class: 'btn-success create-button',
                 callback: (form_data) => {
                     // Generate the slug
-                    const slug = form_data['name'].toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
+                    let slug = form_data['name'].toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
+                    if (slug.endsWith('_')) slug += 'project';  // Swarm doesn't like slugs that end in an underscore
 
                     // Make sure there isn't already a project named this
                     if (this.project_exists(slug)) {

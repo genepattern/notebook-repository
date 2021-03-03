@@ -42,7 +42,7 @@ async def fetch_screenshot(nb_file_path):
     nb_file_name = nb_file_path.split(os.path.sep)[-1]
     nb_url = BASE_HUB_URL + '/hub/login/form?next=' + '/user/' + quote(SCREENSHOT_USER) + '/legacy_project/notebooks/' + quote(nb_file_name)
     screenshot_path = os.path.join(nb_dir_path, 'preview.png')
-    user_dir_path = os.path.join(settings.BASE_USER_PATH, SCREENSHOT_USER)
+    user_dir_path = os.path.join(settings.BASE_USER_PATH, SCREENSHOT_USER, 'legacy_project')
 
     # Lazily create directory, if necessary
     if not os.path.exists(user_dir_path):

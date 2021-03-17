@@ -31,7 +31,7 @@ class HubDatabase:
         session = engine.connect()
 
         # Query for the list of user spawners
-        results = [r for r in session.execute(f"SELECT s.name, s.state, s.user_options FROM spawners s, users u WHERE s.user_id = u.id AND u.name = '{username}'")]
+        results = [r for r in session.execute(f"SELECT s.name, s.state, s.user_options, s.last_activity, s.started FROM spawners s, users u WHERE s.user_id = u.id AND u.name = '{username}'")]
 
         # Close the connection to the database and return
         session.close()

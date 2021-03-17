@@ -1,5 +1,11 @@
 {% extends "page.html" %}
 
+{% block scripts %}
+    <script src="/hub/static/js/tagify.min.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="/hub/static/css/tagify.min.css" />
+    {{ super() }}
+{% endblock %}
+
 {% block main %}
     <div class="container">
         <div id="messages">
@@ -30,12 +36,4 @@
 {% block script %}
     {{ super() }}
     <script type="text/javascript" src="/hub/static/js/projects.js"></script>
-
-    {# TODO: Replace with new functionality for Release 2  #}
-    <script type="text/javascript" src="/hub/static/js/library.js"></script>
-    <script type="text/javascript">
-        {# requirejs(["library"], function(library) {#}
-        {#    library.tree_init();#}
-        {# });#}
-    </script>
 {% endblock %}

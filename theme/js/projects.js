@@ -5,6 +5,7 @@ GenePattern.projects.base_url = GenePattern.projects.base_url || '';
 GenePattern.projects.images = GenePattern.projects.images || [];
 GenePattern.projects.new_project = GenePattern.projects.new_project || null;
 GenePattern.projects.my_projects = GenePattern.projects.my_projects || [];
+GenePattern.projects.library = GenePattern.projects.library || [];
 
 
 class Project {
@@ -12,6 +13,7 @@ class Project {
     model = null;
     template = `
         <div class="panel nb-project">
+            <div class="nb-image"></div>
             <div class="nb-icon-space">
                 <i title="Shared" class="fa fa-share nb-shared-icon hidden"></i>
                 <i title="Published" class="fa fa-newspaper-o nb-published-icon hidden"></i>
@@ -54,6 +56,7 @@ class Project {
         // Display name and other metadata
         this.element.querySelector('.panel-title').innerHTML = this.display_name();
         this.element.querySelector('.panel-text').innerHTML = this.description();
+        this.element.querySelector('.nb-image').innerHTML = this.image();
 
         // Display the tags
         this._apply_tags();
@@ -82,11 +85,26 @@ class Project {
     }
 
     slug() {
-        this.model.slug;
+        return this.model.slug;
     }
 
     image() {
         return this.model.image;
+    }
+
+    author() {
+        return this.model.author || '';
+    }
+
+    quality() {
+        return this.model.quality || '';
+    }
+
+    tags(str=false) {
+        const clean_text = $('<textarea />').html(this.model.tags).text();  // Fix HTML encoding issues
+        if (str) return clean_text;
+        else if (clean_text === '') return [];
+        else return clean_text.split(',');
     }
 
     get_url() {
@@ -97,15 +115,70 @@ class Project {
         return `${GenePattern.projects.base_url}api/users/${GenePattern.projects.username}/servers/${this.model.slug}`;
     }
 
+    publish_url() {
+        // TODO: Return the update project URL if the project is published (append '<id>/')
+        return `/services/projects/library/`
+    }
+
+    is_published() {
+        // TODO: Implement
+        return false;
+    }
+
     _apply_tags() {
-        let tag = document.createElement('span');
-        tag.classList.add('badge', 'badge-secondary');
-        tag.innerHTML = this.model.image || 'Unknown';
-        this.element.querySelector('.nb-tags').append(tag);
+        const tag_box = this.element.querySelector('.nb-tags');
+        this.tags().forEach((t) => {
+            let tag = document.createElement('span');
+            tag.classList.add('badge');
+            tag.innerHTML = t;
+            tag_box.append(tag);
+        });
     }
 
     publish_project() {
-        // TODO: Implement
+        // Lazily create the edit dialog
+        if (!this.publish_dialog)
+            this.publish_dialog = new Modal('publish-project-dialog', {
+                title: 'Publish Project',
+                body: project_form_spec(this, [], ['name', 'image', 'author', 'quality', 'description']),
+                button_label: 'Publish',
+                button_class: 'btn-warning publish-button',
+                callback: (form_data) => {
+                    // Make the AJAX request
+                    $.ajax({
+                        method: 'POST',
+                        url: this.publish_url(),
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            "dir": this.slug(),
+                            "image": form_data['image'],
+                            "name": form_data['name'],
+                            "description": form_data['description'],
+                            "author": form_data['author'],
+                            "quality": form_data['quality'],
+                            "tags": Project.tags_to_string(form_data['tags']),
+                            "owner": GenePattern.projects.username
+                        }),
+                        success: () => redraw_projects(`Successfully published ${form_data['name']}`),
+                        error: (e) => error_message(e.statusText)
+                    });
+                }
+            });
+
+        // Show the delete dialog
+        this.publish_dialog.show();
+    }
+
+    static tags_to_string(tag_json) {
+        try {
+            const tag_objs = JSON.parse(tag_json);
+            const labels = [];
+            tag_objs.forEach(t => labels.push(t.value.toLowerCase()));
+            labels.sort();
+            return labels.join(',');
+        }
+        catch { return ''; }
+
     }
 
     edit_project() {
@@ -113,7 +186,7 @@ class Project {
         if (!this.edit_dialog)
             this.edit_dialog = new Modal('edit-project-dialog', {
                 title: 'Edit Project',
-                body: project_form_spec(this),
+                body: project_form_spec(this, ['author', 'quality', 'tags']),
                 button_label: 'Save',
                 button_class: 'btn-warning edit-button',
                 callback: (form_data) => {
@@ -125,7 +198,10 @@ class Project {
                         data: JSON.stringify({
                             "name": form_data['name'],
                             "image": form_data['image'],
-                            "description": form_data['description']
+                            "description": form_data['description'],
+                            "author": form_data['author'],
+                            "quality": form_data['quality'],
+                            "tags": Project.tags_to_string(form_data['tags'])
                         }),
                         success: () => redraw_projects(),
                         error: () => error_message('Unable to edit project.')
@@ -234,7 +310,7 @@ class NewProject {
 
     init_events() {
         // Handle click events on new project
-        $(this.element).click(() => this.new_project_dialog());
+        $(this.element).click(() => this.create_project());
     }
 
     get_url() {
@@ -256,12 +332,12 @@ class NewProject {
         return found_name;
     }
 
-    new_project_dialog(project) {
+    create_project() {
         // Lazily create the new project dialog
         if (!this.project_dialog)
             this.project_dialog = new Modal('new-project-dialog', {
                 title: 'Create New Project',
-                body: project_form_spec(),
+                body: project_form_spec(null, ['author', 'quality', 'tags']),
                 button_label: 'Create Project',
                 button_class: 'btn-success create-button',
                 callback: (form_data) => {
@@ -283,7 +359,10 @@ class NewProject {
                         data: JSON.stringify({
                             "name": form_data['name'],
                             "image": form_data['image'],
-                            "description": form_data['description']
+                            "description": form_data['description'],
+                            "author": form_data['author'],
+                            "quality": form_data['quality'],
+                            "tags": Project.tags_to_string(form_data['tags'])
                         }),
                         success: () => {
                             // Open the project and refresh the page
@@ -350,6 +429,25 @@ class Modal {
         if (attached) attached.remove();                                        // Remove old dialog, if one exists
         document.body.append(this.element);                                     // Attach this modal dialog
         $(this.element).modal();                            // Display the modal dialog using JupyterHub's modal call
+        this.activate_tags();                                                   // Activate tags widget, if necessary
+        this.activate_controls();
+    }
+
+    activate_controls() {
+        $(this.element).find('a.nb-more').one('click', () => {
+            $(this.element).find('.nb-advanced').show('slide');
+            $(this.element).find('div.nb-more').hide('slide');
+        });
+        $(this.element).one('hidden.bs.modal', () => {
+            $(this.element).find('.nb-advanced').hide();
+            $(this.element).find('div.nb-more').show();
+        });
+    }
+
+    activate_tags() {
+        const tags_input = this.element.querySelector('input[name=tags]');
+        const tagify = this.element.querySelector('tags');
+        if (tags_input && !tagify) new Tagify(tags_input);
     }
 
     form_builder(body_spec) {
@@ -358,12 +456,14 @@ class Modal {
         //     label: str,
         //     name: str,
         //     required: boolean,
+        //     advanced: boolean,
         //     value: str,
         //     options: list
         // }
         const form = $('<div class="form-horizontal"></div>');
         body_spec.forEach((param) => {
             const grouping = $('<div class="form-group"></div>');
+            if (param['advanced']) grouping.addClass('nb-advanced');
             const asterisk = param['required'] ? '*' : '';
             grouping.append($(`<label for="${param['name']}" class="control-label col-sm-4">${param['label']}${asterisk}</label>`));
             if (!param['options'] || !param['options'].length) {        // Handle text parameters
@@ -373,13 +473,22 @@ class Modal {
                 const div = $('<div class="col-sm-8"></div>');
                 const select = $(`<select name="${param['name']}" class="form-control"></select>`).appendTo(div);
                 param['options'].forEach((option) => {
-                    if (option === param['value']) select.append($(`<option value="${option}" selected>${option}</option>`))
+                    if (option === param['value']) select.append($(`<option value="${option}" selected>${option}</option>`));
                     else select.append($(`<option value="${option}">${option}</option>`))
                 });
                 grouping.append(div);
             }
             form.append(grouping);
         });
+        if (form.find('.nb-advanced').length) {   // If necessary, add the "Show More"" control
+            const control = $(`<div class="form-group nb-more">
+                                   <label class="col-sm-4"></label>
+                                   <label class="col-sm-8">
+                                       <a class="nb-more" href="#">Show More</a>
+                                   </label>
+                               </div>`);
+            form.append(control);
+        }
         return form[0].outerHTML;
     }
 
@@ -406,26 +515,51 @@ class Modal {
     }
 }
 
-function project_form_spec(project = null) {
+function project_form_spec(project=null, advanced=[], required=['name', 'image']) {
     return [
         {
             label: "Project Name",
             name: "name",
-            required: true,
+            required: required.includes("name"),
+            advanced: advanced.includes("name"),
             value: project ? project.display_name() : ''
         },
         {
             label: "Environment",
             name: "image",
-            required: true,
+            required: required.includes("image"),
+            advanced: advanced.includes("image"),
             value: project ? project.image() : '',
             options: GenePattern.projects.images
         },
         {
             label: "Description",
             name: "description",
-            required: false,
+            required: required.includes("description"),
+            advanced: advanced.includes("description"),
             value: project ? project.description() : ''
+        },
+        {
+            label: "Author",
+            name: "author",
+            required: required.includes("author"),
+            advanced: advanced.includes("author"),
+            value: project ? project.author() : ''
+        },
+        {
+            label: "Quality",
+            name: "quality",
+            required: required.includes("quality"),
+            advanced: advanced.includes("quality"),
+            value: project ? project.quality() : '',
+            options: ["", "Development", "Beta", "Release"]
+        },
+        {
+            label: "Tags",
+            name: "tags",
+            required: required.includes("tags"),
+            advanced: advanced.includes("tags"),
+            value: project ? project.tags(true) : ''
         }
     ];
 }
@@ -452,7 +586,8 @@ function query_projects() {
         })
 }
 
-function redraw_projects() {
+function redraw_projects(message=null) {
+    if (message) success_message(message);
     return query_projects().then(() => {
         document.querySelector('#projects').innerHTML = '';                     // Empty the projects div
         GenePattern.projects.my_projects.forEach((p) =>                              // Add the project widgets
@@ -465,8 +600,14 @@ function redraw_projects() {
 }
 
 function error_message(message) {
-    $('#messages').append(
+    $('#messages').empty().append(
         $(`<div class="alert alert-danger">${message}</div>`)
+    )
+}
+
+function success_message(message) {
+    $('#messages').empty().append(
+        $(`<div class="alert alert-success">${message}</div>`)
     )
 }
 
@@ -491,7 +632,7 @@ function initialize_search() {
 function initialize_buttons() {
     // Handle new project button click
     $('#nb-new').click(() => {
-        GenePattern.projects.new_project.new_project_dialog($(".nb-project-new"));
+        GenePattern.projects.new_project.create_project();
     });
 }
 

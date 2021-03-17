@@ -118,7 +118,7 @@ body > .navbar > .container-fluid {
     display: inline-block;
     width: 272px;
     vertical-align: top;
-    height: 212px;
+    height: 220px;
     margin-bottom: 10px;
     margin-right: 10px;
     text-align: left;
@@ -139,7 +139,7 @@ body > .navbar > .container-fluid {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    width: 265px;
+    width: 263px;
     display: block;
     margin: 0 0 10px;
 }
@@ -193,6 +193,7 @@ body > .navbar > .container-fluid {
     bottom: 5px;
     width: 100%;
     overflow: hidden;
+    height: 18px;
 }
 
 .nb-project > .panel-body > .nb-tags > .badge {
@@ -306,4 +307,21 @@ li > a.nb-edit {
 
 #repository-container {
     margin-top: 30px;
+}
+
+.modal-body .form-control {
+    height: auto;
+}
+
+.nb-image {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    color: white;
+    z-index: 1;
+    font-weight: 700;
+}
+
+.nb-advanced {
+    display: none;
 }

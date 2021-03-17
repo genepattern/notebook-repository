@@ -34,18 +34,29 @@ class Project(Base):
     deleted = Column(Boolean, default=False)
 
     def __init__(self, spec=None):
-        super(Project, self).__init__()                         # Call the superclass constructor
-        if spec is None: return                                 # If no spec, nothing left to do
+        super(Project, self).__init__()                                     # Call the superclass constructor
+        if spec is None: return                                             # If no spec, nothing left to do
 
         # If a spec was given, parse it and instantiate this project with the data
         try:
-            if isinstance(spec, str): spec = json.loads(spec)   # Parse the JSON, if necessary
-            for key in Project.__dict__:                        # Assign attributes from the json
+            if isinstance(spec, str): spec = json.loads(spec)               # Parse the JSON, if necessary
+            for key in Project.__dict__:                                    # Assign attributes from the json
                 if key in spec:
-                    if isinstance(spec[key], str): setattr(self, key, spec[key].strip())
+                    if key == 'tags': self.lazily_create_tags(spec[key])    # Special handling of tags
+                    elif isinstance(spec[key], str): setattr(self, key, spec[key].strip())
                     else: setattr(self, key, spec[key])
         except json.JSONDecodeError:
             raise Project.SpecError('Error parsing json')
+
+    def lazily_create_tags(self, tags_str):
+        if len(tags_str.strip()) == 0: return                               # If there are no tags, do nothing
+        labels = tags_str.strip().split(',')                                # Get the list of tag labels
+        tags = []
+        for label in labels:
+            tag = Tag.get(label=label)                                      # Get tag object, if one exists
+            if tag: tags.append(tag)                                        # If the tag exists, add it to the list
+            else: tags.append(Tag(label=label).save())                      # Otherwise, create a new tag and add it
+        self.tags = tags                                                    # Add the tags to the project
 
     def exists(self):
         return Project.get(owner=self.owner, dir=self.dir) is not None
@@ -88,6 +99,7 @@ class Project(Base):
         if 'author' in merge: self.author = merge['author'].strip()
         if 'quality' in merge: self.quality = merge['quality'].strip()
         if 'image' in merge: self.image = merge['image'].strip()
+        if 'tags' in merge: self.lazily_create_tags(merge['tags'].strip())
         if 'comment' in merge: Update(self, merge['comment'].strip())       # Create the Update object
         self.updated = datetime.now()                                       # Set last updated
         # Ensure that the new metadata meets the minimum requirements
@@ -97,11 +109,16 @@ class Project(Base):
     def min_metadata(self):
         return self.dir and self.image and self.name and self.author and self.quality and self.owner
 
+    def tags_str(self):
+        labels = [tag.label for tag in self.tags]
+        return ','.join(labels)
+
     def json(self):
         data = { c.name: getattr(self, c.name) for c in self.__table__.columns }
         for k in data:
-            if isinstance(data[k], datetime):
+            if isinstance(data[k], datetime):                               # Special handling for datetimes
                 data[k] = str(data[k])
+        data['tags'] = self.tags_str()                                      # Special handling for tags
         return data
 
     def mark_copied(self):
@@ -171,6 +188,46 @@ class Tag(Base):
     description = Column(String(255), default='')
     protected = Column(Boolean, default=False)
     pinned = Column(Boolean, default=False)
+
+    def __init__(self, label=None):
+        if label: self.label = label
+
+    @staticmethod
+    def get(id=None, label=None):
+        session = Session()
+        query = session.query(Tag)
+        if id is not None:      query = query.filter(Tag.id == id)
+        if label is not None:   query = query.filter(Tag.label == label)
+        tag = query.first()
+        session.close()
+        return tag
+
+    @staticmethod
+    def put(tag):
+        session = Session()
+        session.add(tag)
+        session.commit()
+        d = tag.json()
+        session.close()
+        return d  # Return the json representation
+
+    def json(self):
+        data = { c.name: getattr(self, c.name) for c in self.__table__.columns }
+        return data
+
+    def min_metadata(self):
+        return True if self.label else False
+
+    def save(self):
+        # Ensure that the project has all of the required information
+        if not self.min_metadata(): raise Tag.SpecError('Missing required attributes')
+        # Save the project to the database and return the json representation
+        Tag.put(self)
+        return self
+
+    class SpecError(RuntimeError):
+        """Error to return if attempting to initialize a project from a bad specification"""
+        pass
 
 
 class ProjectTags(Base):

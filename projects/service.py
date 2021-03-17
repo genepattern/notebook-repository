@@ -108,7 +108,11 @@ class PublishHandler(HubAuthenticated, RequestHandler):
 
 
 class UserHandler(HubAuthenticated, RequestHandler):
-    """Notebook projects information about the current user"""
+    """Notebook projects information about the current user
+
+       This has been engineered as a replacement for the user.json template,
+       but it isn't yet fully featured, as it needs to access information that
+       JupyterHub has stored in memory but not in the database"""
 
     @authenticated
     def get(self):
@@ -120,13 +124,26 @@ class UserHandler(HubAuthenticated, RequestHandler):
         projects = []
         for s in spawners:
             if s[0] == '': continue  # Skip the user default spawner
+            metadata = json.loads(s[2])
             projects.append({
-                'name': s[0],
+                'slug': s[0],
+                'active': s[4] is not None,
+                'last_activity': s[3],
+                'display_name': metadata['name'] if 'name' in metadata else s[0],
+                'image': metadata['image'] if 'image' in metadata else '',
+                'description': metadata['description'] if 'description' in metadata else '',
+                'author': metadata['author'] if 'author' in metadata else '',
+                'quality': metadata['quality'] if 'quality' in metadata else '',
+                'tags': metadata['tags'] if 'tags' in metadata else '',
                 'status': json.loads(s[1]),
-                'metadata': json.loads(s[2])
+                'name': s[0],                   # Retained for backwards compatibility with 21.02 release
+                'metadata': metadata            # Retained for backwards compatibility with 21.02 release
             })
 
-        self.write({'name': username, 'projects': projects})
+        self.write({'name': username,
+                    'base_url': '',         # FIXME: Need a way to access this info
+                    'images': '',           # FIXME: Need a way to access this info
+                    'projects': projects})
 
 
 class EndpointHandler(RequestHandler):

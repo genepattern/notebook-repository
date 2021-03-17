@@ -16,6 +16,9 @@
             "display_name": "{{ spawner.user_options['name'] or spawner.name }}",
             "image": "{{ spawner.user_options['image'] }}",
             "description": "{{ spawner.user_options['description'] }}",
+            "author": "{{ spawner.user_options['author'] or '' }}",
+            "quality": "{{ spawner.user_options['quality'] or '' }}",
+            "tags": "{{ spawner.user_options['tags'] or '' }}",
             "name": "{{ spawner.name }}", {# Retained for backwards compatibility with 21.02 release #}
             "metadata": {                 {# Retained for backwards compatibility with 21.02 release #}
                 "name": "{{ spawner.user_options['name'] or spawner.name }}"

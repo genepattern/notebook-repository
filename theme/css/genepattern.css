@@ -274,19 +274,6 @@ div.nb-project-new > .nb-img-top {
     filter: grayscale(100%) brightness(150%);
 }
 
-.nb-stopped .nb-stop,
-li > a.nb-delete,
-li > a.nb-publish,
-li > a.nb-edit {
-    display: none;
-}
-
-.nb-stopped .nb-delete,
-.nb-stopped .nb-publish,
-.nb-stopped .nb-edit {
-    display: block;
-}
-
 #nb-header {
     position: relative;
 }
@@ -305,7 +292,7 @@ li > a.nb-edit {
     top: 50px;
 }
 
-#repository-container {
+#nb-library-container {
     margin-top: 30px;
 }
 

@@ -1,6 +1,6 @@
 var GenePattern = GenePattern || {};
 GenePattern.projects = GenePattern.projects || {};
-GenePattern.projects.username = GenePattern.projects.username || [];
+GenePattern.projects.username = GenePattern.projects.username || '';
 GenePattern.projects.base_url = GenePattern.projects.base_url || '';
 GenePattern.projects.images = GenePattern.projects.images || [];
 GenePattern.projects.new_project = GenePattern.projects.new_project || null;
@@ -11,6 +11,7 @@ GenePattern.projects.library = GenePattern.projects.library || [];
 class Project {
     element = null;
     model = null;
+    published = null;
     template = `
         <div class="panel nb-project">
             <div class="nb-image"></div>
@@ -23,17 +24,11 @@ class Project {
                     <i title="Options" class="fa fa-cog"></i>
                     <i title="Dropdown" class="caret"></i>
                 </button>
-                <ul class="dropdown-menu">
-                    <li><a href="#" class="dropdown-item nb-edit">Edit</a></li>
-                    <li><a href="#" class="dropdown-item nb-publish">Publish</a></li>
-                    <li class="hidden"><a href="#" class="dropdown-item nb-share">Share</a></li>
-                    <li><a href="#" class="dropdown-item nb-stop">Stop</a></li>
-                    <li><a href="#" class="dropdown-item nb-delete">Delete</a></li>
-                </ul>
+                <ul class="dropdown-menu"></ul>
             </div>
             <img src="/static/images/background.jpg" alt="Project Icon" class="img-responsive nb-img-top">
             <div class="panel-body">
-                <h8 class="panel-title"></h8>
+                <p class="panel-title"></p>
                 <p class="panel-text"></p>
                 <div class="panel-text nb-tags"></div>
             </div>
@@ -42,7 +37,6 @@ class Project {
     constructor(project_json) {
         this.model = project_json;
         this.build();
-        this.init_events();
     }
 
     build() {
@@ -51,7 +45,7 @@ class Project {
             .querySelector('div.nb-project');
 
         // Mark as active or stopped
-        if (!this.model.active) this.element.classList.add('nb-stopped');
+        if (!this.running()) this.element.classList.add('nb-stopped');
 
         // Display name and other metadata
         this.element.querySelector('.panel-title').innerHTML = this.display_name();
@@ -60,20 +54,57 @@ class Project {
 
         // Display the tags
         this._apply_tags();
+
+        // Create the gear menu and attach events
+        this.build_gear_menu();
+
+        // Attach the click event to open a project, ignore clicks on the gear menu
+        this.element.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) this.open_project()
+        });
     }
 
-    init_events() {
-        // Handle click events on projects
-        $(this.element).click((event) => {
-            // Ignore clicks on the gear menu, If any other project is clicked
-            if (!$(event.target).closest('.dropdown').length) this.open_project();
-        });
+    build_gear_menu() {
+        // Add the menu items
+        $(this.element).find('.dropdown-menu')
+            .append($('<li><a href="#" class="dropdown-item nb-edit">Edit</a></li>'))
+            .append($('<li><a href="#" class="dropdown-item nb-publish">Publish</a></li>'))
+            .append($('<li class="hidden"><a href="#" class="dropdown-item nb-share">Share</a></li>'))
+            .append($('<li><a href="#" class="dropdown-item nb-stop">Stop</a></li>'))
+            .append($('<li><a href="#" class="dropdown-item nb-delete">Delete</a></li>'));
 
         // Handle menu clicks
-        $(this.element).find('.nb-stop').click((event) => this.stop_project());
-        $(this.element).find('.nb-delete').click((event) => this.delete_project());
-        $(this.element).find('.nb-edit').click((event) => this.edit_project());
-        $(this.element).find('.nb-publish').click((event) => this.publish_project());
+        $(this.element).find('.nb-stop').click(e => Project.not_disabled(e,() => this.stop_project()));
+        $(this.element).find('.nb-delete').click(e => Project.not_disabled(e,() => this.delete_project()));
+        $(this.element).find('.nb-edit').click(e => Project.not_disabled(e,() => this.edit_project()));
+        $(this.element).find('.nb-publish').click(e => Project.not_disabled(e,() => this.publish_project()));
+
+        // Enable or disable options
+        this.update_gear_menu(this.running())
+    }
+
+    update_gear_menu(running=null) {
+        if (running === null) running = this.running();
+
+        if (running) {
+            $(this.element).find('.nb-edit').parent().addClass('disabled');
+            $(this.element).find('.nb-publish').parent().addClass('disabled');
+            $(this.element).find('.nb-share').parent().addClass('disabled');
+            $(this.element).find('.nb-stop').parent().removeClass('disabled');
+            $(this.element).find('.nb-delete').parent().addClass('disabled');
+        }
+        else {
+            $(this.element).find('.nb-edit').parent().removeClass('disabled');
+            $(this.element).find('.nb-publish').parent().removeClass('disabled');
+            $(this.element).find('.nb-share').parent().removeClass('disabled');
+            $(this.element).find('.nb-stop').parent().addClass('disabled');
+
+            // Published projects cannot be deleted until unpublished
+            if (this.published) $(this.element).find('.nb-delete').parent().addClass('disabled')
+                .attr('title', 'You must unpublish this project before it can be deleted.');
+            else $(this.element).find('.nb-delete').parent().removeClass('disabled')
+                .removeAttr('title');
+        }
     }
 
     display_name() {
@@ -107,6 +138,10 @@ class Project {
         else return clean_text.split(',');
     }
 
+    running() {
+        return this.model.active;
+    }
+
     get_url() {
         return `/user/${GenePattern.projects.username}/${this.model.slug}`;
     }
@@ -116,13 +151,14 @@ class Project {
     }
 
     publish_url() {
-        // TODO: Return the update project URL if the project is published (append '<id>/')
-        return `/services/projects/library/`
+        if (!this.published) return `/services/projects/library/`;  // Root endpoint if not published
+        else this.published.publish_url();                          // Endpoint with /<id>/ if published
     }
 
-    is_published() {
-        // TODO: Implement
-        return false;
+    mark_published(published_project) {
+        this.published = published_project;
+        this.element.querySelector('.nb-published-icon').classList.remove('hidden');
+        this.update_gear_menu()
     }
 
     _apply_tags() {
@@ -140,7 +176,7 @@ class Project {
         if (!this.publish_dialog)
             this.publish_dialog = new Modal('publish-project-dialog', {
                 title: 'Publish Project',
-                body: project_form_spec(this, [], ['name', 'image', 'author', 'quality', 'description']),
+                body: Project.project_form_spec(this, [], ['name', 'image', 'author', 'quality', 'description']),
                 button_label: 'Publish',
                 button_class: 'btn-warning publish-button',
                 callback: (form_data) => {
@@ -159,8 +195,8 @@ class Project {
                             "tags": Project.tags_to_string(form_data['tags']),
                             "owner": GenePattern.projects.username
                         }),
-                        success: () => redraw_projects(`Successfully published ${form_data['name']}`),
-                        error: (e) => error_message(e.statusText)
+                        success: () => MyProjects.redraw_projects(`Successfully published ${form_data['name']}`),
+                        error: (e) => Messages.error_message(e.statusText)
                     });
                 }
             });
@@ -169,24 +205,12 @@ class Project {
         this.publish_dialog.show();
     }
 
-    static tags_to_string(tag_json) {
-        try {
-            const tag_objs = JSON.parse(tag_json);
-            const labels = [];
-            tag_objs.forEach(t => labels.push(t.value.toLowerCase()));
-            labels.sort();
-            return labels.join(',');
-        }
-        catch { return ''; }
-
-    }
-
     edit_project() {
         // Lazily create the edit dialog
         if (!this.edit_dialog)
             this.edit_dialog = new Modal('edit-project-dialog', {
                 title: 'Edit Project',
-                body: project_form_spec(this, ['author', 'quality', 'tags']),
+                body: Project.project_form_spec(this, ['author', 'quality', 'tags']),
                 button_label: 'Save',
                 button_class: 'btn-warning edit-button',
                 callback: (form_data) => {
@@ -203,8 +227,8 @@ class Project {
                             "quality": form_data['quality'],
                             "tags": Project.tags_to_string(form_data['tags'])
                         }),
-                        success: () => redraw_projects(),
-                        error: () => error_message('Unable to edit project.')
+                        success: () => MyProjects.redraw_projects(),
+                        error: () => Messages.error_message('Unable to edit project.')
                     });
                 }
             });
@@ -219,14 +243,17 @@ class Project {
             url: this.api_url(),
             contentType: 'application/json',
             data: '{ "remove": false }',
-            success: () => this.element.classList.add('nb-stopped'),
-            error: () => error_message('Unable to stop project.')
+            success: () => {
+                this.element.classList.add('nb-stopped');
+                this.update_gear_menu(false);
+            },
+            error: () => Messages.error_message('Unable to stop project.')
         });
     }
 
     delete_project() {
         // Lazily create the delete dialog
-        if (!this.delete_dialog)
+        if (!this.delete_dialog) {
             this.delete_dialog = new Modal('delete-project-dialog', {
                 title: 'Delete Project',
                 body: '<p>Are you sure that you want to delete this project?</p>',
@@ -240,10 +267,11 @@ class Project {
                         contentType: 'application/json',
                         data: '{ "remove": true }',
                         success: () => $(this.element).remove(),
-                        error: () => error_message('Unable to delete project.')
+                        error: () => Messages.error_message('Unable to delete project.')
                     });
                 }
             });
+        }
 
         // Show the delete dialog
         this.delete_dialog.show();
@@ -272,14 +300,176 @@ class Project {
                     "description": this.description()
                 }),
                 success: () => {},
-                error: () => error_message('Unable to edit project.')
+                error: () => Messages.error_message('Unable to edit project.')
             });
             setTimeout(() => {
+                this.update_gear_menu(true);
                 callback(this);
             }, 500);
 
             this.element.classList.remove('nb-stopped'); // Mark as running
         }
+    }
+
+    static not_disabled(event, callback) {
+        if (!$(event.target).closest('li').hasClass('disabled')) callback();
+        event.preventDefault();  // Prevent the screen from jumping back to the top of the page because of the # link
+    }
+
+    static tags_to_string(tag_json) {
+        try {
+            const tag_objs = JSON.parse(tag_json);
+            const labels = [];
+            tag_objs.forEach(t => labels.push(t.value.toLowerCase()));
+            labels.sort();
+            return labels.join(',');
+        }
+        catch { return ''; }
+
+    }
+
+    static project_form_spec(project=null, advanced=[], required=['name', 'image']) {
+        return [
+            {
+                label: "Project Name",
+                name: "name",
+                required: required.includes("name"),
+                advanced: advanced.includes("name"),
+                value: project ? project.display_name() : ''
+            },
+            {
+                label: "Environment",
+                name: "image",
+                required: required.includes("image"),
+                advanced: advanced.includes("image"),
+                value: project ? project.image() : '',
+                options: GenePattern.projects.images
+            },
+            {
+                label: "Description",
+                name: "description",
+                required: required.includes("description"),
+                advanced: advanced.includes("description"),
+                value: project ? project.description() : ''
+            },
+            {
+                label: "Author",
+                name: "author",
+                required: required.includes("author"),
+                advanced: advanced.includes("author"),
+                value: project ? project.author() : ''
+            },
+            {
+                label: "Quality",
+                name: "quality",
+                required: required.includes("quality"),
+                advanced: advanced.includes("quality"),
+                value: project ? project.quality() : '',
+                options: ["", "Development", "Beta", "Release"]
+            },
+            {
+                label: "Tags",
+                name: "tags",
+                required: required.includes("tags"),
+                advanced: advanced.includes("tags"),
+                value: project ? project.tags(true) : ''
+            }
+        ];
+    }
+}
+
+class PublishedProject extends Project {
+
+    display_name() {
+        return this.model.name;
+    }
+
+    image() {
+        return this.model.image;
+    }
+
+    slug() {
+        return this.model.dir;
+    }
+
+    updated() {
+        return this.model.updated;
+    }
+
+    owner() {
+        return this.model.owner;
+    }
+
+    build_gear_menu() {
+        $(this.element).find('.dropdown-menu')
+            .append($('<li><a href="#" class="dropdown-item nb-copy">Copy Project</a></li>'))
+            .append($('<li><a href="#" class="dropdown-item nb-preview">Preview</a></li>'));
+
+        if (this.owner() === GenePattern.projects.username)
+            $(this.element).find('.dropdown-menu')
+                .append($('<li><a href="#" class="dropdown-item nb-update">Update</a></li>'))
+                .append($('<li><a href="#" class="dropdown-item nb-unpublish">Unpublish</a></li>'));
+
+        // Handle menu clicks
+        $(this.element).find('.nb-copy').click(e => Project.not_disabled(e,() => this.copy_project()));
+        $(this.element).find('.nb-preview').click(e => Project.not_disabled(e,() => this.preview_project()));
+        $(this.element).find('.nb-update').click(e => Project.not_disabled(e,() => this.update_project()));
+        $(this.element).find('.nb-unpublish').click(e => Project.not_disabled(e,() => this.unpublish_project()));
+    }
+
+    /**
+     * Published projects have no running/stopped state, but return false so that they are grayed out
+     *
+     * @returns {boolean}
+     */
+    running() { return false; }
+
+    preview_url() { // TODO: Implement
+        return `/hub/preview/?nb=${this.model.id}`;
+    }
+
+    publish_url() {
+        return `/services/projects/library/${this.model.id}/`
+    }
+
+    copy_project() {
+        // TODO: Implement
+        console.log('COPY PROJECT');
+    }
+
+    preview_project() {
+        // TODO: Implement
+        console.log('PREVIEW PROJECT');
+    }
+
+    update_project() {
+        // TODO: Implement
+        console.log('UPDATE PROJECT');
+    }
+
+    unpublish_project() {
+        // Lazily create the unpublish dialog
+        if (!this.unpublish_dialog) {
+            this.unpublish_dialog = new Modal('unpublish-project-dialog', {
+                title: 'Unpublish Project',
+                body: '<p>Are you sure that you want to unpublish this project?</p>',
+                button_label: 'Delete',
+                button_class: 'btn-danger unpublish-button',
+                callback: () => {
+                    // Make the call to delete the project
+                    $.ajax({
+                        method: 'DELETE',
+                        url: this.publish_url(),
+                        contentType: 'application/json',
+                        success: () => $(this.element).remove(),
+                        error: () => Messages.error_message('Unable to unpublish project.')
+                    });
+                }
+            });
+        }
+
+        // Show the unpublish dialog
+        this.unpublish_dialog.show();
     }
 }
 
@@ -291,7 +481,7 @@ class NewProject {
                 <i class="fa fa-plus-circle nb-project-icon"></i>
             </div>
             <div class="panel-body">
-                <h8 class="panel-title">New Project</h8>
+                <p class="panel-title">New Project</p>
                 <p class="panel-text">Create a New Notebook Project</p>
             </div>
         </div>
@@ -337,7 +527,7 @@ class NewProject {
         if (!this.project_dialog)
             this.project_dialog = new Modal('new-project-dialog', {
                 title: 'Create New Project',
-                body: project_form_spec(null, ['author', 'quality', 'tags']),
+                body: Project.project_form_spec(null, ['author', 'quality', 'tags']),
                 button_label: 'Create Project',
                 button_class: 'btn-success create-button',
                 callback: (form_data) => {
@@ -347,7 +537,7 @@ class NewProject {
 
                     // Make sure there isn't already a project named this
                     if (this.project_exists(slug)) {
-                        error_message('Please choose a different name. A project already exists with that name.');
+                        Messages.error_message('Please choose a different name. A project already exists with that name.');
                         return;
                     }
 
@@ -367,9 +557,9 @@ class NewProject {
                         success: () => {
                             // Open the project and refresh the page
                             window.open(this.get_url() + slug);
-                            redraw_projects();
+                            MyProjects.redraw_projects();
                         },
-                        error: () => error_message('Unable to create project.')
+                        error: () => Messages.error_message('Unable to create project.')
                     });
                 }
             });
@@ -515,135 +705,139 @@ class Modal {
     }
 }
 
-function project_form_spec(project=null, advanced=[], required=['name', 'image']) {
-    return [
-        {
-            label: "Project Name",
-            name: "name",
-            required: required.includes("name"),
-            advanced: advanced.includes("name"),
-            value: project ? project.display_name() : ''
-        },
-        {
-            label: "Environment",
-            name: "image",
-            required: required.includes("image"),
-            advanced: advanced.includes("image"),
-            value: project ? project.image() : '',
-            options: GenePattern.projects.images
-        },
-        {
-            label: "Description",
-            name: "description",
-            required: required.includes("description"),
-            advanced: advanced.includes("description"),
-            value: project ? project.description() : ''
-        },
-        {
-            label: "Author",
-            name: "author",
-            required: required.includes("author"),
-            advanced: advanced.includes("author"),
-            value: project ? project.author() : ''
-        },
-        {
-            label: "Quality",
-            name: "quality",
-            required: required.includes("quality"),
-            advanced: advanced.includes("quality"),
-            value: project ? project.quality() : '',
-            options: ["", "Development", "Beta", "Release"]
-        },
-        {
-            label: "Tags",
-            name: "tags",
-            required: required.includes("tags"),
-            advanced: advanced.includes("tags"),
-            value: project ? project.tags(true) : ''
-        }
-    ];
-}
-
-function query_projects() {
-    function sort(a, b) {
-        // Basic case-insensitive alphanumeric sorting
-        const a_text = a.display_name().toLowerCase();
-        const b_text = b.display_name().toLowerCase();
-        if ( a_text < b_text ) return -1;
-        if ( a_text > b_text ) return 1;
-        return 0;
+class Messages {
+    static error_message(message) {
+        $('#messages').empty().append(
+            $(`<div class="alert alert-danger">${message}</div>`)
+        )
     }
 
-    return fetch('/user.json')
-        .then(response => response.json())
-        .then(response => {
-            GenePattern.projects.username = response['name'];
-            GenePattern.projects.base_url = response['base_url'];
-            GenePattern.projects.images = response['images'];
-            GenePattern.projects.my_projects = [];                          // Clean the my_projects list
-            response['projects'].forEach((p) => GenePattern.projects.my_projects.push(new Project(p)));
-            GenePattern.projects.my_projects.sort(sort);                    // Sort the my_projects list
-        })
+    static success_message(message) {
+        $('#messages').empty().append(
+            $(`<div class="alert alert-success">${message}</div>`)
+        )
+    }
 }
 
-function redraw_projects(message=null) {
-    if (message) success_message(message);
-    return query_projects().then(() => {
-        document.querySelector('#projects').innerHTML = '';                     // Empty the projects div
-        GenePattern.projects.my_projects.forEach((p) =>                              // Add the project widgets
-            document.querySelector('#projects').append(p.element));
+class MyProjects {
+    constructor() {
+        this.initialize_search();                           // Initialize the search box
+        this.initialize_buttons();                          // Initialize the new project button
+        MyProjects.redraw_projects()                        // Add the projects to the page
+            .then(() => Library.redraw_library()            // Then add the public projects to the page
+                .then(() => MyProjects.link_published()));  // Mark which projects are published
+        this.initialize_refresh();                          // Begin the periodic refresh
+    }
 
-        // Add new project widget
-        if (!GenePattern.projects.new_project) GenePattern.projects.new_project = new NewProject();
-        document.querySelector('#projects').append(GenePattern.projects.new_project.element);
-    });
-}
+    static query_projects() {
+        function sort(a, b) {
+            // Basic case-insensitive alphanumeric sorting
+            const a_text = a.display_name().toLowerCase();
+            const b_text = b.display_name().toLowerCase();
+            if ( a_text < b_text ) return -1;
+            if ( a_text > b_text ) return 1;
+            return 0;
+        }
 
-function error_message(message) {
-    $('#messages').empty().append(
-        $(`<div class="alert alert-danger">${message}</div>`)
-    )
-}
+        return fetch('/user.json')
+            .then(response => response.json())
+            .then(response => {
+                GenePattern.projects.username = response['name'];
+                GenePattern.projects.base_url = response['base_url'];
+                GenePattern.projects.images = response['images'];
+                GenePattern.projects.my_projects = [];                          // Clean the my_projects list
+                response['projects'].forEach((p) => GenePattern.projects.my_projects.push(new Project(p)));
+                GenePattern.projects.my_projects.sort(sort);                    // Sort the my_projects list
+            })
+    }
 
-function success_message(message) {
-    $('#messages').empty().append(
-        $(`<div class="alert alert-success">${message}</div>`)
-    )
-}
+    static redraw_projects(message=null) {
+        if (message) Messages.success_message(message);
+        return MyProjects.query_projects().then(() => {
+            document.querySelector('#projects').innerHTML = '';                     // Empty the projects div
+            GenePattern.projects.my_projects.forEach((p) =>                              // Add the project widgets
+                document.querySelector('#projects').append(p.element));
 
-function initialize_search() {
-    $('#nb-search').keyup((event) => {
-        let search = $(event.target).val().trim().toLowerCase();
-
-        // Display the matching projects
-        const projects = $('#projects').find('.nb-project');
-        projects.each(function(i, project) {
-            project = $(project);
-
-            // Matching notebook
-            if (project.text().toLowerCase().includes(search)) project.removeClass('hidden');
-
-            // Not matching notebook
-            else project.addClass('hidden');
+            // Add new project widget
+            if (!GenePattern.projects.new_project) GenePattern.projects.new_project = new NewProject();
+            document.querySelector('#projects').append(GenePattern.projects.new_project.element);
         });
-    });
+    }
+
+    static link_published() {
+        // Get a list of the user's published projects
+        const my_published = [];
+        GenePattern.projects.library.forEach(p => {
+            if (p.owner() === GenePattern.projects.username) my_published.push(p)
+        });
+
+        // For each user published project, link the corresponding personal project
+        my_published.forEach(pub => {
+            GenePattern.projects.my_projects.forEach(per => {
+                if (per.slug() === pub.slug()) per.mark_published(pub);
+            });
+        });
+    }
+
+    initialize_search() {
+        $('#nb-search').keyup((event) => {
+            let search = $(event.target).val().trim().toLowerCase();
+
+            // Display the matching projects
+            const projects = $('#projects').find('.nb-project');
+            projects.each(function(i, project) {
+                project = $(project);
+
+                // Matching notebook
+                if (project.text().toLowerCase().includes(search)) project.removeClass('hidden');
+
+                // Not matching notebook
+                else project.addClass('hidden');
+            });
+        });
+    }
+
+    initialize_buttons() {
+        // Handle new project button click
+        $('#nb-new').click(() => {
+            GenePattern.projects.new_project.create_project();
+        });
+    }
+
+    initialize_refresh() {
+        setInterval(MyProjects.redraw_projects, 1000 * 60);     // Refresh the list every minute
+    }
 }
 
-function initialize_buttons() {
-    // Handle new project button click
-    $('#nb-new').click(() => {
-        GenePattern.projects.new_project.create_project();
-    });
+class Library {
+    static query_library() {
+        function sort(a, b) {
+            // Basic case-insensitive alphanumeric sorting
+            const a_text = a.updated();
+            const b_text = b.updated();
+            if ( a_text < b_text ) return 1;
+            if ( a_text > b_text ) return -1;
+            return 0;
+        }
+
+        return fetch('/services/projects/library/')
+            .then(response => response.json())
+            .then(response => {
+                GenePattern.projects.library = [];                          // Clean the library list
+                response['projects'].forEach((p) => GenePattern.projects.library.push(new PublishedProject(p)));
+                GenePattern.projects.library.sort(sort);                    // Sort the library list
+            })
+    }
+
+    static redraw_library(message=null) {
+        if (message) Messages.success_message(message);
+        return Library.query_library().then(() => {
+            document.querySelector('#library').innerHTML = '';                      // Empty the library div
+            GenePattern.projects.library.forEach((p) =>                                  // Add the project widgets
+                document.querySelector('#library').append(p.element));
+        });
+    }
 }
 
-function initialize_refresh() {
-    setInterval(redraw_projects, 1000 * 60);                        // Refresh the list every minute
-}
-
-function __init_projects__() {
-    initialize_search();            // Initialize the search box
-    initialize_buttons();           // Initialize the new project button
-    redraw_projects();              // Add the projects to the page
-    initialize_refresh();           // Begin the periodic refresh
-}
-__init_projects__();
+new MyProjects();
+new Library();

@@ -19,7 +19,6 @@ def create_named_server(hub_auth, user, server_name, spec):
     return f'/users/{user}/servers/{server_name}'
 
 
-
 class HubDatabase:
     db_url = 'sqlite:///jupyterhub.sqlite'  # TODO: Make this a traitlet or load directly from JupyterHub config
     echo = True

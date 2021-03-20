@@ -45,19 +45,23 @@ class PublishHandler(HubAuthenticated, RequestHandler):
 
     def _create(self):
         try:
-            project = Project(to_basestring(self.request.body))  # Create a project from the request body
-            if project.exists():  # If the project already exists, throw an exception
-                raise Project.ExistsError
-            if not self._owner(project):  # Ensure the correct username is set
+            project = Project(to_basestring(self.request.body))       # Create a project from the request body
+            if project.exists():                                      # If the project already exists
+                old_project = Project.get(owner=project.owner, dir=project.dir)
+                if old_project.deleted:                               # Check to see if it's deleted
+                    self.put(old_project.id, 'Republishing project')  # If so, update it and un-delete
+                    return
+                else: raise Project.ExistsError                       # Otherwise, throw an error
+            if not self._owner(project):                              # Ensure the correct username is set
                 raise Project.PermissionError
-            project.zip()  # Bundle the project into a zip artifact
-            resp = project.save()  # Save the project to the database
-            self.write(resp)  # Return the project json
-        except Project.SpecError as e:  # Bad Request
+            project.zip()                                             # Bundle the project into a zip artifact
+            resp = project.save()                                     # Save the project to the database
+            self.write(resp)                                          # Return the project json
+        except Project.SpecError as e:                                # Bad Request
             self.send_error(400, reason=f'Error creating project, bad specification in the request: {e}')
-        except Project.ExistsError:  # Bad Request
+        except Project.ExistsError:                                   # Bad Request
             self.send_error(400, reason='Error creating project, already exists')
-        except Project.PermissionError:  # Forbidden
+        except Project.PermissionError:                               # Forbidden
             self.send_error(403, reason='You are not the owner of this project')
 
     @addslash
@@ -78,11 +82,11 @@ class PublishHandler(HubAuthenticated, RequestHandler):
 
     @addslash
     @authenticated
-    def put(self, id=None):
+    def put(self, id=None, comment=None):
         """Update a project"""
         try:
             if id is None:                      # Ensure that a project id was included in the request
-                raise Project.SpecError('Missing project id')
+                raise Project.SpecError('project id')
             project = Project.get(id=id)        # Load the project from the database
             if project is None:                 # Ensure that an existing project was found
                 raise Project.ExistsError
@@ -90,16 +94,17 @@ class PublishHandler(HubAuthenticated, RequestHandler):
                 raise Project.PermissionError
             # Update the project ORM object with the contents of the request
             update_json = json.loads(to_basestring(self.request.body))
-            project.update(update_json)
+            if comment: update_json['comment'] = comment  # Override the comment if one is provided
+            project.update(update_json)                   # (usually occurs if republishing a deleted project)
             # Bundle the zip, save the project and return the JSON in the response
             project.zip()                       # Bundle the project into a zip artifact
             resp = project.save()               # Save the project to the database
             self.write(resp)                    # Return the project json
-        except Project.SpecError as e:            # Bad Request
-            self.send_error(400, reason=f'Error updating project, bad specification in the request: {e}')
-        except Project.ExistsError:               # Bad Request
+        except Project.SpecError as e:          # Bad Request
+            self.send_error(400, reason=f'Cannot update project. Missing required information: {e}.')
+        except Project.ExistsError:             # Bad Request
             self.send_error(400, reason='Error updating project, id does not exists')
-        except Project.PermissionError:           # Forbidden
+        except Project.PermissionError:         # Forbidden
             self.send_error(403, reason='You are not the owner of this project')
 
     def _owner(self, project):

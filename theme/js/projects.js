@@ -60,7 +60,9 @@ class Project {
 
         // Attach the click event to open a project, ignore clicks on the gear menu
         this.element.addEventListener('click', (e) => {
-            if (!e.target.closest('.dropdown')) this.open_project()
+            if (!e.target.closest('.dropdown') &&
+                !e.target.closest('.nb-published-icon') &&
+                !e.target.closest('.nb-shared-icon')) this.open_project()
         });
     }
 
@@ -79,6 +81,9 @@ class Project {
         $(this.element).find('.nb-edit').click(e => Project.not_disabled(e,() => this.edit_project()));
         $(this.element).find('.nb-publish').click(e => Project.not_disabled(e,() => this.publish_project()));
 
+        // Handle publishing and sharing clucks
+        $(this.element).find('.nb-published-icon').click(() => $(this.element).find('.nb-publish').click());
+
         // Enable or disable options
         this.update_gear_menu(this.running())
     }
@@ -86,6 +91,7 @@ class Project {
     update_gear_menu(running=null) {
         if (running === null) running = this.running();
 
+        // Enable or disable based on running status
         if (running) {
             $(this.element).find('.nb-edit').parent().addClass('disabled');
             $(this.element).find('.nb-publish').parent().addClass('disabled');
@@ -98,12 +104,18 @@ class Project {
             $(this.element).find('.nb-publish').parent().removeClass('disabled');
             $(this.element).find('.nb-share').parent().removeClass('disabled');
             $(this.element).find('.nb-stop').parent().addClass('disabled');
+            $(this.element).find('.nb-delete').parent().removeClass('disabled');
+        }
 
-            // Published projects cannot be deleted until unpublished
-            if (this.published) $(this.element).find('.nb-delete').parent().addClass('disabled')
+        // Tooltip or rename based on published status
+        if (this.published) {
+            $(this.element).find('.nb-publish').text('Publishing');
+            $(this.element).find('.nb-delete').parent().addClass('disabled')
                 .attr('title', 'You must unpublish this project before it can be deleted.');
-            else $(this.element).find('.nb-delete').parent().removeClass('disabled')
-                .removeAttr('title');
+        }
+        else {
+            $(this.element).find('.nb-publish').text('Publish');
+            $(this.element).find('.nb-delete').parent().removeAttr('title');
         }
     }
 
@@ -157,6 +169,7 @@ class Project {
 
     mark_published(published_project) {
         this.published = published_project;
+        published_project.linked = this;
         this.element.querySelector('.nb-published-icon').classList.remove('hidden');
         this.update_gear_menu()
     }
@@ -172,7 +185,10 @@ class Project {
     }
 
     publish_project() {
-        // Lazily create the edit dialog
+        // If this project is already published, show the update dialog instead
+        if (this.published) return this.published.update_project();
+
+        // Lazily create the publish dialog
         if (!this.publish_dialog)
             this.publish_dialog = new Modal('publish-project-dialog', {
                 title: 'Publish Project',
@@ -195,7 +211,26 @@ class Project {
                             "tags": Project.tags_to_string(form_data['tags']),
                             "owner": GenePattern.projects.username
                         }),
-                        success: () => MyProjects.redraw_projects(`Successfully published ${form_data['name']}`),
+                        success: () => {
+                            Library.redraw_library(`Successfully published ${form_data['name']}`);
+
+                            // Sync published metadata with personal project metadata
+                            $.ajax({
+                                method: 'POST',
+                                url: this.api_url(),
+                                contentType: 'application/json',
+                                data: JSON.stringify({
+                                    "name": form_data['name'],
+                                    "image": form_data['image'],
+                                    "description": form_data['description'],
+                                    "author": form_data['author'],
+                                    "quality": form_data['quality'],
+                                    "tags": Project.tags_to_string(form_data['tags'])
+                                }),
+                                success: () => MyProjects.redraw_projects(),
+                                error: () => Messages.error_message('Project published, but unable to update metadata.')
+                            });
+                        },
                         error: (e) => Messages.error_message(e.statusText)
                     });
                 }
@@ -328,8 +363,8 @@ class Project {
 
     }
 
-    static project_form_spec(project=null, advanced=[], required=['name', 'image']) {
-        return [
+    static project_form_spec(project=null, advanced=[], required=['name', 'image'], extra=null) {
+        const params = [
             {
                 label: "Project Name",
                 name: "name",
@@ -375,10 +410,17 @@ class Project {
                 value: project ? project.tags(true) : ''
             }
         ];
+
+        // If there are extra parameters to add, do so
+        if (extra && Array.isArray(extra)) params = params.concat(extra);
+        else if (extra) params.push(extra);
+
+        return params;
     }
 }
 
 class PublishedProject extends Project {
+    linked = null;  // Reference to linked personal project, if you are the owner
 
     display_name() {
         return this.model.name;
@@ -402,7 +444,7 @@ class PublishedProject extends Project {
 
     build_gear_menu() {
         $(this.element).find('.dropdown-menu')
-            .append($('<li><a href="#" class="dropdown-item nb-copy">Copy Project</a></li>'))
+            .append($('<li><a href="#" class="dropdown-item nb-copy">Run</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-preview">Preview</a></li>'));
 
         if (this.owner() === GenePattern.projects.username)
@@ -438,13 +480,71 @@ class PublishedProject extends Project {
     }
 
     preview_project() {
-        // TODO: Implement
-        console.log('PREVIEW PROJECT');
+        window.open(this.preview_url());
     }
 
     update_project() {
-        // TODO: Implement
-        console.log('UPDATE PROJECT');
+        // Lazily create the update dialog
+        if (!this.update_dialog)
+            this.update_dialog = new Modal('update-project-dialog', {
+                title: 'Update Published Project',
+                body: Project.project_form_spec(this, [], ['name', 'image', 'author', 'quality', 'description'], {
+                    label: "Version Comment",
+                    name: "comment",
+                    required: true,
+                    advanced: false,
+                    value: ''
+                }),
+                buttons: `
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">Unpublish</button>
+                    <button type="button" class="btn btn-warning update-button" data-dismiss="modal">Update</button>`,
+                callback: [
+                    () => {},                           // Cancel button
+                    () => this.unpublish_project(),     // Unpublish button
+                    (form_data) => {                    // Update button
+                        // Make the AJAX request
+                        $.ajax({
+                            method: 'PUT',
+                            url: this.publish_url(),
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                "dir": this.slug(),
+                                "image": form_data['image'],
+                                "name": form_data['name'],
+                                "description": form_data['description'],
+                                "author": form_data['author'],
+                                "quality": form_data['quality'],
+                                "tags": Project.tags_to_string(form_data['tags']),
+                                "comment": form_data['comment']
+                            }),
+                            success: () => {
+                                Library.redraw_library(`Successfully updated ${form_data['name']}`);
+
+                                // Sync published metadata with personal project metadata
+                                $.ajax({
+                                    method: 'POST',
+                                    url: this.linked.api_url(),
+                                    contentType: 'application/json',
+                                    data: JSON.stringify({
+                                        "name": form_data['name'],
+                                        "image": form_data['image'],
+                                        "description": form_data['description'],
+                                        "author": form_data['author'],
+                                        "quality": form_data['quality'],
+                                        "tags": Project.tags_to_string(form_data['tags'])
+                                    }),
+                                    success: () => MyProjects.redraw_projects(),
+                                    error: () => Messages.error_message('Project updated, but unable to update metadata.')
+                                });
+                            },
+                            error: (e) => Messages.error_message(e.statusText)
+                        });
+                    }]
+            });
+
+        // Show the delete dialog
+        this.update_dialog.show();
     }
 
     unpublish_project() {
@@ -696,9 +796,19 @@ class Modal {
     }
 
     attach_callback() {
-        // IMPLEMENT: Handle a list of callbacks for cases where there is more than one button in the footer
         const buttons = this.element.querySelector('.modal-footer').querySelectorAll('.btn');
-        if (buttons.length) buttons[buttons.length - 1].addEventListener("click", () => {
+
+        // If a list of callbacks has been provided, assign one to each button, left to right
+        if (Array.isArray(this.callback)) {
+            for (let i = 0; i < this.callback.length && i < buttons.length; i++)
+                buttons[i].addEventListener("click", () => {
+                    const form_data = this.gather_form_data();
+                    this.callback[i](form_data);
+                });
+        }
+
+        // Otherwise assign the callback to the leftmost button
+        else if (buttons.length) buttons[buttons.length - 1].addEventListener("click", () => {
             const form_data = this.gather_form_data();
             this.callback(form_data);
         });
@@ -706,13 +816,19 @@ class Modal {
 }
 
 class Messages {
+    static scroll_to_top() {
+        document.documentElement.scrollTop = 0;
+    }
+
     static error_message(message) {
+        Messages.scroll_to_top();
         $('#messages').empty().append(
             $(`<div class="alert alert-danger">${message}</div>`)
         )
     }
 
     static success_message(message) {
+        Messages.scroll_to_top();
         $('#messages').empty().append(
             $(`<div class="alert alert-success">${message}</div>`)
         )

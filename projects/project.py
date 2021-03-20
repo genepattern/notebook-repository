@@ -49,14 +49,24 @@ class Project(Base):
             raise Project.SpecError('Error parsing json')
 
     def lazily_create_tags(self, tags_str):
-        if len(tags_str.strip()) == 0: return                               # If there are no tags, do nothing
-        labels = tags_str.strip().split(',')                                # Get the list of tag labels
+        if len(tags_str.strip()) == 0: labels = []                          # If there are no tags, empty labels list
+        else: labels = tags_str.strip().split(',')                          # Otherwise, get the list of tag labels
+
         tags = []
-        for label in labels:
-            tag = Tag.get(label=label)                                      # Get tag object, if one exists
-            if tag: tags.append(tag)                                        # If the tag exists, add it to the list
-            else: tags.append(Tag(label=label).save())                      # Otherwise, create a new tag and add it
-        self.tags = tags                                                    # Add the tags to the project
+        for label in labels:                                                # For each label
+            tag = self.get_tag(label)                                       # Get the tag if already loaded from the DB
+            if tag: tags.append(tag)                                        # And append to the new list
+            else:
+                tag = Tag.get(label=label)                                  # Otherwise, load the tag from the DB
+                if tag: tags.append(tag)                                    # And append
+                else: tags.append(Tag(label=label).save())                  # In necessary, create the tag in the DB
+        self.tags = tags                                                    # Add the new tags to the project
+
+    def get_tag(self, label):
+        for tag in self.tags:
+            if tag.label == label:
+                return tag
+        return None
 
     def exists(self):
         return Project.get(owner=self.owner, dir=self.dir) is not None
@@ -102,9 +112,15 @@ class Project(Base):
         if 'tags' in merge: self.lazily_create_tags(merge['tags'].strip())
         if 'comment' in merge: Update(self, merge['comment'].strip())       # Create the Update object
         self.updated = datetime.now()                                       # Set last updated
+        self.deleted = False                                                # Updated projects are never deleted
         # Ensure that the new metadata meets the minimum requirements
         if not self.min_metadata() or 'comment' not in merge or not merge['comment'].strip():
-            raise Project.SpecError(f'name={self.name}, author={self.author}, quality={self.quality}')
+            missing = []
+            if not self.name: missing.append('name')
+            if not self.author: missing.append('author')
+            if not self.quality: missing.append('quality')
+            if 'comment' not in merge or not merge['comment']: missing.append('comment')
+            raise Project.SpecError(','.join(missing))
 
     def min_metadata(self):
         return self.dir and self.image and self.name and self.author and self.quality and self.owner

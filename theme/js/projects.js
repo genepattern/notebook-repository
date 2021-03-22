@@ -59,6 +59,10 @@ class Project {
         this.build_gear_menu();
 
         // Attach the click event to open a project, ignore clicks on the gear menu
+        this.attach_default_click();
+    }
+
+    attach_default_click() {
         this.element.addEventListener('click', (e) => {
             if (!e.target.closest('.dropdown') &&
                 !e.target.closest('.nb-published-icon') &&
@@ -459,6 +463,12 @@ class PublishedProject extends Project {
         $(this.element).find('.nb-unpublish').click(e => Project.not_disabled(e,() => this.unpublish_project()));
     }
 
+    attach_default_click() {
+        this.element.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) this.project_info();
+        });
+    }
+
     /**
      * Published projects have no running/stopped state, but return false so that they are grayed out
      *
@@ -475,12 +485,49 @@ class PublishedProject extends Project {
     }
 
     copy_project() {
-        // TODO: Implement
-        console.log('COPY PROJECT');
+        // Make the call to copy the project
+        $.ajax({
+            method: 'POST',
+            url: this.publish_url(),
+            contentType: 'application/json',
+            success: (response) => {
+                MyProjects.redraw_projects(`Successfully copied ${ this.display_name() }`).then(() => {
+                    MyProjects.get(response['slug']).open_project();
+                });
+            },
+            error: () => Messages.error_message('Unable to copy project.')
+        });
     }
 
     preview_project() {
         window.open(this.preview_url());
+    }
+
+    project_info() {
+        // Lazily create the published info dialog
+        if (!this.info_dialog)
+            this.info_dialog = new Modal('info-dialog', {
+                title: this.display_name(),
+                body: `<table class="table table-striped">
+                           <tr><th>Authors</th><td>${ this.author() }</td></tr>
+                           <tr><th>Quality</th><td>${ this.quality() }</td></tr>
+                           <tr><th>Environment</th><td>${ this.image() }</td></tr>
+                           <tr><th>Owner</th><td>${ this.owner() }</td></tr>
+                           <tr><th>Updated</th><td>${ this.updated().split(' ')[0] }</td></tr>
+                       </table>
+                       <p>${ this.description() }</p>`,
+                buttons: `
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Preview</button>
+                    <button type="button" class="btn btn-primary run-button" data-dismiss="modal">Run Project</button>`,
+                callback: [
+                    () => {},                           // Cancel button
+                    () => this.preview_project(),       // Preview button
+                    () => this.copy_project()]          // Run Project button
+            });
+
+        // Show the info dialog
+        this.info_dialog.show();
     }
 
     update_project() {
@@ -543,7 +590,7 @@ class PublishedProject extends Project {
                     }]
             });
 
-        // Show the delete dialog
+        // Show the update dialog
         this.update_dialog.show();
     }
 
@@ -877,6 +924,9 @@ class MyProjects {
             // Add new project widget
             if (!GenePattern.projects.new_project) GenePattern.projects.new_project = new NewProject();
             document.querySelector('#projects').append(GenePattern.projects.new_project.element);
+
+            // Link to published projects, if available
+            if (GenePattern.projects.library) MyProjects.link_published();
         });
     }
 
@@ -893,6 +943,16 @@ class MyProjects {
                 if (per.slug() === pub.slug()) per.mark_published(pub);
             });
         });
+    }
+
+    static get(search_term) {
+        let found = null;
+        GenePattern.projects.my_projects.forEach(p => {
+            if (found) return;                          // If already found, skip
+            if (p.model.id === search_term) found = p;  // Searching by id
+            if (p.slug() === search_term) found = p;    // Searching by slug
+        });
+        return found;
     }
 
     initialize_search() {

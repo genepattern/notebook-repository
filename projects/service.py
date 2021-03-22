@@ -37,9 +37,11 @@ class PublishHandler(HubAuthenticated, RequestHandler):
         dir_name = Project.unused_dir(user, project.dir)
         # Unzip to the current user's dir directory
         project.unzip(user, dir_name)
+        # Append (copied) to the display name
+        project.name += ' (copied)'
         # Call JupyterHub API to create a new named server
         url = create_named_server(self.hub_auth, user, dir_name, project.json())
-        self.write({'url': url})
+        self.write({'url': url, 'id': id, 'slug': dir_name})
         # Increment project.copied
         project.mark_copied()
 

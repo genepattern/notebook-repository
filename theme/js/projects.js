@@ -2,6 +2,7 @@ var GenePattern = GenePattern || {};
 GenePattern.projects = GenePattern.projects || {};
 GenePattern.projects.username = GenePattern.projects.username || '';
 GenePattern.projects.base_url = GenePattern.projects.base_url || '';
+GenePattern.projects.admin = GenePattern.projects.admin || false;
 GenePattern.projects.images = GenePattern.projects.images || [];
 GenePattern.projects.new_project = GenePattern.projects.new_project || null;
 GenePattern.projects.my_projects = GenePattern.projects.my_projects || [];
@@ -795,7 +796,10 @@ class Modal {
     activate_tags() {
         const tags_input = this.element.querySelector('input[name=tags]');
         const tagify = this.element.querySelector('tags');
-        if (tags_input && !tagify) new Tagify(tags_input);
+        const options = {};
+        options['pattern'] = /^[a-zA-Z0-9-]+$/;
+        if (!GenePattern.projects.admin) options['blacklist'] = GenePattern.projects.protected_tags;
+        if (tags_input && !tagify) new Tagify(tags_input, options);
     }
 
     form_builder(body_spec) {
@@ -932,6 +936,7 @@ class MyProjects {
             .then(response => {
                 GenePattern.projects.username = response['name'];
                 GenePattern.projects.base_url = response['base_url'];
+                GenePattern.projects.admin = response['admin'];
                 GenePattern.projects.images = response['images'];
                 GenePattern.projects.my_projects = [];                          // Clean the my_projects list
                 response['projects'].forEach((p) => GenePattern.projects.my_projects.push(new Project(p)));

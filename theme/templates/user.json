@@ -2,6 +2,7 @@
 {
     "name": "{{ user.name }}",
     "base_url": "{{ base_url }}",
+    "admin": {{ user.admin|lower }},
     "images": [
         {% for image in user.spawner.image_whitelist.keys() %}
             "{{ image }}"{% if not loop.last %},{% endif %}

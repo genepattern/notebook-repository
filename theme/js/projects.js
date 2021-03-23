@@ -254,7 +254,10 @@ class Project {
                 body: Project.project_form_spec(this, ['author', 'quality', 'tags']),
                 button_label: 'Save',
                 button_class: 'btn-warning edit-button',
-                callback: (form_data) => {
+                callback: (form_data, e) => {
+                    // If required input is missing, highlight and wait
+                    if (this.edit_dialog.missing_required()) return e.stopPropagation();
+
                     // Make the AJAX request
                     $.ajax({
                         method: 'POST',
@@ -551,7 +554,10 @@ class PublishedProject extends Project {
                 callback: [
                     () => {},                           // Cancel button
                     () => this.unpublish_project(),     // Unpublish button
-                    (form_data) => {                    // Update button
+                    (form_data, e) => {                 // Update button
+                        // If required input is missing, highlight and wait
+                        if (this.update_dialog.missing_required()) return e.stopPropagation();
+
                         // Make the AJAX request
                         $.ajax({
                             method: 'PUT',
@@ -679,7 +685,10 @@ class NewProject {
                 body: Project.project_form_spec(null, ['author', 'quality', 'tags']),
                 button_label: 'Create Project',
                 button_class: 'btn-success create-button',
-                callback: (form_data) => {
+                callback: (form_data, e) => {
+                    // If required input is missing, highlight and wait
+                    if (this.project_dialog.missing_required()) return e.stopPropagation();
+
                     // Generate the slug
                     let slug = form_data['name'].toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
                     if (slug.endsWith('_')) slug += 'project';  // Swarm doesn't like slugs that end in an underscore
@@ -806,11 +815,14 @@ class Modal {
             const asterisk = param['required'] ? '*' : '';
             grouping.append($(`<label for="${param['name']}" class="control-label col-sm-4">${param['label']}${asterisk}</label>`));
             if (!param['options'] || !param['options'].length) {        // Handle text parameters
-                grouping.append($(`<div class="col-sm-8"><input name="${param['name']}" type="text" class="form-control" value="${param['value']}" /></div>`));
+                let input = $(`<div class="col-sm-8"><input name="${param['name']}" type="text" class="form-control" value="${param['value']}" /></div>`)
+                if (param['required']) input.find('input').attr('required', 'required');
+                grouping.append(input);
             }
             else {                                                      // Handle select parameters
                 const div = $('<div class="col-sm-8"></div>');
                 const select = $(`<select name="${param['name']}" class="form-control"></select>`).appendTo(div);
+                if (param['required']) select.attr('required', 'required');
                 param['options'].forEach((option) => {
                     if (option === param['value']) select.append($(`<option value="${option}" selected>${option}</option>`));
                     else select.append($(`<option value="${option}">${option}</option>`))
@@ -850,17 +862,28 @@ class Modal {
         // If a list of callbacks has been provided, assign one to each button, left to right
         if (Array.isArray(this.callback)) {
             for (let i = 0; i < this.callback.length && i < buttons.length; i++)
-                buttons[i].addEventListener("click", () => {
+                buttons[i].addEventListener("click", e => {
                     const form_data = this.gather_form_data();
-                    this.callback[i](form_data);
+                    this.callback[i](form_data, e);
                 });
         }
 
         // Otherwise assign the callback to the leftmost button
-        else if (buttons.length) buttons[buttons.length - 1].addEventListener("click", () => {
+        else if (buttons.length) buttons[buttons.length - 1].addEventListener("click", e => {
             const form_data = this.gather_form_data();
-            this.callback(form_data);
+            this.callback(form_data, e);
         });
+    }
+
+    missing_required() {
+        let missing_input = false;
+        this.element.querySelectorAll('input, select').forEach(e => {
+            if (e.hasAttribute('required') && !e.value) {
+                e.style.border = 'solid red 2px';
+                missing_input = true;
+            }
+        });
+        return missing_input;
     }
 }
 

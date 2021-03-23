@@ -1074,13 +1074,15 @@ class Library {
         pinned_block.find('a').click(e => {
             const tag = $(e.target).attr("data-tag");                                 // Get the tag
 
-            $('#nb-library-search').val('').trigger('keyup');                   // Clear the search
+            if (tag !== '-all') $('#nb-library-search').val('').trigger('keyup');// Clear the search
 
             $("#library").find(".nb-project").each((i, p) => {                      // For each project
                 let found = false;
+                let workshop = false;
                 if (tag === '-all') found = true;                                           // If all, always display
                 else $(p).find(".nb-tags > .badge").each((i, t) => {                // Otherwise, for each tag
-                    if (tag === $(t).text()) found = true;                                  // If it has the tag
+                    if (tag === $(t).text() && !workshop) found = true;                     // If it has the tag, show
+                    if (tag !== 'workshop' && $(t).text() === 'workshop') workshop = true;  // (workshop special case)
                 });
                 if (found) $(p).removeClass("hidden");                                // Hide or show
                 else $(p).addClass("hidden");
@@ -1090,12 +1092,18 @@ class Library {
             $(e.target).parent().addClass('active');
 
             e.preventDefault();                                                             // Don't scroll to top
+            return false;
         });
         if (featured_exists) pinned_block.find('a[data-tag=featured]').click();     // Filter for featured
     }
 
     initialize_search() {
+        const pinned_block = $('#pinned-tags');
+
         $('#nb-library-search').keyup((event) => {
+            if (pinned_block.find('li.active').text() !== 'all projects')           // Always search all projects
+                pinned_block.find('a[data-tag="-all"]').click();
+
             let search = $(event.target).val().trim().toLowerCase();
 
             // Display the matching projects

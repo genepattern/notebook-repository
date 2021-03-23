@@ -186,7 +186,7 @@ class Project(Base):
         return d  # Return the json representation
 
     @staticmethod
-    def get_all(include_deleted=False):
+    def all(include_deleted=False):
         session = Session()
         query = session.query(Project)
         if not include_deleted: query = query.filter(Project.deleted == False)
@@ -226,6 +226,22 @@ class Tag(Base):
         d = tag.json()
         session.close()
         return d  # Return the json representation
+
+    @staticmethod
+    def all_pinned():
+        session = Session()
+        query = session.query(Tag).filter(Tag.pinned == True)
+        results = query.all()
+        session.close()
+        return results
+
+    @staticmethod
+    def all_protected():
+        session = Session()
+        query = session.query(Tag).filter(Tag.protected == True)
+        results = query.all()
+        session.close()
+        return results
 
     def json(self):
         data = { c.name: getattr(self, c.name) for c in self.__table__.columns }

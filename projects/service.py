@@ -4,7 +4,7 @@ from tornado.web import Application, RequestHandler, authenticated, addslash
 from tornado.ioloop import IOLoop
 from jupyterhub.services.auth import HubAuthenticated
 from projects.hub import create_named_server, hub_db
-from projects.project import Project
+from projects.project import Project, Tag
 
 
 class PublishHandler(HubAuthenticated, RequestHandler):
@@ -14,9 +14,10 @@ class PublishHandler(HubAuthenticated, RequestHandler):
     def get(self, id=None):
         """Get the list of all published projects or information about a single project"""
         if id is None:  # List all published projects
-            all_projects = Project.get_all()
-            all_json = [p.json() for p in all_projects]
-            self.write({'projects': all_json})
+            all_projects = [p.json() for p in Project.all()]
+            all_pinned = [t.label for t in Tag.all_pinned()]
+            all_protected = [t.label for t in Tag.all_protected()]
+            self.write({'projects': all_projects, 'pinned': all_pinned, 'protected': all_protected})
         else:           # List a single project with the specified id
             project = Project.get(id=id)
             self.write(project.json())
@@ -37,10 +38,10 @@ class PublishHandler(HubAuthenticated, RequestHandler):
         dir_name = Project.unused_dir(user, project.dir)
         # Unzip to the current user's dir directory
         project.unzip(user, dir_name)
-        # Append (copied) to the display name
-        project.name += ' (copied)'
         # Call JupyterHub API to create a new named server
-        url = create_named_server(self.hub_auth, user, dir_name, project.json())
+        spec = project.json()
+        spec['name'] += ' (copied)'
+        url = create_named_server(self.hub_auth, user, dir_name, spec)
         self.write({'url': url, 'id': id, 'slug': dir_name})
         # Increment project.copied
         project.mark_copied()

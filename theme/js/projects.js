@@ -6,6 +6,8 @@ GenePattern.projects.images = GenePattern.projects.images || [];
 GenePattern.projects.new_project = GenePattern.projects.new_project || null;
 GenePattern.projects.my_projects = GenePattern.projects.my_projects || [];
 GenePattern.projects.library = GenePattern.projects.library || [];
+GenePattern.projects.pinned_tags = GenePattern.projects.pinned_tags || [];
+GenePattern.projects.protected_tags = GenePattern.projects.protected_tags || [];
 
 
 class Project {
@@ -600,7 +602,7 @@ class PublishedProject extends Project {
             this.unpublish_dialog = new Modal('unpublish-project-dialog', {
                 title: 'Unpublish Project',
                 body: '<p>Are you sure that you want to unpublish this project?</p>',
-                button_label: 'Delete',
+                button_label: 'Unpublish',
                 button_class: 'btn-danger unpublish-button',
                 callback: () => {
                     // Make the call to delete the project
@@ -956,7 +958,7 @@ class MyProjects {
     }
 
     initialize_search() {
-        $('#nb-search').keyup((event) => {
+        $('#nb-project-search').keyup((event) => {
             let search = $(event.target).val().trim().toLowerCase();
 
             // Display the matching projects
@@ -986,6 +988,10 @@ class MyProjects {
 }
 
 class Library {
+    constructor() {
+        this.initialize_search();   // Initialize the search box
+    }
+
     static query_library() {
         function sort(a, b) {
             // Basic case-insensitive alphanumeric sorting
@@ -1002,15 +1008,77 @@ class Library {
                 GenePattern.projects.library = [];                          // Clean the library list
                 response['projects'].forEach((p) => GenePattern.projects.library.push(new PublishedProject(p)));
                 GenePattern.projects.library.sort(sort);                    // Sort the library list
+
+                GenePattern.projects.pinned_tags = [];                      // Clean the pinned list
+                response['pinned'].forEach((t) => GenePattern.projects.pinned_tags.push(t));
+                GenePattern.projects.pinned_tags.sort();                    // Sort the list alphabetically
+
+                GenePattern.projects.protected_tags = [];                   // Clean the protected list
+                response['protected'].forEach((t) => GenePattern.projects.protected_tags.push(t));
+                GenePattern.projects.protected_tags.sort();                 // Sort the list alphabetically
             })
     }
 
     static redraw_library(message=null) {
         if (message) Messages.success_message(message);
         return Library.query_library().then(() => {
-            document.querySelector('#library').innerHTML = '';                      // Empty the library div
-            GenePattern.projects.library.forEach((p) =>                                  // Add the project widgets
+            document.querySelector('#library').innerHTML = '';             // Empty the library div
+            GenePattern.projects.library.forEach((p) =>                         // Add the project widgets
                 document.querySelector('#library').append(p.element));
+            Library.redraw_pinned();                                                // Redraw the pinned tags
+        });
+    }
+
+    static redraw_pinned() {
+        const pinned_block = $('#pinned-tags');
+        const featured_exists = GenePattern.projects.pinned_tags.includes("featured");
+
+        pinned_block.empty();                                                               // Empty the pinned div
+        if (featured_exists) {                                                              // Special case for featured
+            pinned_block.prepend($('<li class="active"><a href="#" data-tag="featured">featured</a></li>'));
+        }
+        GenePattern.projects.pinned_tags.forEach(tag => {                                   // Add each pinned tag
+            if (tag !== 'featured') pinned_block.prepend($(`<li><a href="#" data-tag="${tag}">${tag}</a></li>`));
+        });
+        pinned_block.prepend($('<li><a href="#" data-tag="-all">all projects</a></li>'));   // Add "all projects"
+        if (!featured_exists) pinned_block.find('li:first-child').addClass('active');
+
+        pinned_block.find('a').click(e => {
+            const tag = $(e.target).attr("data-tag");                                 // Get the tag
+
+            $('#nb-library-search').val('').trigger('keyup');                   // Clear the search
+
+            $("#library").find(".nb-project").each((i, p) => {                      // For each project
+                let found = false;
+                if (tag === '-all') found = true;                                           // If all, always display
+                else $(p).find(".nb-tags > .badge").each((i, t) => {                // Otherwise, for each tag
+                    if (tag === $(t).text()) found = true;                                  // If it has the tag
+                });
+                if (found) $(p).removeClass("hidden");                                // Hide or show
+                else $(p).addClass("hidden");
+            });
+
+            $("#pinned-tags > li").removeClass('active');                             // Activate the clicked tag
+            $(e.target).parent().addClass('active');
+
+            e.preventDefault();                                                             // Don't scroll to top
+        });
+        if (featured_exists) pinned_block.find('a[data-tag=featured]').click();     // Filter for featured
+    }
+
+    initialize_search() {
+        $('#nb-library-search').keyup((event) => {
+            let search = $(event.target).val().trim().toLowerCase();
+
+            // Display the matching projects
+            const projects = $('#library').find('.nb-project');
+            projects.each(function(i, project) {
+                // Matching notebook
+                if ($(project).text().toLowerCase().includes(search)) project.style.display = 'inline-block';
+
+                // Not matching notebook
+                else project.style.display = 'none';
+            });
         });
     }
 }

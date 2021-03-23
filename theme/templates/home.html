@@ -20,7 +20,7 @@
         <div id="nb-header">
             <h1>Your Projects</h1>
             <p class="lead">Launch, create or share notebook projects.</p>
-            <input type="search" id="nb-search" placeholder="Search Projects" class="form-control" />
+            <input type="search" id="nb-project-search" placeholder="Search Projects" class="form-control" />
             <button id ="nb-new" class="btn btn-primary"><i class="fa fa-plus-circle"></i> New Project</button>
         </div>
 
@@ -28,8 +28,12 @@
     </div>
 
     <div id="nb-library-container" class="container">
-        <h1>Public Notebooks</h1>
-        <p class="lead">Browse, launch and reproduce public notebooks.</p>
+        <div id="nb-header">
+            <h1>Public Notebooks</h1>
+            <p class="lead">Browse, launch and reproduce public notebooks.</p>
+            <input type="search" id="nb-library-search" placeholder="Search Library" class="form-control" />
+            <ul id="pinned-tags" class="nav nav-tabs"></ul>
+        </div>
         <div id="library"></div>
     </div>
 {% endblock %}

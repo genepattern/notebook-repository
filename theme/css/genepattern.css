@@ -278,7 +278,7 @@ div.nb-project-new > .nb-img-top {
     position: relative;
 }
 
-#nb-search {
+#nb-project-search, #nb-library-search {
     width: 25%;
     right: 25px;
     position: absolute;
@@ -311,4 +311,16 @@ div.nb-project-new > .nb-img-top {
 
 .nb-advanced {
     display: none;
+}
+
+#pinned-tags {
+    position: absolute;
+    top: 42px;
+    right: 22px;
+    width: 50%;
+
+}
+
+#pinned-tags > li {
+    float: right;
 }

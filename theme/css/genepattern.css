@@ -294,6 +294,7 @@ div.nb-project-new > .nb-img-top {
 
 #nb-library-container {
     margin-top: 30px;
+    margin-bottom: 30px;
 }
 
 .modal-body .form-control {
@@ -323,4 +324,17 @@ div.nb-project-new > .nb-img-top {
 
 #pinned-tags > li {
     float: right;
+}
+
+#nb-preview-tags > span.badge {
+    font-size: 1em;
+}
+
+.nb-preview-buttons {
+    padding: 20px;
+}
+
+.nb-preview-buttons > a {
+    display: inline-block;
+    width: 150px;
 }

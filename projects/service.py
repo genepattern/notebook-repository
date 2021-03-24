@@ -11,16 +11,45 @@ class PublishHandler(HubAuthenticated, RequestHandler):
     """Endpoint for publishing, editing and deleting notebook projects"""
 
     @addslash
-    def get(self, id=None):
+    def get(self, id=None, directive=None):
         """Get the list of all published projects or information about a single project"""
-        if id is None:  # List all published projects
-            all_projects = [p.json() for p in Project.all()]
-            all_pinned = [t.label for t in Tag.all_pinned()]
-            all_protected = [t.label for t in Tag.all_protected()]
-            self.write({'projects': all_projects, 'pinned': all_pinned, 'protected': all_protected})
-        else:           # List a single project with the specified id
-            project = Project.get(id=id)
-            self.write(project.json())
+        if id is None:                      # List all published projects
+            self._list_projects()
+        elif directive is None:             # List a single project with the specified id
+            self._project_info(id)
+        elif directive == 'download':       # Return a download response for the zip
+            self._download_project(id)
+        elif directive == 'copy':           # Copy the project and redirect to it
+            self._copy_and_redirect(id)
+        else:                               # Directive not recognized
+            self.send_error(400, reason='Unknown directive')
+
+    def _list_projects(self):
+        all_projects = [p.json() for p in Project.all()]
+        all_pinned = [t.label for t in Tag.all_pinned()]
+        all_protected = [t.label for t in Tag.all_protected()]
+        self.write({'projects': all_projects, 'pinned': all_pinned, 'protected': all_protected})
+
+    def _project_info(self, id):
+        project = Project.get(id=id)
+        include_files = self.get_argument("files", None, True)
+        self.write(project.json(include_files=include_files))
+
+    def _download_project(self, id):
+        project = Project.get(id=id)
+        buf_size = 4096
+        self.set_header('Content-Type', 'application/zip, application/octet-stream')
+        self.set_header('Content-Disposition', f'attachment; filename={project.dir}.zip')
+        with open(project.zip_path(), 'rb') as f:
+            while True:
+                data = f.read(buf_size)
+                if not data:
+                    break
+                self.write(data)
+        self.finish()
+
+    def _copy_and_redirect(self, id):
+        self._copy(id, redirect=True)
 
     @addslash
     @authenticated
@@ -29,7 +58,7 @@ class PublishHandler(HubAuthenticated, RequestHandler):
         if id is None: self._create()                 # Publish a new project
         else: self._copy(id)                          # Copy a public project
 
-    def _copy(self, id):
+    def _copy(self, id, redirect=False):
         project = Project.get(id=id)    # Get the project
         if project is None:             # Ensure that an existing project was found
             raise Project.ExistsError
@@ -45,6 +74,8 @@ class PublishHandler(HubAuthenticated, RequestHandler):
         self.write({'url': url, 'id': id, 'slug': dir_name})
         # Increment project.copied
         project.mark_copied()
+        # Redirect, if requested
+        if redirect: self.redirect(url)
 
     def _create(self):
         try:
@@ -172,6 +203,7 @@ def make_app():
         (r"/services/projects/library", PublishHandler),
         (r"/services/projects/library/", PublishHandler),
         (r"/services/projects/library/(?P<id>\w+)/", PublishHandler),
+        (r"/services/projects/library/(?P<id>\w+)/(?P<directive>\w+)/", PublishHandler),
     ]
     return Application(urls, debug=True)
 

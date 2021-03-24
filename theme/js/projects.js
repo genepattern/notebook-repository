@@ -482,8 +482,8 @@ class PublishedProject extends Project {
      */
     running() { return false; }
 
-    preview_url() { // TODO: Implement
-        return `/hub/preview/?nb=${this.model.id}`;
+    preview_url() {
+        return `/hub/preview?id=${this.model.id}`;
     }
 
     publish_url() {
@@ -931,7 +931,7 @@ class MyProjects {
             return 0;
         }
 
-        return fetch('/user.json')
+        return fetch('/hub/user.json')
             .then(response => response.json())
             .then(response => {
                 GenePattern.projects.username = response['name'];

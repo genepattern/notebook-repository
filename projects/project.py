@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
-from projects.zip import zip_dir, unzip_dir
+from projects.zip import zip_dir, unzip_dir, list_files
 
 Base = declarative_base()
 
@@ -74,20 +74,20 @@ class Project(Base):
     def zip(self):
         if not self.min_metadata(): raise Project.SpecError('Missing required attributes')
         project_dir = os.path.join(users_path, self.owner, self.dir)            # Path to the source project
-        zip_path = os.path.join(repository_path, self.owner, f'{self.dir}.zip') # Path to the zipped project
+        zip_path = self.zip_path()                                              # Path to the zipped project
         os.makedirs(os.path.dirname(zip_path), mode=0o777, exist_ok=True)       # Lazily create directories
         if os.path.exists(zip_path): os.remove(zip_path)                        # Remove the old copy if one exists
         zip_dir(project_dir, zip_path)                                          # Create the zip file
 
     def delete_zip(self):
-        zip_path = os.path.join(repository_path, self.owner, f'{self.dir}.zip')  # Path to the zipped project
-        if os.path.exists(zip_path): os.remove(zip_path)                         # Remove the zip file
+        zip_path = self.zip_path()                                              # Path to the zipped project
+        if os.path.exists(zip_path): os.remove(zip_path)                        # Remove the zip file
 
     def unzip(self, target_user, dir):
-        zip_path = os.path.join(repository_path, self.owner, f'{self.dir}.zip')  # Path to the zipped project
-        target_dir = os.path.join(users_path, target_user, dir)                  # Path in which to unzip
-        os.makedirs(os.path.dirname(target_dir), mode=0o777, exist_ok=True)      # Lazily create directories
-        unzip_dir(zip_path, target_dir)                                          # Unzip to directory
+        zip_path = self.zip_path()                                              # Path to the zipped project
+        target_dir = os.path.join(users_path, target_user, dir)                 # Path in which to unzip
+        os.makedirs(os.path.dirname(target_dir), mode=0o777, exist_ok=True)     # Lazily create directories
+        unzip_dir(zip_path, target_dir)                                         # Unzip to directory
 
     def delete(self):
         self.deleted = True
@@ -129,13 +129,17 @@ class Project(Base):
         labels = [tag.label for tag in self.tags]
         return ','.join(labels)
 
-    def json(self):
+    def json(self, include_files=False):
         data = { c.name: getattr(self, c.name) for c in self.__table__.columns }
         for k in data:
             if isinstance(data[k], datetime):                               # Special handling for datetimes
                 data[k] = str(data[k])
         data['tags'] = self.tags_str()                                      # Special handling for tags
+        if include_files: data['files'] = list_files(self.zip_path())
         return data
+
+    def zip_path(self):
+        return os.path.join(repository_path, self.owner, f'{self.dir}.zip')
 
     def mark_copied(self):
         self.copied += 1

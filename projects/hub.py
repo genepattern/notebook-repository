@@ -16,7 +16,7 @@ def create_named_server(hub_auth, user, server_name, spec):
               'description': spec['description']
           }))
     response.raise_for_status()
-    return f'/users/{user}/servers/{server_name}'
+    return f'/user/{user}/{server_name}'
 
 
 class HubDatabase:

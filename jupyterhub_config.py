@@ -14,6 +14,14 @@ class UserHandler(BaseHandler):
         template = await self.render_template('user.json')
         self.write(template)
 
+
+class PreviewHandler(BaseHandler):
+    """Serve the preview from its template: theme/templates/preview.html"""
+
+    async def get(self):
+        template = await self.render_template('preview.html')
+        self.write(template)
+
 # OLDER VERSIONS OF JUPYTERHUB MAY REQUIRE NON-ASYNC:
 #
 # class UserHandler(BaseHandler):
@@ -57,7 +65,7 @@ copy_tree('./theme/js/', os.path.join(static_path, 'js'), update=1)
 # Named server config
 c.JupyterHub.allow_named_servers = True
 c.JupyterHub.default_url = '/home'
-c.JupyterHub.extra_handlers = [('user.json', UserHandler)]
+c.JupyterHub.extra_handlers = [('user.json', UserHandler), ('preview', PreviewHandler)]
 c.DockerSpawner.name_template = "{prefix}-{username}-{servername}"
 
 # Ensure that JupyterHub can connect to the singleuser images

@@ -203,6 +203,8 @@ class Project {
                 button_label: 'Publish',
                 button_class: 'btn-warning publish-button',
                 callback: (form_data) => {
+                    Messages.show_loading();
+
                     // Make the AJAX request
                     $.ajax({
                         method: 'POST',
@@ -334,6 +336,8 @@ class Project {
             callback(this);
         }
         else { // Otherwise, launch the server
+            Messages.show_loading();
+
             // Make the AJAX request
             $.ajax({
                 method: 'POST',
@@ -344,7 +348,7 @@ class Project {
                     "image": this.image(),
                     "description": this.description()
                 }),
-                success: () => {},
+                success: () => Messages.hide_loading(),
                 error: () => Messages.error_message('Unable to edit project.')
             });
             setTimeout(() => {
@@ -558,6 +562,7 @@ class PublishedProject extends Project {
                     (form_data, e) => {                 // Update button
                         // If required input is missing, highlight and wait
                         if (this.update_dialog.missing_required()) return e.stopPropagation();
+                        Messages.show_loading();
 
                         // Make the AJAX request
                         $.ajax({
@@ -912,6 +917,8 @@ class Messages {
 
     static error_message(message) {
         Messages.scroll_to_top();
+        Messages.hide_loading();
+
         $('#messages').empty().append(
             $(`<div class="alert alert-danger">${message}</div>`)
         )
@@ -919,9 +926,30 @@ class Messages {
 
     static success_message(message) {
         Messages.scroll_to_top();
+        Messages.hide_loading();
+
         $('#messages').empty().append(
             $(`<div class="alert alert-success">${message}</div>`)
         )
+    }
+
+    static show_loading() {
+        // Lazily create the loading dialog
+        if (!this.loading_dialog) {
+            this.loading_dialog = new Modal('loading-dialog', {
+                title: 'Loading...',
+                body: '<i class="fa fa-spinner fa-spin fa-3x fa-fw nb-spinner"></i>',
+                footer: ''
+            });
+        }
+
+        // Show the loading dialog, hide the footer and close button
+        this.loading_dialog.show();
+        $("#loading-dialog  .modal-footer, #loading-dialog .close").hide();
+    }
+
+    static hide_loading() {
+        $("#loading-dialog .close").click();
     }
 }
 

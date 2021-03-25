@@ -4,3 +4,39 @@
     {{ super() }}
     <link rel="stylesheet" href="{{ static_url("css/genepattern.css") }}" type="text/css"/>
 {% endblock %}
+
+{% block nav_bar_left_items %}
+{% endblock %}
+
+{% block nav_bar_right_items %}
+    <li>
+        {% block login_widget %}
+            <span id="login_widget">
+                {% if user %}
+                    {% if user.admin %}
+                        {% if services %}
+                            <span class="navbar-btn btn-sm btn btn-default dropdown">
+                                <span class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Services
+                                    <span class="caret"></span>
+                                </span>
+                                <ul class="dropdown-menu">
+                                    {% for service in services %}
+                                        {% block service scoped %}
+                                            <li><a class="dropdown-item" href="{{service.prefix}}">{{service.name}}</a></li>
+                                        {% endblock %}
+                                    {% endfor %}
+                                </ul>
+                            </span>
+                        {% endif %}
+                        <a class="navbar-btn btn-sm btn btn-default" href="{{base_url}}token">Token</a>
+                        <a class="navbar-btn btn-sm btn btn-default" href="{{base_url}}admin">Admin</a>
+                    {% endif %}
+                    <a id="logout" role="button" class="navbar-btn btn-sm btn btn-default" href="{{ logout_url }}">
+                        <i aria-hidden="true" class="fa fa-sign-out"></i> Logout {{ user.name }}</a>
+                {% else %}
+                    <a id="login" role="button" class="btn-sm btn navbar-btn btn-default" href="{{ login_url }}">Login</a>
+                {% endif %}
+            </span>
+        {% endblock %}
+    </li>
+{% endblock %}

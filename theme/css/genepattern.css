@@ -338,3 +338,10 @@ div.nb-project-new > .nb-img-top {
     display: inline-block;
     width: 150px;
 }
+
+.nb-spinner {
+    margin-right: auto;
+    margin-left: auto;
+    width: 100%;
+    font-size: 30vh;
+}

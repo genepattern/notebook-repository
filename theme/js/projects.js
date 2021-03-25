@@ -576,23 +576,37 @@ class PublishedProject extends Project {
                             }),
                             success: () => {
                                 Library.redraw_library(`Successfully updated ${form_data['name']}`);
+                                if (this.linked.running()) this.linked.stop_project();  // Stop the linked project
 
-                                // Sync published metadata with personal project metadata
-                                $.ajax({
-                                    method: 'POST',
-                                    url: this.linked.api_url(),
-                                    contentType: 'application/json',
-                                    data: JSON.stringify({
-                                        "name": form_data['name'],
-                                        "image": form_data['image'],
-                                        "description": form_data['description'],
-                                        "author": form_data['author'],
-                                        "quality": form_data['quality'],
-                                        "tags": Project.tags_to_string(form_data['tags'])
-                                    }),
-                                    success: () => MyProjects.redraw_projects(),
-                                    error: () => Messages.error_message('Project updated, but unable to update metadata.')
-                                });
+                                if (!this.push_updates_dialog) {
+                                    this.push_updates_dialog = new Modal('push-updates-dialog', {
+                                        title: 'Unpublish Project',
+                                        body: `<p>You have successfully updated the published project, ${form_data['name']}. Do you wish to 
+                                                  push metadata updates (name, description, tags, etc.) to your 
+                                                  associated private project as well?</p>`,
+                                        button_label: 'Push Updates',
+                                        button_class: 'btn-warning push-updates-button',
+                                        callback: () => {
+                                            // Sync published metadata with personal project metadata
+                                            $.ajax({
+                                                method: 'POST',
+                                                url: this.linked.api_url(),
+                                                contentType: 'application/json',
+                                                data: JSON.stringify({
+                                                    "name": form_data['name'],
+                                                    "image": form_data['image'],
+                                                    "description": form_data['description'],
+                                                    "author": form_data['author'],
+                                                    "quality": form_data['quality'],
+                                                    "tags": Project.tags_to_string(form_data['tags'])
+                                                }),
+                                                success: () => MyProjects.redraw_projects(),
+                                                error: () => Messages.error_message('Project updated, but unable to update metadata.')
+                                            });
+                                        }
+                                    });
+                                }
+                                this.push_updates_dialog.show();
                             },
                             error: (e) => Messages.error_message(e.statusText)
                         });

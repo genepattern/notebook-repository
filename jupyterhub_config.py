@@ -10,17 +10,26 @@ class UserHandler(BaseHandler):
     """Serve the user info from its template: theme/templates/user.json"""
 
     @authenticated
-    def get(self):
-        self.write(self.render_template('user.json'))
+    async def get(self):
+        template = await self.render_template('user.json')
+        self.write(template)
 
-# NEWER VERSIONS OF TORNADO MAY REQUIRE ASYNC:
 
+class PreviewHandler(BaseHandler):
+    """Serve the preview from its template: theme/templates/preview.html"""
+
+    async def get(self):
+        template = await self.render_template('preview.html')
+        self.write(template)
+
+# OLDER VERSIONS OF JUPYTERHUB MAY REQUIRE NON-ASYNC:
+#
 # class UserHandler(BaseHandler):
 #     """Serve the user info from its template: theme/templates/user.json"""
 #
 #     @authenticated
-#     async def get(self):
-#         self.write(await self.render_template('user.json'))
+#     def get(self):
+#         self.write(self.render_template('user.json'))
 
 
 c = get_config()
@@ -33,10 +42,10 @@ c.GenePatternAuthenticator.admin_users = ['tabor']
 
 # Spawner config
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
-c.DockerSpawner.image = 'genepattern/genepattern-notebook:20.11.1'
+c.DockerSpawner.image = 'genepattern/genepattern-notebook:21.02.1'
 c.DockerSpawner.remove_containers = True
 c.DockerSpawner.image_whitelist = {
-    'Legacy': 'genepattern/genepattern-notebook:20.11.1',
+    'Legacy': 'genepattern/genepattern-notebook:21.02.1',
     'R 3.6': 'genepattern/notebook-r36:20.10'
 }
 c.DockerSpawner.pre_spawn_hook = lambda spawner: os.makedirs(os.path.join('./data/users', spawner.user.name, spawner.name), 0o777, exist_ok=True)
@@ -56,7 +65,7 @@ copy_tree('./theme/js/', os.path.join(static_path, 'js'), update=1)
 # Named server config
 c.JupyterHub.allow_named_servers = True
 c.JupyterHub.default_url = '/home'
-c.JupyterHub.extra_handlers = [('user.json', UserHandler)]
+c.JupyterHub.extra_handlers = [('user.json', UserHandler), ('preview', PreviewHandler)]
 c.DockerSpawner.name_template = "{prefix}-{username}-{servername}"
 
 # Ensure that JupyterHub can connect to the singleuser images
@@ -74,6 +83,18 @@ c.JupyterHub.tornado_settings = {
         'Access-Control-Allow-Credentials': 'true',
     },
 }
+
+# Services
+
+c.JupyterHub.services = [
+    {
+        'name': 'projects',
+        'admin': True,
+        'url': 'http://127.0.0.1:3000/',
+        'cwd': '.',
+        'command': ['python', 'projects/service.py']
+    },
+]
 
 # Configuration file for jupyterhub.
 

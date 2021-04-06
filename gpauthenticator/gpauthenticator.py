@@ -151,7 +151,7 @@ class GenePatternAuthenticator(Authenticator):
             except HTTPError as e: pass
 
         # Fall back to logging in via login form if cookie is invalid or not available
-        if redirect: handler.redirect('/hub/login/form')
+        if redirect: handler.redirect('/hub/login/form?' + handler.request.query)
         else: return False
 
     def login_from_form(self, handler, data):

@@ -11,6 +11,7 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import urllib.request
+import requests
 
 # Environment configuration
 server_name = "GenePattern Notebook"  # Name of the repo server to report
@@ -459,7 +460,23 @@ def get_nb_usage():
     return nb_rows
 
 
-def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb_usage, user_disk):
+def get_nb_updates():
+    now = datetime.datetime.now()
+    week = datetime.timedelta(weeks=1)
+    week_ago = now - week
+    nb_updates = ''
+    response = requests.get("https://notebook.genepattern.org/services/sharing/notebooks/")
+    try: response.raise_for_status()
+    except requests.HTTPError: return '<tr><td>Unable to Query Notebook Library</td></tr>'
+    response_json = response.json()
+    for nb_json in response_json['results']:
+        modified = datetime.datetime.strptime(nb_json['publication'], '%Y-%m-%d')
+        if modified > week_ago:
+            nb_updates += f"<tr><td>{nb_json['name']}</td></tr>"
+    return nb_updates
+
+
+def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb_updates, nb_usage, user_disk):
     """
     Send the weekly report in an email
     :return:
@@ -672,6 +689,12 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb
             """
 
     body = body + f"""
+                            <h3>Public Notebooks Created or Updated This Week</h3>
+                            <table border="1">
+                            <tr><th>Name</th></tr>
+                            {nb_updates}
+                            </table>
+
                             <h3>Top 20 Public Notebooks Since 2019-02-22</h3>
                             <table border="1">
                                 <tr>
@@ -712,6 +735,7 @@ def gather_stats():
     nb_count = get_nb_count()
     users = get_users()
     logins = get_logins()
+    nb_updates = get_nb_updates()
     nb_usage = get_nb_usage()
     user_disk = get_user_disk()
 
@@ -723,7 +747,7 @@ def gather_stats():
         weekly_jobs, docker, total_jobs = None, None, None
 
     # Send the email
-    send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb_usage, user_disk)
+    send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb_updates, nb_usage, user_disk)
 
 
 gather_stats()

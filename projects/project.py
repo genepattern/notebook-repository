@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
-from projects.zip import zip_dir, unzip_dir, list_files
+from .zip import zip_dir, unzip_dir, list_files
 
 Base = declarative_base()
 
@@ -292,8 +292,8 @@ class Update(Base):
 
 # Set configuration
 db_url = 'sqlite:///projects.sqlite'    # TODO: Make these easily configurable
-users_path = './data/users/'
-repository_path = './data/repository/'
+users_path = '/data/users/'
+repository_path = '/data/repository/'
 
 # Initialize the database singletons
 db = create_engine(db_url, echo=False)

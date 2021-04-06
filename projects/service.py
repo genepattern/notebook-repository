@@ -3,8 +3,8 @@ from tornado.escape import to_basestring
 from tornado.web import Application, RequestHandler, authenticated, addslash
 from tornado.ioloop import IOLoop
 from jupyterhub.services.auth import HubAuthenticated
-from projects.hub import create_named_server, hub_db
-from projects.project import Project, Tag
+from .hub import create_named_server, hub_db
+from .project import Project, Tag
 
 
 class PublishHandler(HubAuthenticated, RequestHandler):

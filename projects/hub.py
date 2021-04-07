@@ -20,7 +20,7 @@ def create_named_server(hub_auth, user, server_name, spec):
 
 
 class HubDatabase:
-    db_url = 'sqlite:///jupyterhub.sqlite'  # TODO: Make this a traitlet or load directly from JupyterHub config
+    db_url = 'sqlite:///jupyterhub.sqlite'
     echo = True
 
     def user_spawners(self, username):

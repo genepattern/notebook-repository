@@ -92,7 +92,8 @@ c.JupyterHub.services = [
         'admin': True,
         'url': 'http://127.0.0.1:3000/',
         'cwd': '.',
-        'command': ['python', 'projects/service.py']
+        'command': ['python', 'start-projects.py', '--database=projects.sqlite', '--userdir=./data/users/',
+                    '--repository=./data/repository/', '--hubdb=jupyterhub.sqlite']
     },
 ]
 

@@ -73,7 +73,7 @@ class Project(Base):
 
     def zip(self):
         if not self.min_metadata(): raise Project.SpecError('Missing required attributes')
-        project_dir = os.path.join(users_path, self.owner, self.dir)            # Path to the source project
+        project_dir = os.path.join(ProjectConfig.users_path, self.owner, self.dir)  # Path to the source project
         zip_path = self.zip_path()                                              # Path to the zipped project
         os.makedirs(os.path.dirname(zip_path), mode=0o777, exist_ok=True)       # Lazily create directories
         if os.path.exists(zip_path): os.remove(zip_path)                        # Remove the old copy if one exists
@@ -85,7 +85,7 @@ class Project(Base):
 
     def unzip(self, target_user, dir):
         zip_path = self.zip_path()                                              # Path to the zipped project
-        target_dir = os.path.join(users_path, target_user, dir)                 # Path in which to unzip
+        target_dir = os.path.join(ProjectConfig.users_path, target_user, dir)   # Path in which to unzip
         os.makedirs(os.path.dirname(target_dir), mode=0o777, exist_ok=True)     # Lazily create directories
         unzip_dir(zip_path, target_dir)                                         # Unzip to directory
 
@@ -139,7 +139,7 @@ class Project(Base):
         return data
 
     def zip_path(self):
-        return os.path.join(repository_path, self.owner, f'{self.dir}.zip')
+        return os.path.join(ProjectConfig.repository_path, self.owner, f'{self.dir}.zip')
 
     def mark_copied(self):
         self.copied += 1
@@ -162,7 +162,7 @@ class Project(Base):
         count = 1
         checked_name = dir_name
         while True:
-            project_dir = os.path.join(users_path, user, checked_name)  # Path to directory to check
+            project_dir = os.path.join(ProjectConfig.users_path, user, checked_name)  # Path to directory to check
             if os.path.exists(project_dir):                             # If it exists, append a number and try again
                 checked_name = f'{dir_name}{count}'
                 count += 1
@@ -291,11 +291,13 @@ class Update(Base):
 
 
 # Set configuration
-db_url = 'sqlite:///projects.sqlite'    # TODO: Make these easily configurable
-users_path = '/data/users/'
-repository_path = '/data/repository/'
+class ProjectConfig:
+    db_url = 'sqlite:///projects.sqlite'
+    users_path = '/data/users/'
+    repository_path = '/data/repository/'
+
 
 # Initialize the database singletons
-db = create_engine(db_url, echo=False)
+db = create_engine(ProjectConfig.db_url, echo=False)
 Session = sessionmaker(bind=db)
 Base.metadata.create_all(db)

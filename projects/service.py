@@ -1,10 +1,9 @@
 import json
 from tornado.escape import to_basestring
 from tornado.web import Application, RequestHandler, authenticated, addslash
-from tornado.ioloop import IOLoop
 from jupyterhub.services.auth import HubAuthenticated
-from projects.hub import create_named_server, hub_db
-from projects.project import Project, Tag
+from projects.hub import create_named_server, hub_db, HubDatabase
+from projects.project import Project, Tag, ProjectConfig
 
 
 class PublishHandler(HubAuthenticated, RequestHandler):
@@ -196,7 +195,14 @@ class EndpointHandler(RequestHandler):
         })
 
 
-def make_app():
+def make_app(db_path=None, user_dir=None, repo_dir=None, hub_db=None):
+    # Set arguments on handlers, if defined
+    if db_path: ProjectConfig.db_url = f'sqlite:///{db_path}'
+    if user_dir: ProjectConfig.users_path = user_dir
+    if repo_dir: ProjectConfig.repository_path = repo_dir
+    if hub_db: HubDatabase.db_url = f'sqlite:///{hub_db}'
+
+    # Assign handlers to the URLs and return
     urls = [
         (r"/services/projects/", EndpointHandler),
         (r"/services/projects/user.json", UserHandler),
@@ -206,9 +212,3 @@ def make_app():
         (r"/services/projects/library/(?P<id>\w+)/(?P<directive>\w+)/", PublishHandler),
     ]
     return Application(urls, debug=True)
-
-
-if __name__ == '__main__':
-    app = make_app()
-    app.listen(3000)
-    IOLoop.instance().start()

@@ -1,3 +1,4 @@
+import os
 import shutil
 import zipfile
 from datetime import datetime
@@ -10,6 +11,9 @@ def zip_dir(src_path, dest_path):
 
 def unzip_dir(src_path, dest_path):
     shutil.unpack_archive(src_path, dest_path, 'zip')
+    for root, dirs, files in os.walk(dest_path):
+        for d in dirs: os.chmod(os.path.join(root, d), 0o777)
+        for f in files: os.chmod(os.path.join(root, f), 0o777)
 
 
 def list_files(zip_path):

@@ -2,8 +2,8 @@ import json
 from tornado.escape import to_basestring
 from tornado.web import Application, RequestHandler, authenticated, addslash
 from jupyterhub.services.auth import HubAuthenticated
-from projects.hub import create_named_server, hub_db, HubDatabase
-from projects.project import Project, Tag, ProjectConfig
+from .hub import create_named_server, hub_db, HubDatabase
+from .project import Project, Tag, ProjectConfig
 
 
 class PublishHandler(HubAuthenticated, RequestHandler):

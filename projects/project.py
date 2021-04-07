@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
-from projects.zip import zip_dir, unzip_dir, list_files
+from .zip import zip_dir, unzip_dir, list_files
 
 Base = declarative_base()
 

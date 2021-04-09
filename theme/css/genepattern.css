@@ -101,6 +101,7 @@ body > .navbar > .container-fluid {
     color: #fff;
     background-color: #428bca;
     border-color: #428bca;
+    margin-top: 16px !important;
 }
 
 #login_submit:hover {

@@ -19,14 +19,33 @@ def create_named_server(hub_auth, user, server_name, spec):
     return f'/user/{user}/{server_name}'
 
 
-class HubDatabase:
-    db_url = 'sqlite:///jupyterhub.sqlite'
-    echo = True
+# Set configuration
+class HubConfig:
+    _hub_singleton = None
+    db = None
+    db_url = 'sqlite:////data/jupyterhub.sqlite'
+    echo = None
 
-    def user_spawners(self, username):
+    def __init__(self, db_url, echo):
+        self.db_url = db_url
+        self.echo = echo
+
+    @classmethod
+    def set_config(cls, db_url, echo):
+        cls._hub_singleton = HubConfig(db_url, echo)
+
+    @classmethod
+    def instance(cls):
+        if cls._hub_singleton is None:
+            raise RuntimeError('The hub singleton has not yet been defined')
+        else:
+            return cls._hub_singleton
+
+    @classmethod
+    def user_spawners(cls, username):
         """Read the user spawners from the database"""
         # Establish a connection to the database
-        engine = create_engine(self.db_url, echo=self.echo)
+        engine = create_engine(cls.instance().db_url, echo=cls.instance().echo)
         session = engine.connect()
 
         # Query for the list of user spawners
@@ -35,7 +54,3 @@ class HubDatabase:
         # Close the connection to the database and return
         session.close()
         return results
-
-
-# Initialize the database singletons
-hub_db = HubDatabase()

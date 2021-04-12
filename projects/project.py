@@ -73,7 +73,7 @@ class Project(Base):
 
     def zip(self):
         if not self.min_metadata(): raise Project.SpecError('Missing required attributes')
-        project_dir = os.path.join(ProjectConfig.users_path, self.owner, self.dir)  # Path to the source project
+        project_dir = os.path.join(ProjectConfig.instance().users_path, self.owner, self.dir)  # Path to the source project
         zip_path = self.zip_path()                                              # Path to the zipped project
         os.makedirs(os.path.dirname(zip_path), mode=0o777, exist_ok=True)       # Lazily create directories
         if os.path.exists(zip_path): os.remove(zip_path)                        # Remove the old copy if one exists
@@ -85,7 +85,7 @@ class Project(Base):
 
     def unzip(self, target_user, dir):
         zip_path = self.zip_path()                                              # Path to the zipped project
-        target_dir = os.path.join(ProjectConfig.users_path, target_user, dir)   # Path in which to unzip
+        target_dir = os.path.join(ProjectConfig.instance().users_path, target_user, dir)   # Path in which to unzip
         os.makedirs(os.path.dirname(target_dir), mode=0o777, exist_ok=True)     # Lazily create directories
         unzip_dir(zip_path, target_dir)                                         # Unzip to directory
 
@@ -129,17 +129,21 @@ class Project(Base):
         labels = [tag.label for tag in self.tags]
         return ','.join(labels)
 
+    def latest_comment(self):
+        return self.updates[-1].comment
+
     def json(self, include_files=False):
         data = { c.name: getattr(self, c.name) for c in self.__table__.columns }
         for k in data:
             if isinstance(data[k], datetime):                               # Special handling for datetimes
                 data[k] = str(data[k])
         data['tags'] = self.tags_str()                                      # Special handling for tags
+        data['comment'] = self.latest_comment()
         if include_files: data['files'] = list_files(self.zip_path())
         return data
 
     def zip_path(self):
-        return os.path.join(ProjectConfig.repository_path, self.owner, f'{self.dir}.zip')
+        return os.path.join(ProjectConfig.instance().repository_path, self.owner, f'{self.dir}.zip')
 
     def mark_copied(self):
         self.copied += 1
@@ -162,16 +166,16 @@ class Project(Base):
         count = 1
         checked_name = dir_name
         while True:
-            project_dir = os.path.join(ProjectConfig.users_path, user, checked_name)  # Path to directory to check
+            project_dir = os.path.join(ProjectConfig.instance().users_path, user, checked_name)  # Path to check
             if os.path.exists(project_dir):                             # If it exists, append a number and try again
                 checked_name = f'{dir_name}{count}'
                 count += 1
             else:
-                return checked_name
+                return checked_name, count-1
 
     @staticmethod
     def get(id=None, owner=None, dir=None):
-        session = Session()
+        session = ProjectConfig.instance().Session()
         query = session.query(Project)
         if id is not None:      query = query.filter(Project.id == id)
         if owner is not None:   query = query.filter(Project.owner == owner)
@@ -182,7 +186,7 @@ class Project(Base):
 
     @staticmethod
     def put(project):
-        session = Session()
+        session = ProjectConfig.instance().Session()
         session.add(project)
         session.commit()
         d = project.json()
@@ -191,7 +195,7 @@ class Project(Base):
 
     @staticmethod
     def all(include_deleted=False):
-        session = Session()
+        session = ProjectConfig.instance().Session()
         query = session.query(Project)
         if not include_deleted: query = query.filter(Project.deleted == False)
         results = query.all()
@@ -214,7 +218,7 @@ class Tag(Base):
 
     @staticmethod
     def get(id=None, label=None):
-        session = Session()
+        session = ProjectConfig.instance().Session()
         query = session.query(Tag)
         if id is not None:      query = query.filter(Tag.id == id)
         if label is not None:   query = query.filter(Tag.label == label)
@@ -224,7 +228,7 @@ class Tag(Base):
 
     @staticmethod
     def put(tag):
-        session = Session()
+        session = ProjectConfig.instance().Session()
         session.add(tag)
         session.commit()
         d = tag.json()
@@ -233,7 +237,7 @@ class Tag(Base):
 
     @staticmethod
     def all_pinned():
-        session = Session()
+        session = ProjectConfig.instance().Session()
         query = session.query(Tag).filter(Tag.pinned == True)
         results = query.all()
         session.close()
@@ -241,7 +245,7 @@ class Tag(Base):
 
     @staticmethod
     def all_protected():
-        session = Session()
+        session = ProjectConfig.instance().Session()
         query = session.query(Tag).filter(Tag.protected == True)
         results = query.all()
         session.close()
@@ -292,12 +296,29 @@ class Update(Base):
 
 # Set configuration
 class ProjectConfig:
-    db_url = 'sqlite:///projects.sqlite'
+    _project_singleton = None
+    db = None
+    db_url = 'sqlite:////data/projects.sqlite'
     users_path = '/data/users/'
     repository_path = '/data/repository/'
+    Session = None
 
+    def __init__(self, db_url, users_path, repository_path):
+        self.db_url = db_url
+        self.users_path = users_path
+        self.repository_path = repository_path
 
-# Initialize the database singletons
-db = create_engine(ProjectConfig.db_url, echo=False)
-Session = sessionmaker(bind=db)
-Base.metadata.create_all(db)
+        self.db = create_engine(self.db_url, echo=False)
+        self.Session = sessionmaker(bind=self.db)
+        Base.metadata.create_all(self.db)
+
+    @classmethod
+    def set_config(cls, db_url, users_path, repository_path):
+        cls._project_singleton = ProjectConfig(db_url, users_path, repository_path)
+
+    @classmethod
+    def instance(cls):
+        if cls._project_singleton is None:
+            raise RuntimeError('The project singleton has not yet been defined')
+        else:
+            return cls._project_singleton

@@ -2,7 +2,7 @@ import json
 from tornado.escape import to_basestring
 from tornado.web import Application, RequestHandler, authenticated, addslash
 from jupyterhub.services.auth import HubAuthenticated
-from .hub import create_named_server, hub_db, HubDatabase
+from .hub import create_named_server, HubConfig
 from .project import Project, Tag, ProjectConfig
 
 
@@ -63,12 +63,12 @@ class PublishHandler(HubAuthenticated, RequestHandler):
             raise Project.ExistsError
         # Check to see if the dir directory exists, if so find a good dir name
         user = self.get_current_user()['name']
-        dir_name = Project.unused_dir(user, project.dir)
+        dir_name, count = Project.unused_dir(user, project.dir)
         # Unzip to the current user's dir directory
         project.unzip(user, dir_name)
         # Call JupyterHub API to create a new named server
         spec = project.json()
-        spec['name'] += ' (copied)'
+        if count: spec['name'] += f' (copy {count})'
         url = create_named_server(self.hub_auth, user, dir_name, spec)
         self.write({'url': url, 'id': id, 'slug': dir_name})
         # Increment project.copied
@@ -158,7 +158,7 @@ class UserHandler(HubAuthenticated, RequestHandler):
         username = user['name']
 
         # Load the user spawners and put them in the format needed for the endpoint
-        spawners = hub_db.user_spawners(username)
+        spawners = HubConfig.instance().user_spawners(username)
         projects = []
         for s in spawners:
             if s[0] == '': continue  # Skip the user default spawner
@@ -179,8 +179,8 @@ class UserHandler(HubAuthenticated, RequestHandler):
             })
 
         self.write({'name': username,
-                    'base_url': '',         # FIXME: Need a way to access this info
-                    'images': '',           # FIXME: Need a way to access this info
+                    'base_url': self.hub_auth.hub_prefix,
+                    'images': '',  # FIXME: Need a way to access this info
                     'projects': projects})
 
 
@@ -197,10 +197,8 @@ class EndpointHandler(RequestHandler):
 
 def make_app(db_path=None, user_dir=None, repo_dir=None, hub_db=None):
     # Set arguments on handlers, if defined
-    if db_path: ProjectConfig.db_url = f'sqlite:///{db_path}'
-    if user_dir: ProjectConfig.users_path = user_dir
-    if repo_dir: ProjectConfig.repository_path = repo_dir
-    if hub_db: HubDatabase.db_url = f'sqlite:///{hub_db}'
+    ProjectConfig.set_config(f'sqlite:///{db_path}', user_dir, repo_dir)
+    HubConfig.set_config(f'sqlite:///{hub_db}', echo=True)
 
     # Assign handlers to the URLs and return
     urls = [

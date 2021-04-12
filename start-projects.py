@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 from projects import make_app
 from tornado.ioloop import IOLoop
+from tornado.log import enable_pretty_logging
+
+
+# Enable logging
+logger = logging.getLogger(__name__)
+enable_pretty_logging()
 
 
 # Get the arguments passed into the script
@@ -16,6 +23,8 @@ args = parser.parse_args()
 
 
 if __name__ == '__main__':
+    logging.info(f'{args.database} {args.database} {args.userdir} {args.repository} {args.hubdb} {args.port}')
+
     app = make_app(db_path=args.database, user_dir=args.userdir, repo_dir=args.repository, hub_db=args.hubdb)
     app.listen(args.port)
     IOLoop.instance().start()

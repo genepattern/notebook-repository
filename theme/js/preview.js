@@ -25,6 +25,7 @@ class Preview {
         $('#nb-preview-image').text(GenePattern.preview.project.image);
         $('#nb-preview-owner').text(GenePattern.preview.project.owner);
         $('#nb-preview-updated').text(GenePattern.preview.project.updated);
+        $('#nb-preview-comment').text(GenePattern.preview.project.comment);
 
         // Add tags
         GenePattern.preview.project.tags.split(',')
@@ -36,7 +37,13 @@ class Preview {
 
         // Add files to the table
         GenePattern.preview.project.files
-            .forEach(f => $('#nb-preview-files').append($(`<tr><td>${f.filename}</td><td>${f.modified}</td><td>${f.size}</td></tr>`)));
+            .forEach(f => $('#nb-preview-files').append($(`<tr><td>${Preview.icon(f.filename)} ${f.filename}</td><td>${f.modified}</td><td>${f.size}</td></tr>`)));
+    }
+
+    static icon(filename) {
+        if (filename.endsWith('.ipynb')) return '<i class="fa fa-book" title="Notebook"></i>';
+        else if (filename.endsWith('/')) return '<i class="fa fa-folder-open" title="Directory"></i>';
+        else return '<i class="fa fa-file" title="Supporting File"></i>';
     }
 
     static error_message(message) {

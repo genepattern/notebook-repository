@@ -346,3 +346,9 @@ div.nb-project-new > .nb-img-top {
     width: 100%;
     font-size: 30vh;
 }
+
+/** Preview Page **/
+
+#nb-preview-files .fa {
+    margin-right: 10px;
+}

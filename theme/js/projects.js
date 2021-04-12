@@ -54,6 +54,7 @@ class Project {
         this.element.querySelector('.panel-title').innerHTML = this.display_name();
         this.element.querySelector('.panel-text').innerHTML = this.description();
         this.element.querySelector('.nb-image').innerHTML = this.image();
+        this.element.querySelector('.nb-image').title = `This project uses the ${this.image()} environment.`;
 
         // Display the tags
         this._apply_tags();
@@ -100,18 +101,28 @@ class Project {
 
         // Enable or disable based on running status
         if (running) {
-            $(this.element).find('.nb-edit').parent().addClass('disabled');
-            $(this.element).find('.nb-publish').parent().addClass('disabled');
-            $(this.element).find('.nb-share').parent().addClass('disabled');
-            $(this.element).find('.nb-stop').parent().removeClass('disabled');
-            $(this.element).find('.nb-delete').parent().addClass('disabled');
+            $(this.element).find('.nb-edit').parent().addClass('disabled')
+                .attr('title', 'You must stop this project before it may be edited.');
+            $(this.element).find('.nb-publish').parent().addClass('disabled')
+                .attr('title', 'You must stop this project before it may be published.');
+            $(this.element).find('.nb-share').parent().addClass('disabled')
+                .attr('title', 'You must stop this project before it may be shared.');
+            $(this.element).find('.nb-stop').parent().removeClass('disabled')
+                .removeAttr('title');
+            $(this.element).find('.nb-delete').parent().addClass('disabled')
+                .attr('title', 'You must stop this project before it may be deleted.');
         }
         else {
-            $(this.element).find('.nb-edit').parent().removeClass('disabled');
-            $(this.element).find('.nb-publish').parent().removeClass('disabled');
-            $(this.element).find('.nb-share').parent().removeClass('disabled');
-            $(this.element).find('.nb-stop').parent().addClass('disabled');
-            $(this.element).find('.nb-delete').parent().removeClass('disabled');
+            $(this.element).find('.nb-edit').parent().removeClass('disabled')
+                .removeAttr('title');
+            $(this.element).find('.nb-publish').parent().removeClass('disabled')
+                .removeAttr('title');
+            $(this.element).find('.nb-share').parent().removeClass('disabled')
+                .removeAttr('title');
+            $(this.element).find('.nb-stop').parent().addClass('disabled')
+                .attr('title', 'This project is already stopped.');
+            $(this.element).find('.nb-delete').parent().removeClass('disabled')
+                .removeAttr('title');
         }
 
         // Tooltip or rename based on published status
@@ -122,7 +133,6 @@ class Project {
         }
         else {
             $(this.element).find('.nb-publish').text('Publish');
-            $(this.element).find('.nb-delete').parent().removeAttr('title');
         }
     }
 
@@ -452,6 +462,10 @@ class PublishedProject extends Project {
         return this.model.updated;
     }
 
+    comment() {
+        return this.model.comment;
+    }
+
     owner() {
         return this.model.owner;
     }
@@ -524,6 +538,7 @@ class PublishedProject extends Project {
                            <tr><th>Environment</th><td>${ this.image() }</td></tr>
                            <tr><th>Owner</th><td>${ this.owner() }</td></tr>
                            <tr><th>Updated</th><td>${ this.updated().split(' ')[0] }</td></tr>
+                           <tr><th>Comment</th><td>${ this.comment() }</td></tr>
                        </table>
                        <p>${ this.description() }</p>`,
                 buttons: `

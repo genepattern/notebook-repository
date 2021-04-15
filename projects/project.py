@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
+from .errors import SpecError
 from .zip import zip_dir, unzip_dir, list_files
 
 Base = declarative_base()
@@ -46,7 +47,7 @@ class Project(Base):
                     elif isinstance(spec[key], str): setattr(self, key, spec[key].strip())
                     else: setattr(self, key, spec[key])
         except json.JSONDecodeError:
-            raise Project.SpecError('Error parsing json')
+            raise SpecError('Error parsing json')
 
     def lazily_create_tags(self, tags_str):
         if len(tags_str.strip()) == 0: labels = []                          # If there are no tags, empty labels list
@@ -72,7 +73,7 @@ class Project(Base):
         return Project.get(owner=self.owner, dir=self.dir) is not None
 
     def zip(self):
-        if not self.min_metadata(): raise Project.SpecError('Missing required attributes')
+        if not self.min_metadata(): raise SpecError('Missing required attributes')
         project_dir = os.path.join(ProjectConfig.instance().users_path, self.owner, self.dir)  # Path to the source project
         zip_path = self.zip_path()                                              # Path to the zipped project
         os.makedirs(os.path.dirname(zip_path), mode=0o777, exist_ok=True)       # Lazily create directories
@@ -96,7 +97,7 @@ class Project(Base):
 
     def save(self):
         # Ensure that the project has all of the required information
-        if not self.min_metadata(): raise Project.SpecError('Missing required attributes')
+        if not self.min_metadata(): raise SpecError('Missing required attributes')
         # Add initial update to updates table, if necessary
         if not len(self.updates): Update(self, f'Initial release of {self.name}')
         # Save the project to the database and return the json representation
@@ -120,7 +121,7 @@ class Project(Base):
             if not self.author: missing.append('author')
             if not self.quality: missing.append('quality')
             if 'comment' not in merge or not merge['comment']: missing.append('comment')
-            raise Project.SpecError(','.join(missing))
+            raise SpecError(','.join(missing))
 
     def min_metadata(self):
         return self.dir and self.image and self.name and self.author and self.quality and self.owner
@@ -148,18 +149,6 @@ class Project(Base):
     def mark_copied(self):
         self.copied += 1
         Project.put(self)
-
-    class ExistsError(RuntimeError):
-        """Error to return if trying to create a project that already exists"""
-        pass
-
-    class SpecError(RuntimeError):
-        """Error to return if attempting to initialize a project from a bad specification"""
-        pass
-
-    class PermissionError(RuntimeError):
-        """Error to return if attempting to edit a project you do not own"""
-        pass
 
     @staticmethod
     def unused_dir(user, dir_name):
@@ -260,14 +249,10 @@ class Tag(Base):
 
     def save(self):
         # Ensure that the project has all of the required information
-        if not self.min_metadata(): raise Tag.SpecError('Missing required attributes')
+        if not self.min_metadata(): raise SpecError('Missing required attributes')
         # Save the project to the database and return the json representation
         Tag.put(self)
         return self
-
-    class SpecError(RuntimeError):
-        """Error to return if attempting to initialize a project from a bad specification"""
-        pass
 
 
 class ProjectTags(Base):

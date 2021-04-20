@@ -2,7 +2,8 @@ import json
 import os
 from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from .errors import SpecError
+from .errors import SpecError, InviteError
+from .hub import HubConfig
 from .project import ProjectConfig, Base
 
 
@@ -59,10 +60,11 @@ class Share(Base):
         except json.JSONDecodeError:
             raise SpecError('Error parsing json')
 
-    def validate_invitees(self):
-        # TODO: Implement
-        # TODO: Make sure the invite list doesn't include yourself (or ignore)
-        pass
+    def validate_invites(self):
+        # TODO: Validate emails or check valid usernames against the GenePattern server?
+        for i in self.invites:
+            if self.owner == i.user:
+                raise InviteError('You cannot invite yourself to share.')
 
     def notify(self, new_users):
         # TODO: Implement
@@ -82,12 +84,25 @@ class Share(Base):
     def invite_list(self):
         return [i.json() for i in self.invites]
 
-    def json(self, full_metadata=False):
+    def json(self, full_metadata=True):
         data = { c.name: getattr(self, c.name) for c in self.__table__.columns }
         data['invites'] = self.invite_list()  # Special handling for invitees
         if full_metadata:
-            # TODO: Populate full project metadata from the hub
-            pass
+            spawner = HubConfig.instance().spawner_info(self.owner, self.dir)
+            if spawner:
+                metadata = json.loads(spawner[2])
+                data['project'] = {
+                    'slug': spawner[0],
+                    'active': spawner[4] is not None,
+                    'last_activity': spawner[3],
+                    'display_name': metadata['name'] if 'name' in metadata else spawner[0],
+                    'image': metadata['image'] if 'image' in metadata else '',
+                    'description': metadata['description'] if 'description' in metadata else '',
+                    'author': metadata['author'] if 'author' in metadata else '',
+                    'quality': metadata['quality'] if 'quality' in metadata else '',
+                    'tags': metadata['tags'] if 'tags' in metadata else '',
+                    'status': json.loads(spawner[1])
+            }
         return data
 
     def save(self):
@@ -131,6 +146,14 @@ class Share(Base):
     def shared_by_me(owner):
         session = ProjectConfig.instance().Session()
         query = session.query(Share).filter(Share.owner == owner)
+        results = query.all()
+        session.close()
+        return results
+
+    @staticmethod
+    def shared_with_me(user):
+        session = ProjectConfig.instance().Session()
+        query = session.query(Share).join(Share.invites, aliased=True).filter_by(user=user)
         results = query.all()
         session.close()
         return results

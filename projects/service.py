@@ -188,12 +188,22 @@ class ShareHandler(HubAuthenticated, RequestHandler):
         self.send_error(400, reason=f'Endpoint only valid with share id')
 
     def _list_shared(self):
-        # TODO: Implement
-        pass
+        shared_by_me = [p.json() for p in Share.shared_by_me(self.get_current_user()['name'])]
+        shared_with_me = [p.json() for p in Share.shared_with_me(self.get_current_user()['name'])]
+        self.write({'shared_by_me': shared_by_me, 'shared_with_me': shared_with_me})
 
     def _sharing_info(self, id=None):
-        # TODO: Implement
-        pass
+        try:
+            share = Share.get(id=id)
+            if share is None:                                       # Ensure that the share exists
+                raise ExistsError
+            if not self._is_current_user(share.owner):              # Ensure the correct username is set
+                raise PermissionError
+            self.write(share.json())
+        except ExistsError:                                         # Bad Request
+            self.send_error(400, reason='Unable to get sharing info, share id not found')
+        except PermissionError:                                     # Forbidden
+            self.send_error(403, reason='You are not the owner of this project')
 
     def _create_share(self):
         """Share a project with other users"""
@@ -212,7 +222,7 @@ class ShareHandler(HubAuthenticated, RequestHandler):
                 raise ExistsError                                   # Throw an error
             if not share.dir_exists():                              # Ensure the project directory exists
                 raise InvalidProjectError                           # If not, throw an error
-            share.validate_invitees()                               # Validate the invitees
+            share.validate_invites()                                # Validate the invitees
             resp = share.save()                                     # Save the share to the database
             share.notify(new_users)                                 # Notify the invitees
             self.write(resp)                                        # Return the share json

@@ -53,3 +53,17 @@ class HubConfig:
         # Close the connection to the database and return
         session.close()
         return results
+
+    @classmethod
+    def spawner_info(cls, username, dir):
+        """Read the user spawners from the database"""
+        # Establish a connection to the database
+        engine = create_engine(cls.instance().db_url, echo=cls.instance().echo)
+        session = engine.connect()
+
+        # Query for the list of user spawners
+        result = session.execute(f"SELECT s.name, s.state, s.user_options, s.last_activity, s.started FROM spawners s, users u WHERE s.name = '{dir}' AND s.user_id = u.id AND u.name = '{username}'").first()
+
+        # Close the connection to the database and return
+        session.close()
+        return result

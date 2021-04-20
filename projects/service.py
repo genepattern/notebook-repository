@@ -163,7 +163,7 @@ class ShareHandler(HubAuthenticated, RequestHandler):
     @authenticated
     def post(self, id=None):
         """Share a new project or accept a sharing invite"""
-        if id is None: self._share()            # Share a new project
+        if id is None: self._create_share()     # Share a new project
         elif self._invite(): self._accept(id)   # Accept sharing
         else: self._share_only()                # Return error
 
@@ -173,7 +173,6 @@ class ShareHandler(HubAuthenticated, RequestHandler):
         """Stop sharing or reject sharing invite"""
         if self._invite(): self._reject(id)     # Reject sharing
         else: self._remove(id)                  # Unshare a project
-
 
     @addslash
     @authenticated
@@ -196,23 +195,27 @@ class ShareHandler(HubAuthenticated, RequestHandler):
         # TODO: Implement
         pass
 
-    def _share(self):
+    def _create_share(self):
         """Share a project with other users"""
         try:
             share = Share(to_basestring(self.request.body))         # Create a share from the request body
+            self._validate_and_save(share, new_users=True)          # Validate and save the share
+        except SpecError as e:                                      # Bad Request
+            self.send_error(400, reason=f'Error creating share, bad specification in the request: {e}')
+
+    def _validate_and_save(self, share, new_share=True, new_users=None):
+        """Share a project with other users"""
+        try:
             if not self._is_current_user(share.owner):              # Ensure the correct username is set
                 raise PermissionError
-            if share.exists():                                      # If already shared
+            if new_share and share.exists():                        # If already shared
                 raise ExistsError                                   # Throw an error
             if not share.dir_exists():                              # Ensure the project directory exists
                 raise InvalidProjectError                           # If not, throw an error
-            print('after')
             share.validate_invitees()                               # Validate the invitees
             resp = share.save()                                     # Save the share to the database
-            share.notify()                                          # Notify the invitees
+            share.notify(new_users)                                 # Notify the invitees
             self.write(resp)                                        # Return the share json
-        except SpecError as e:                                      # Bad Request
-            self.send_error(400, reason=f'Error creating share, bad specification in the request: {e}')
         except ExistsError:                                         # Bad Request
             self.send_error(400, reason='Error creating share, already shared')
         except InvalidProjectError:                                 # Bad Request
@@ -279,8 +282,20 @@ class ShareHandler(HubAuthenticated, RequestHandler):
             self.send_error(403, reason='You cannot reject an invite that is not yours')
 
     def _update(self, id=None):
-        # TODO: Implement
-        pass
+        """Edit the project's sharing"""
+        try:
+            share = Share.get(id=id)                                                # Get the share
+            if share is None:                                                       # Ensure that the share exists
+                raise ExistsError
+            # Update list of invitees
+            new_users, removed_users = share.update_invites(to_basestring(self.request.body))
+            # Validate and save the share
+            self._validate_and_save(share, new_share=False, new_users=new_users)
+            for i in removed_users: Invite.remove(i)                                # Remove old Invite DB entries
+        except SpecError as e:                                                      # Bad Request
+            self.send_error(400, reason=f'Error updating share, bad specification in the request: {e}')
+        except ExistsError:                                                         # Bad Request
+            self.send_error(400, reason='Unable to updating share, share id not found')
 
 
 class UserHandler(HubAuthenticated, RequestHandler):

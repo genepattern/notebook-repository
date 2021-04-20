@@ -36,13 +36,38 @@ class Share(Base):
     def create_invites(self, invites):
         self.invites = [Invite(self, i) for i in invites]
 
+    def update_invites(self, spec):
+        try:
+            spec = json.loads(spec)                                             # Parse the update spec
+            if 'invites' not in spec:                                           # Ensure invites is specified
+                raise SpecError('No invites included in the spec')
+            if type(spec['invites']) != list:                                   # Ensure invites is a list
+                raise SpecError('Invites not specified in list format')
+
+            old_invites = [i.user for i in self.invites]                        # Get users invited before the update
+            new_invites = [i for i in spec['invites'] if i not in old_invites]  # Get the list of new invitees
+            continuing_invites = [i for i in spec['invites'] if i in old_invites]  # Get the list of continuing invitees
+            removed_invites = [i for i in old_invites if i not in continuing_invites]  # Get the users to be removed
+            removed_invites = [i for i in self.invites if i.user in removed_invites]   # Get the instantiated objects
+
+            # Set the new list of instantiated Invite objects
+            invite_objects = [i for i in self.invites if i.user in continuing_invites]  # Add continuing invites
+            for i in new_invites: invite_objects.append(Invite(self, i))        # Add new invites
+            self.invites = invite_objects                                       # Set the list
+
+            return new_invites, removed_invites                                 # Return the new and removed lists
+        except json.JSONDecodeError:
+            raise SpecError('Error parsing json')
+
     def validate_invitees(self):
         # TODO: Implement
         # TODO: Make sure the invite list doesn't include yourself (or ignore)
         pass
 
-    def notify(self):
+    def notify(self, new_users):
         # TODO: Implement
+        # If new_users is None, notify all users
+        # Otherwise, notify only those users in the list
         pass
 
     def exists(self):

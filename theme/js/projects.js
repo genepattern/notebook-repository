@@ -9,17 +9,20 @@ GenePattern.projects.my_projects = GenePattern.projects.my_projects || [];
 GenePattern.projects.library = GenePattern.projects.library || [];
 GenePattern.projects.pinned_tags = GenePattern.projects.pinned_tags || [];
 GenePattern.projects.protected_tags = GenePattern.projects.protected_tags || [];
+GenePattern.projects.shared_with_me = GenePattern.projects.shared_with_me || [];
+GenePattern.projects.shared_by_me = GenePattern.projects.shared_by_me || [];
 
 
 class Project {
     element = null;
     model = null;
     published = null;
+    shared = null;
     template = `
         <div class="panel nb-project">
             <div class="nb-image"></div>
             <div class="nb-icon-space">
-                <i title="Shared" class="fa fa-share nb-shared-icon hidden"></i>
+                <i title="Shared" class="fa fa-users nb-shared-icon hidden"></i>
                 <i title="Published" class="fa fa-newspaper-o nb-published-icon hidden"></i>
             </div>
             <div class="dropdown nb-gear-menu">
@@ -79,7 +82,7 @@ class Project {
         $(this.element).find('.dropdown-menu')
             .append($('<li><a href="#" class="dropdown-item nb-edit">Edit</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-publish">Publish</a></li>'))
-            .append($('<li class="hidden"><a href="#" class="dropdown-item nb-share">Share</a></li>'))
+            .append($('<li><a href="#" class="dropdown-item nb-share">Share</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-stop">Stop</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-delete">Delete</a></li>'));
 
@@ -88,9 +91,11 @@ class Project {
         $(this.element).find('.nb-delete').click(e => Project.not_disabled(e,() => this.delete_project()));
         $(this.element).find('.nb-edit').click(e => Project.not_disabled(e,() => this.edit_project()));
         $(this.element).find('.nb-publish').click(e => Project.not_disabled(e,() => this.publish_project()));
+        $(this.element).find('.nb-share').click(e => Project.not_disabled(e,() => this.share_project()));
 
         // Handle publishing and sharing clucks
         $(this.element).find('.nb-published-icon').click(() => $(this.element).find('.nb-publish').click());
+        $(this.element).find('.nb-shared-icon').click(() => $(this.element).find('.nb-share').click());
 
         // Enable or disable options
         this.update_gear_menu(this.running())
@@ -172,11 +177,11 @@ class Project {
     }
 
     get_url() {
-        return `/user/${GenePattern.projects.username}/${this.model.slug}`;
+        return `/user/${GenePattern.projects.username}/${this.slug()}`;
     }
 
     api_url() {
-        return `${GenePattern.projects.base_url}api/users/${GenePattern.projects.username}/servers/${this.model.slug}`;
+        return `${GenePattern.projects.base_url}api/users/${GenePattern.projects.username}/servers/${this.slug()}`;
     }
 
     publish_url() {
@@ -188,7 +193,14 @@ class Project {
         this.published = published_project;
         published_project.linked = this;
         this.element.querySelector('.nb-published-icon').classList.remove('hidden');
-        this.update_gear_menu()
+        this.update_gear_menu();
+    }
+
+    mark_shared(shared_project) {
+        this.shared = shared_project;
+        shared_project.linked = this;
+        this.element.querySelector('.nb-shared-icon').classList.remove('hidden');
+        this.update_gear_menu();
     }
 
     _apply_tags() {
@@ -257,6 +269,11 @@ class Project {
 
         // Show the delete dialog
         this.publish_dialog.show();
+    }
+
+    share_project() {
+        // TODO: Implement
+        console.log('SHARE DIALOG');
     }
 
     edit_project() {
@@ -368,6 +385,10 @@ class Project {
 
             this.element.classList.remove('nb-stopped'); // Mark as running
         }
+    }
+
+    shared_with_me() {
+        return this.slug().includes('.');
     }
 
     static not_disabled(event, callback) {
@@ -660,6 +681,85 @@ class PublishedProject extends Project {
 
         // Show the unpublish dialog
         this.unpublish_dialog.show();
+    }
+}
+
+class SharedProject extends Project {
+    linked = null;  // Reference to linked personal project, if shared by you
+
+    constructor(sharing_json) {
+        // Does this shared project have a local copy (because ran before ans shared with me)
+        const local = SharedProject.local_copy(sharing_json.owner, sharing_json.dir);
+
+        // If so, initialize based on the local copy's data
+        if (local) super(SharedProject.merge_sharing(local.model, sharing_json));
+
+        // If not, was project data specified in the sharing endpoint? If so, initialize with that data
+        else if (sharing_json.project) super(SharedProject.merge_sharing(sharing_json.project, sharing_json));
+
+        // If not, there must have been an issue getting the project data on the server-side, init with best effort
+        else super(SharedProject.placeholder_data(sharing_json));
+    }
+
+    slug() {
+        if (this.model.sharing.owner === GenePattern.projects.username) return this.model.sharing.dir; // Shared by me
+        else return `${this.model.sharing.owner}.${this.model.sharing.dir}`;                           // Shared with me
+    }
+
+    build() {
+        super.build();
+        const owner_template = `<div class="nb-owner">Shared by ${this.model.sharing.owner}</div>`;
+        this.element.append(new DOMParser().parseFromString(owner_template, "text/html").querySelector('div'));
+    }
+
+    build_gear_menu() {
+        // Add the menu items
+        $(this.element).find('.dropdown-menu')
+            .append($('<li><a href="#" class="dropdown-item nb-unshare">Unshare</a></li>'))
+            .append($('<li><a href="#" class="dropdown-item nb-stop">Stop</a></li>'));
+
+        // Handle menu clicks
+        $(this.element).find('.nb-stop').click(e => Project.not_disabled(e,() => this.stop_project()));
+        $(this.element).find('.nb-unshare').click(e => Project.not_disabled(e,() => this.unshare_project()));
+
+        // Enable or disable options
+        this.update_gear_menu(this.running())
+    }
+
+    unshare_project() {
+        // TODO: Implement
+        console.log('UNSHARE PROJECT');
+    }
+
+    static merge_sharing(project_json, sharing_json) {
+        project_json['sharing'] = sharing_json;
+        return project_json;
+    }
+
+    static local_copy(owner, slug) {
+        let local_found = null;
+
+        GenePattern.projects.my_projects.forEach(per => {
+            if (per.slug() === `${owner}.${slug}`) local_found = per;
+        });
+
+        return local_found
+    }
+
+    static placeholder_data(project_json) {
+        return {
+            'slug': project_json.dir,
+            'active': false,
+            'last_activity': null,
+            'display_name': project_json.dir,
+            'image': '',
+            'description': `Shared by ${project_json.owner}`,
+            'author': project_json.owner,
+            'quality': 'Unknown',
+            'tags': '',
+            'status': null,
+            'sharing': project_json
+        }
     }
 }
 
@@ -973,6 +1073,8 @@ class MyProjects {
         this.initialize_search();                           // Initialize the search box
         this.initialize_buttons();                          // Initialize the new project button
         MyProjects.redraw_projects()                        // Add the projects to the page
+            .then(() => Shares.redraw_shares()              // Add the share projects to the page
+                .then(() => MyProjects.link_shared()))      // Mark which projects are shared
             .then(() => Library.redraw_library()            // Then add the public projects to the page
                 .then(() => MyProjects.link_published()));  // Mark which projects are published
         this.initialize_refresh();                          // Begin the periodic refresh
@@ -1005,15 +1107,19 @@ class MyProjects {
         if (message) Messages.success_message(message);
         return MyProjects.query_projects().then(() => {
             document.querySelector('#projects').innerHTML = '';                     // Empty the projects div
-            GenePattern.projects.my_projects.forEach((p) =>                              // Add the project widgets
-                document.querySelector('#projects').append(p.element));
+            GenePattern.projects.my_projects.forEach((p) => {                            // Add the project widgets
+                if (!p.shared_with_me()) document.querySelector('#projects').append(p.element)
+            });
 
             // Add new project widget
             if (!GenePattern.projects.new_project) GenePattern.projects.new_project = new NewProject();
             document.querySelector('#projects').append(GenePattern.projects.new_project.element);
 
-            // Link to published projects, if available
-            if (GenePattern.projects.library) MyProjects.link_published();
+            // Link to published projects
+            MyProjects.link_published();
+
+            // Link to shared projects
+            MyProjects.link_shared();
         });
     }
 
@@ -1028,6 +1134,15 @@ class MyProjects {
         my_published.forEach(pub => {
             GenePattern.projects.my_projects.forEach(per => {
                 if (per.slug() === pub.slug()) per.mark_published(pub);
+            });
+        });
+    }
+
+    static link_shared() {
+        // For each project shared by me, link the corresponding personal project
+        GenePattern.projects.shared_by_me.forEach(share => {
+            GenePattern.projects.my_projects.forEach(per => {
+                if (per.slug() === share.slug()) per.mark_shared(share);
             });
         });
     }
@@ -1047,7 +1162,7 @@ class MyProjects {
             let search = $(event.target).val().trim().toLowerCase();
 
             // Display the matching projects
-            const projects = $('#projects').find('.nb-project');
+            const projects = $('#projects, #shares').find('.nb-project');
             projects.each(function(i, project) {
                 project = $(project);
 
@@ -1172,6 +1287,43 @@ class Library {
                 // Not matching notebook
                 else project.style.display = 'none';
             });
+        });
+    }
+}
+
+class Shares {
+
+    static query_shares() {
+        function sort(a, b) {
+            // Basic case-insensitive alphanumeric sorting
+            const a_text = a.updated();
+            const b_text = b.updated();
+            if ( a_text < b_text ) return 1;
+            if ( a_text > b_text ) return -1;
+            return 0;
+        }
+
+        return fetch('/services/projects/sharing/')
+            .then(response => response.json())
+            .then(response => {
+                GenePattern.projects.shared_with_me = [];                           // Clean the sharing lists
+                response['shared_with_me'].forEach((p) => GenePattern.projects.shared_with_me.push(new SharedProject(p)));
+                GenePattern.projects.shared_with_me.sort(sort);                     // Sort the shared list
+
+                GenePattern.projects.shared_by_me = [];
+                response['shared_by_me'].forEach((p) => GenePattern.projects.shared_by_me.push(new SharedProject(p)));
+            });
+    }
+
+    static redraw_shares(message=null) {
+        if (message) Messages.success_message(message);
+        return Shares.query_shares().then(() => {
+            document.querySelector('#shares').innerHTML = '';              // Empty the shares div
+            GenePattern.projects.shared_with_me.forEach((p) =>                  // Add the project widgets
+                document.querySelector('#shares').append(p.element));
+            if (GenePattern.projects.shared_with_me.length === 0)
+                document.querySelector('#nb-sharing-header').style.display = 'none';
+            else document.querySelector('#nb-sharing-header').style.display = 'block';
         });
     }
 }

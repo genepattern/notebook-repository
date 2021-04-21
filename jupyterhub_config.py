@@ -2,35 +2,7 @@ import os
 import sys
 from pathlib import Path
 from distutils.dir_util import copy_tree
-from jupyterhub.handlers import BaseHandler
-from tornado.web import authenticated
-
-
-class UserHandler(BaseHandler):
-    """Serve the user info from its template: theme/templates/user.json"""
-
-    @authenticated
-    async def get(self):
-        template = await self.render_template('user.json')
-        self.write(template)
-
-
-class PreviewHandler(BaseHandler):
-    """Serve the preview from its template: theme/templates/preview.html"""
-
-    async def get(self):
-        template = await self.render_template('preview.html')
-        self.write(template)
-
-# OLDER VERSIONS OF JUPYTERHUB MAY REQUIRE NON-ASYNC:
-#
-# class UserHandler(BaseHandler):
-#     """Serve the user info from its template: theme/templates/user.json"""
-#
-#     @authenticated
-#     def get(self):
-#         self.write(self.render_template('user.json'))
-
+from projects.jupyterhub_config import UserHandler, PreviewHandler, pre_spawn_hook
 
 c = get_config()
 
@@ -48,7 +20,8 @@ c.DockerSpawner.image_whitelist = {
     'Legacy': 'genepattern/lab',
     'R 3.6': 'genepattern/notebook-r36:20.10'
 }
-c.DockerSpawner.pre_spawn_hook = lambda spawner: os.makedirs(os.path.join('./data/users', spawner.user.name, spawner.name), 0o777, exist_ok=True)
+
+c.DockerSpawner.pre_spawn_hook = lambda spawner: pre_spawn_hook(spawner, userdir='./data/users')
 c.DockerSpawner.volumes = {
     os.path.join(os.getcwd(), './data/users/{raw_username}/{servername}'): '/home/jovyan',  # Mount users directory
 }

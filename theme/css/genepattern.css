@@ -293,7 +293,7 @@ div.nb-project-new > .nb-img-top {
     top: 50px;
 }
 
-#nb-library-container {
+#nb-library-container, #nb-share-container {
     margin-top: 30px;
     margin-bottom: 30px;
 }
@@ -345,6 +345,23 @@ div.nb-project-new > .nb-img-top {
     margin-left: auto;
     width: 100%;
     font-size: 30vh;
+}
+
+#nb-sharing-header {
+    display: none;
+}
+
+.nb-owner {
+    position: absolute;
+    top: 72px;
+    right: 10px;
+    color: white;
+    z-index: 1;
+    font-weight: 500;
+    max-width: 252px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /** Preview Page **/

@@ -139,6 +139,16 @@ class Project {
         else {
             $(this.element).find('.nb-publish').text('Publish');
         }
+
+        // Rename based on sharing status
+        if (this.shared) {
+            $(this.element).find('.nb-share').text('Sharing');
+            $(this.element).find('.nb-delete').parent().addClass('disabled')
+                .attr('title', 'You must unshare this project before it can be deleted.');
+        }
+        else {
+            $(this.element).find('.nb-share').text('Share');
+        }
     }
 
     display_name() {
@@ -187,6 +197,11 @@ class Project {
     publish_url() {
         if (!this.published) return `/services/projects/library/`;  // Root endpoint if not published
         else this.published.publish_url();                          // Endpoint with /<id>/ if published
+    }
+
+    share_url() {
+        if (!this.shared) return `/services/projects/sharing/`;     // Root endpoint if not published
+        else this.shared.share_url();                               // Endpoint with /<id>/ if published
     }
 
     mark_published(published_project) {
@@ -272,8 +287,50 @@ class Project {
     }
 
     share_project() {
-        // TODO: Implement
-        console.log('SHARE DIALOG');
+        // If this project is already shared, show the update dialog instead
+        if (this.shared) return this.shared.update_share();
+
+        // Lazily create the share dialog
+        if (!this.share_dialog)
+            this.share_dialog = new Modal('share-project-dialog', {
+                title: 'Share Project',
+                body: [{
+                        info: true,
+                        value: "Enter the username of those you want to share the project with below."
+                    },
+                    {
+                        label: "Share With",
+                        name: "invites",
+                        required: true,
+                        advanced: false,
+                        value: ''
+                    }],
+                button_label: 'Share',
+                button_class: 'btn-warning share-button',
+                callback: (form_data) => {
+                    Messages.show_loading();
+
+                    // Make the AJAX request
+                    $.ajax({
+                        method: 'POST',
+                        url: this.share_url(),
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            "dir": this.slug(),
+                            "invites": Project.invites_to_list(form_data['invites']),
+                            "owner": GenePattern.projects.username
+                        }),
+                        success: () => {
+                            Shares.redraw_shares(`Successfully shared ${this.display_name()}`)
+                                .then(() => MyProjects.redraw_projects());
+                        },
+                        error: (e) => Messages.error_message(e.statusText)
+                    });
+                }
+            });
+
+        // Show the share dialog
+        this.share_dialog.show();
     }
 
     edit_project() {
@@ -405,6 +462,18 @@ class Project {
             return labels.join(',');
         }
         catch { return ''; }
+
+    }
+
+    static invites_to_list(invite_json) {
+        try {
+            const invite_objs = JSON.parse(invite_json);
+            const users = [];
+            invite_objs.forEach(t => users.push(t.value.toLowerCase()));
+            users.sort();
+            return users
+        }
+        catch { return []; }
 
     }
 
@@ -701,9 +770,25 @@ class SharedProject extends Project {
         else super(SharedProject.placeholder_data(sharing_json));
     }
 
+    invite_id() {
+        for (let i of this.model.sharing.invites)
+            if (i.user === GenePattern.projects.username) return i.id;
+        return null;
+    }
+
+    owner() {
+        return this.model.sharing.owner;
+    }
+
     slug() {
         if (this.model.sharing.owner === GenePattern.projects.username) return this.model.sharing.dir; // Shared by me
         else return `${this.model.sharing.owner}.${this.model.sharing.dir}`;                           // Shared with me
+    }
+
+    share_url() {
+        if (this.model.sharing.owner === GenePattern.projects.username)         // Shared by me
+            return `/services/projects/sharing/${this.model.sharing.id}/`;
+        else return `/services/projects/sharing/invite/${this.invite_id()}/`;   // Shared with me
     }
 
     build() {
@@ -727,8 +812,80 @@ class SharedProject extends Project {
     }
 
     unshare_project() {
-        // TODO: Implement
-        console.log('UNSHARE PROJECT');
+        // Lazily create the unshare dialog
+        if (!this.unshare_dialog) {
+            this.unshare_dialog = new Modal('unshare-project-dialog', {
+                title: 'Unshare Project',
+                body: '<p>Are you sure that you want to unshare this project?</p>',
+                button_label: 'Unshare',
+                button_class: 'btn-danger unshare-button',
+                callback: () => {
+                    // Make the call to unshare the project
+                    $.ajax({
+                        method: 'DELETE',
+                        url: this.share_url(),
+                        contentType: 'application/json',
+                        success: () => {
+                            Shares.redraw_shares(`Successfully unshared ${this.display_name()}`)
+                                .then(() => MyProjects.redraw_projects());
+                        },
+                        error: () => Messages.error_message('Unable to unshare project.')
+                    });
+                }
+            });
+        }
+
+        // Show the unshare dialog
+        this.unshare_dialog.show();
+    }
+
+    update_share() {
+        // Lazily create the share dialog
+        if (!this.share_dialog)
+            this.share_dialog = new Modal('update-share-dialog', {
+                title: 'Update Sharing',
+                body: [{
+                        info: true,
+                        value: "Enter the username of those you want to share the project with below."
+                    },
+                    {
+                        label: "Share With",
+                        name: "invites",
+                        required: true,
+                        advanced: false,
+                        value: this.model.sharing.invites.map(({user}) => user).join(',')
+                    }],
+                buttons: `
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">Unshare</button>
+                    <button type="button" class="btn btn-warning update-button" data-dismiss="modal">Update</button>`,
+                callback: [
+                    () => {},                           // Cancel button
+                    () => this.unshare_project(),       // Unshare button
+                    (form_data, e) => {                 // Update button
+                        Messages.show_loading();
+
+                        // Make the AJAX request
+                        $.ajax({
+                            method: 'PUT',
+                            url: this.share_url(),
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                "dir": this.slug(),
+                                "invites": Project.invites_to_list(form_data['invites']),
+                                "owner": GenePattern.projects.username
+                            }),
+                            success: () => {
+                                Shares.redraw_shares(`Successfully updated sharing of ${this.display_name()}`)
+                                    .then(() => MyProjects.redraw_projects());
+                            },
+                            error: (e) => Messages.error_message(e.statusText)
+                        });
+                    }]
+            });
+
+        // Show the share dialog
+        this.share_dialog.show();
     }
 
     static merge_sharing(project_json, sharing_json) {
@@ -912,11 +1069,16 @@ class Modal {
         if (attached) attached.remove();                                        // Remove old dialog, if one exists
         document.body.append(this.element);                                     // Attach this modal dialog
         $(this.element).modal();                            // Display the modal dialog using JupyterHub's modal call
-        this.activate_tags();                                                   // Activate tags widget, if necessary
-        this.activate_controls();
+        this.activate_controls();                                               // Activate interactive elements
     }
 
     activate_controls() {
+        this.activate_tags();
+        this.activate_invites();
+        this.activate_advanced();
+    }
+
+    activate_advanced() {
         $(this.element).find('a.nb-more').one('click', () => {
             $(this.element).find('.nb-advanced').show('slide');
             $(this.element).find('div.nb-more').hide('slide');
@@ -925,6 +1087,14 @@ class Modal {
             $(this.element).find('.nb-advanced').hide();
             $(this.element).find('div.nb-more').show();
         });
+    }
+
+    activate_invites() {
+        const invite_input = this.element.querySelector('input[name=invites]');
+        const tagify = this.element.querySelector('invites');
+        const options = {};
+        options['blacklist'] = [GenePattern.projects.username];
+        if (invite_input && !tagify) new Tagify(invite_input, options);
     }
 
     activate_tags() {
@@ -945,14 +1115,18 @@ class Modal {
         //     advanced: boolean,
         //     value: str,
         //     options: list
+        //     info: boolean (optional)
         // }
         const form = $('<div class="form-horizontal"></div>');
         body_spec.forEach((param) => {
-            const grouping = $('<div class="form-group"></div>');
+            let grouping = $('<div class="form-group"></div>');
             if (param['advanced']) grouping.addClass('nb-advanced');
             const asterisk = param['required'] ? '*' : '';
             grouping.append($(`<label for="${param['name']}" class="control-label col-sm-4">${param['label']}${asterisk}</label>`));
-            if (!param['options'] || !param['options'].length) {        // Handle text parameters
+            if (param['info']) {                                        // Handle info boxes
+                grouping = $(`<div class="alert alert-info">${param['value']}</div>`);
+            }
+            else if (!param['options'] || !param['options'].length) {   // Handle text parameters
                 let input = $(`<div class="col-sm-8"><input name="${param['name']}" type="text" class="form-control" value="${param['value']}" /></div>`)
                 if (param['required']) input.find('input').attr('required', 'required');
                 grouping.append(input);
@@ -1296,8 +1470,8 @@ class Shares {
     static query_shares() {
         function sort(a, b) {
             // Basic case-insensitive alphanumeric sorting
-            const a_text = a.updated();
-            const b_text = b.updated();
+            const a_text = a.owner();
+            const b_text = b.owner();
             if ( a_text < b_text ) return 1;
             if ( a_text > b_text ) return -1;
             return 0;

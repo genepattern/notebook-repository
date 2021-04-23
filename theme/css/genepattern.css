@@ -129,11 +129,11 @@ body > .navbar > .container-fluid {
     position: relative;
 }
 
-.nb-project > .nb-img-top {
+.nb-project .nb-img-top {
     width: 100%;
     height: 100px;
     object-fit: cover;
-    border-bottom: 1px solid rgba(0,0,0,.125);
+    border-bottom: 1px solid rgba(0, 0, 0, .125);
 }
 
 .nb-project > .panel-body > .panel-title {
@@ -356,12 +356,79 @@ div.nb-project-new > .nb-img-top {
     top: 72px;
     right: 10px;
     color: white;
-    z-index: 1;
+    z-index: 0;
     font-weight: 500;
     max-width: 252px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.nb-invite {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    cursor: auto;
+}
+
+.nb-invite > .nb-img-top {
+    background: rgb(242, 242, 242) none repeat scroll 0 0;
+    padding: 10px;
+    position: relative;
+}
+
+.nb-invite-line {
+    font-size: 1em;
+    line-height: 1.2em;
+    overflow: hidden;
+    max-height: 27px;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    font-weight: bold;
+    text-overflow: ellipsis;
+    padding: 5px;
+    text-align: center;
+    white-space: nowrap;
+    background: rgb(242, 242, 242) none repeat scroll 0 0;
+    border-top: 1px solid rgba(0, 0, 0, .125);
+}
+
+.nb-invite-buttons {
+    line-height: 100%;
+    text-align: center;
+}
+
+.nb-invite-accept,
+.nb-invite-reject {
+    opacity: 0.8;
+    padding: 0;
+    border: none;
+    font-size: 0.9em;
+    background: transparent;
+}
+
+.nb-invite-accept:hover,
+.nb-invite-reject:hover {
+    opacity: 1;
+}
+
+.nb-invite-accept {
+    color: #3c763d;
+    margin-right: 20px;
+}
+
+.nb-invite-reject {
+    color: #a94442;
+    margin-left: 20px;
+}
+
+.nb-invite-accept > i.fa,
+.nb-invite-reject > i.fa {
+    font-size: 60px;
 }
 
 /** Preview Page **/

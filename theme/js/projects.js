@@ -770,10 +770,16 @@ class SharedProject extends Project {
         else super(SharedProject.placeholder_data(sharing_json));
     }
 
-    invite_id() {
+    invite() {
         for (let i of this.model.sharing.invites)
-            if (i.user === GenePattern.projects.username) return i.id;
+            if (i.user === GenePattern.projects.username) return i;
         return null;
+    }
+
+    invite_id() {
+        const invite = this.invite();
+        if (invite) return invite.id;
+        else return null;
     }
 
     owner() {
@@ -785,6 +791,12 @@ class SharedProject extends Project {
         else return `${this.model.sharing.owner}.${this.model.sharing.dir}`;                           // Shared with me
     }
 
+    invite_pending() {
+        const invite = this.invite();
+        if (invite) return !invite.accepted;
+        else return null;
+    }
+
     share_url() {
         if (this.model.sharing.owner === GenePattern.projects.username)         // Shared by me
             return `/services/projects/sharing/${this.model.sharing.id}/`;
@@ -793,8 +805,38 @@ class SharedProject extends Project {
 
     build() {
         super.build();
+        if (this.invite_pending()) this.invite_cover();
+        this.attach_shared_by();
+    }
+
+    invite_cover() {
+        const cover_template = `
+            <div class="nb-invite">
+                <div class="nb-img-top">
+                    <div class="nb-invite-buttons">
+                        <button class="nb-invite-accept"><i class="fa fa-check-circle"></i><br/>Accept Invite</button>
+                        <button class="nb-invite-reject"><i class="fa fa-times-circle"></i><br/>Reject Invite</button>
+                    </div>
+                </div>
+                <div class="nb-invite-line">${this.model.sharing.owner} has invited you to share</div>
+            </div>`;
+        this.element.append(new DOMParser().parseFromString(cover_template, "text/html").querySelector('div'));
+
+        // Attach the accept and reject callbacks
+        $(this.element).find('.nb-invite-accept').click(e => Project.not_disabled(e,() => this.accept_invite()));
+        $(this.element).find('.nb-invite-reject').click(e => Project.not_disabled(e,() => this.unshare_project()));
+    }
+
+    attach_shared_by() {
         const owner_template = `<div class="nb-owner">Shared by ${this.model.sharing.owner}</div>`;
         this.element.append(new DOMParser().parseFromString(owner_template, "text/html").querySelector('div'));
+    }
+
+    attach_default_click() {
+        this.element.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown') &&
+                !e.target.closest('.nb-invite')) this.open_project()
+        });
     }
 
     build_gear_menu() {
@@ -809,6 +851,19 @@ class SharedProject extends Project {
 
         // Enable or disable options
         this.update_gear_menu(this.running())
+    }
+
+    accept_invite() {
+        // Make the call to accept the sharing invite
+        $.ajax({
+            method: 'POST',
+            url: this.share_url(),
+            contentType: 'application/json',
+            success: () => {
+                this.element.querySelector('.nb-invite').style.display = 'none';  // Hide the invite cover
+            },
+            error: () => Messages.error_message('Unable to accept the sharing invite.')
+        });
     }
 
     unshare_project() {

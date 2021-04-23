@@ -1,4 +1,5 @@
 import json
+import os
 from tornado.escape import to_basestring
 from tornado.web import Application, RequestHandler, authenticated, addslash
 from jupyterhub.services.auth import HubAuthenticated
@@ -310,10 +311,7 @@ class ShareHandler(HubAuthenticated, RequestHandler):
 
 class UserHandler(HubAuthenticated, RequestHandler):
     """Notebook projects information about the current user
-
-       This has been engineered as a replacement for the user.json template,
-       but it isn't yet fully featured, as it needs to access information that
-       JupyterHub has stored in memory but not in the database"""
+       This has been engineered as a replacement for the user.json template"""
 
     @authenticated
     def get(self):
@@ -343,7 +341,8 @@ class UserHandler(HubAuthenticated, RequestHandler):
 
         self.write({'name': username,
                     'base_url': self.hub_auth.hub_prefix,
-                    'images': '',  # FIXME: Need a way to access this info
+                    'admin': self.hub_auth.get_user(self)['admin'],
+                    'images': os.getenv('IMAGE_WHITELIST').split(','),
                     'projects': projects})
 
 

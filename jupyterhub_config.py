@@ -65,6 +65,9 @@ c.JupyterHub.services = [
         'admin': True,
         'url': 'http://127.0.0.1:3000/',
         'cwd': '.',
+        'environment': {
+            'IMAGE_WHITELIST': ','.join(c.DockerSpawner.image_whitelist.keys())
+        },
         'command': ['python', 'start-projects.py',
                     '--database=/Users/tmtabor/workspace/notebook-repository/projects.sqlite',
                     '--userdir=/Users/tmtabor/workspace/notebook-repository/data/users/',

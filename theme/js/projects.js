@@ -1319,7 +1319,7 @@ class MyProjects {
             return 0;
         }
 
-        return fetch('/hub/user.json')
+        return fetch('/services/projects/user.json')
             .then(response => response.json())
             .then(response => {
                 GenePattern.projects.username = response['name'];

@@ -37,6 +37,7 @@ def pre_spawn_hook(spawner, userdir=''):
             os.symlink(f'../{user(spawner.name)}/{slug(spawner.name)}', project_dir)
     else:                               # Otherwise, lazily create the project directory
         os.makedirs(project_dir, 0o777, exist_ok=True)
+    os.chmod(project_dir, 0o777)
 
 
 def shared_with_me(name):

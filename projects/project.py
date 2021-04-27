@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
+from .config import Config
 from .errors import SpecError
 from .zip import zip_dir, unzip_dir, list_files
 
@@ -74,7 +75,7 @@ class Project(Base):
 
     def zip(self):
         if not self.min_metadata(): raise SpecError('Missing required attributes')
-        project_dir = os.path.join(ProjectConfig.instance().users_path, self.owner, self.dir)  # Path to the source project
+        project_dir = os.path.join(Config.instance().USERS_PATH, self.owner, self.dir)  # Path to the source project
         zip_path = self.zip_path()                                              # Path to the zipped project
         os.makedirs(os.path.dirname(zip_path), mode=0o777, exist_ok=True)       # Lazily create directories
         if os.path.exists(zip_path): os.remove(zip_path)                        # Remove the old copy if one exists
@@ -86,7 +87,7 @@ class Project(Base):
 
     def unzip(self, target_user, dir):
         zip_path = self.zip_path()                                              # Path to the zipped project
-        target_dir = os.path.join(ProjectConfig.instance().users_path, target_user, dir)   # Path in which to unzip
+        target_dir = os.path.join(Config.instance().USERS_PATH, target_user, dir)   # Path in which to unzip
         os.makedirs(os.path.dirname(target_dir), mode=0o777, exist_ok=True)     # Lazily create directories
         unzip_dir(zip_path, target_dir)                                         # Unzip to directory
 
@@ -144,7 +145,7 @@ class Project(Base):
         return data
 
     def zip_path(self):
-        return os.path.join(ProjectConfig.instance().repository_path, self.owner, f'{self.dir}.zip')
+        return os.path.join(Config.instance().REPO_PATH, self.owner, f'{self.dir}.zip')
 
     def mark_copied(self):
         self.copied += 1
@@ -155,7 +156,7 @@ class Project(Base):
         count = 1
         checked_name = dir_name
         while True:
-            project_dir = os.path.join(ProjectConfig.instance().users_path, user, checked_name)  # Path to check
+            project_dir = os.path.join(Config.instance().USERS_PATH, user, checked_name)  # Path to check
             if os.path.exists(project_dir):                             # If it exists, append a number and try again
                 checked_name = f'{dir_name}{count}'
                 count += 1
@@ -279,31 +280,20 @@ class Update(Base):
         self.comment = comment
 
 
-# Set configuration
+# Set database configuration
 class ProjectConfig:
     _project_singleton = None
     db = None
-    db_url = 'sqlite:////data/projects.sqlite'
-    users_path = '/data/users/'
-    repository_path = '/data/repository/'
     Session = None
 
-    def __init__(self, db_url, users_path, repository_path):
-        self.db_url = db_url
-        self.users_path = users_path
-        self.repository_path = repository_path
-
-        self.db = create_engine(self.db_url, echo=False)
+    def __init__(self):
+        config = Config.instance()
+        self.db = create_engine(f'sqlite:///{config.DB_PATH}', echo=config.DB_ECHO)
         self.Session = sessionmaker(bind=self.db)
         Base.metadata.create_all(self.db)
 
     @classmethod
-    def set_config(cls, db_url, users_path, repository_path):
-        cls._project_singleton = ProjectConfig(db_url, users_path, repository_path)
-
-    @classmethod
     def instance(cls):
         if cls._project_singleton is None:
-            raise RuntimeError('The project singleton has not yet been defined')
-        else:
-            return cls._project_singleton
+            cls._project_singleton = ProjectConfig()
+        return cls._project_singleton

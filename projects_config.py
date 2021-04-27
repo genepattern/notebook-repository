@@ -1,6 +1,6 @@
 DB_PATH = '/data/projects.sqlite'
-USER_DIR = '/data/users/'
-REPO_DIR = '/data/repository/'
+USERS_PATH = '/data/users/'
+REPO_PATH = '/data/repository/'
 HUB_DB = '/data/jupyterhub.sqlite'
 
 DB_ECHO = True

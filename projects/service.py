@@ -376,8 +376,6 @@ class EndpointHandler(RequestHandler):
 def make_app(config_path):
     # Init the config from the config file
     config = Config.load_config(config_path)
-    # Set arguments on handlers, if defined
-    ProjectConfig.set_config(f'sqlite:///{config.DB_PATH}', config.USER_DIR, config.REPO_DIR)
 
     # Assign handlers to the URLs and return
     urls = [

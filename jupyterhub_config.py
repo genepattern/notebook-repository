@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 from distutils.dir_util import copy_tree
-from projects.jupyterhub_config import UserHandler, PreviewHandler, pre_spawn_hook
+from projects.hub import UserHandler, PreviewHandler, pre_spawn_hook
 
 c = get_config()
 
@@ -69,10 +69,7 @@ c.JupyterHub.services = [
             'IMAGE_WHITELIST': ','.join(c.DockerSpawner.image_whitelist.keys())
         },
         'command': ['python', 'start-projects.py',
-                    '--database=/Users/tmtabor/workspace/notebook-repository/projects.sqlite',
-                    '--userdir=/Users/tmtabor/workspace/notebook-repository/data/users/',
-                    '--repository=/Users/tmtabor/workspace/notebook-repository/data/repository/',
-                    '--hubdb=/Users/tmtabor/workspace/notebook-repository/jupyterhub.sqlite']
+                    '--config=/Users/tmtabor/workspace/notebook-repository/data/projects_config.py']
     },
 ]
 

@@ -1,6 +1,10 @@
 import json
+import os
 import requests
+from jupyterhub.handlers import BaseHandler
 from sqlalchemy import create_engine
+from tornado.web import authenticated
+from .config import Config
 
 
 def create_named_server(hub_auth, user, server_name, spec):
@@ -18,52 +22,82 @@ def create_named_server(hub_auth, user, server_name, spec):
     return f'/user/{user}/{server_name}'
 
 
-# Set configuration
-class HubConfig:
-    _hub_singleton = None
-    db = None
-    db_url = 'sqlite:////data/jupyterhub.sqlite'
-    echo = None
+def user_spawners(username):
+    """Read the user spawners from the database"""
+    config = Config.instance()
 
-    def __init__(self, db_url, echo):
-        self.db_url = db_url
-        self.echo = echo
+    # Establish a connection to the database
+    engine = create_engine(f'sqlite:///{config.HUB_DB}', echo=config.DB_ECHO)
+    session = engine.connect()
 
-    @classmethod
-    def set_config(cls, db_url, echo):
-        cls._hub_singleton = HubConfig(db_url, echo)
+    # Query for the list of user spawners
+    results = [r for r in session.execute(f"SELECT s.name, s.state, s.user_options, s.last_activity, s.started FROM spawners s, users u WHERE s.user_id = u.id AND u.name = '{username}'")]
 
-    @classmethod
-    def instance(cls):
-        if cls._hub_singleton is None:
-            raise RuntimeError('The hub singleton has not yet been defined')
-        else:
-            return cls._hub_singleton
+    # Close the connection to the database and return
+    session.close()
+    return results
 
-    @classmethod
-    def user_spawners(cls, username):
-        """Read the user spawners from the database"""
-        # Establish a connection to the database
-        engine = create_engine(cls.instance().db_url, echo=cls.instance().echo)
-        session = engine.connect()
 
-        # Query for the list of user spawners
-        results = [r for r in session.execute(f"SELECT s.name, s.state, s.user_options, s.last_activity, s.started FROM spawners s, users u WHERE s.user_id = u.id AND u.name = '{username}'")]
+def spawner_info(username, dir):
+    """Read the user spawners from the database"""
+    config = Config.instance()
 
-        # Close the connection to the database and return
-        session.close()
-        return results
+    # Establish a connection to the database
+    engine = create_engine(f'sqlite:///{config.HUB_DB}', echo=config.DB_ECHO)
+    session = engine.connect()
 
-    @classmethod
-    def spawner_info(cls, username, dir):
-        """Read the user spawners from the database"""
-        # Establish a connection to the database
-        engine = create_engine(cls.instance().db_url, echo=cls.instance().echo)
-        session = engine.connect()
+    # Query for the list of user spawners
+    result = session.execute(f"SELECT s.name, s.state, s.user_options, s.last_activity, s.started FROM spawners s, users u WHERE s.name = '{dir}' AND s.user_id = u.id AND u.name = '{username}'").first()
 
-        # Query for the list of user spawners
-        result = session.execute(f"SELECT s.name, s.state, s.user_options, s.last_activity, s.started FROM spawners s, users u WHERE s.name = '{dir}' AND s.user_id = u.id AND u.name = '{username}'").first()
+    # Close the connection to the database and return
+    session.close()
+    return result
 
-        # Close the connection to the database and return
-        session.close()
-        return result
+
+class UserHandler(BaseHandler):
+    """Serve the user info from its template: theme/templates/user.json"""
+
+    @authenticated
+    async def get(self):
+        template = await self.render_template('user.json')
+        self.write(template)
+
+
+class PreviewHandler(BaseHandler):
+    """Serve the preview from its template: theme/templates/preview.html"""
+
+    async def get(self):
+        template = await self.render_template('preview.html')
+        self.write(template)
+
+
+# OLDER VERSIONS OF JUPYTERHUB MAY REQUIRE NON-ASYNC:
+#
+# class UserHandler(BaseHandler):
+#     """Serve the user info from its template: theme/templates/user.json"""
+#
+#     @authenticated
+#     def get(self):
+#         self.write(self.render_template('user.json'))
+
+
+def pre_spawn_hook(spawner, userdir=''):
+    project_dir = os.path.join(userdir, spawner.user.name, spawner.name)
+    if shared_with_me(spawner.name):    # If this is a project shared with me, lazily create the symlink
+        if not os.path.exists(project_dir):
+            os.symlink(f'../{user(spawner.name)}/{slug(spawner.name)}', project_dir)
+    else:                               # Otherwise, lazily create the project directory
+        os.makedirs(project_dir, 0o777, exist_ok=True)
+    os.chmod(project_dir, 0o777)
+
+
+def shared_with_me(name):
+    return '.' in name
+
+
+def user(name):
+    return name.split('.')[0]
+
+
+def slug(name):
+    return name.split('.')[1]

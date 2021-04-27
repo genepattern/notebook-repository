@@ -2,8 +2,9 @@ import json
 import os
 from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
+from .emails import is_email, send_invite_email
 from .errors import SpecError, InviteError
-from .hub import HubConfig
+from .hub import spawner_info
 from .project import ProjectConfig, Base
 
 
@@ -53,7 +54,8 @@ class Share(Base):
 
             # Set the new list of instantiated Invite objects
             invite_objects = [i for i in self.invites if i.user in continuing_invites]  # Add continuing invites
-            for i in new_invites: invite_objects.append(Invite(self, i))        # Add new invites
+            new_invites = [Invite(self, i) for i in new_invites]                # Init the new invites
+            invite_objects = invite_objects + new_invites                       # Add new invites
             self.invites = invite_objects                                       # Set the list
 
             return new_invites, removed_invites                                 # Return the new and removed lists
@@ -61,16 +63,19 @@ class Share(Base):
             raise SpecError('Error parsing json')
 
     def validate_invites(self):
-        # TODO: Validate emails or check valid usernames against the GenePattern server?
+        """Make sure the invited users are valid
+        In the future, may want to compare against the GenePattern or JupyterHub databases via REST API"""
         for i in self.invites:
             if self.owner == i.user:
                 raise InviteError('You cannot invite yourself to share.')
 
-    def notify(self, new_users):
-        # TODO: Implement
-        # If new_users is None, notify all users
-        # Otherwise, notify only those users in the list
-        pass
+    def notify(self, host_url, new_users):
+        if new_users is True: new_users = self.invites      # If new_users is True, notify all users
+        if not new_users: return                            # If new_users is False, notify no one
+        for invite in new_users:                            # Otherwise, for each new user
+            if is_email(invite.user):                       # If the user is an email address
+                send_invite_email(invite.id, invite.user,   # Send an invitation email
+                                  host_url, Share.get(invite.share_id).json())
 
     def exists(self):
         return Share.get(owner=self.owner, dir=self.dir) is not None
@@ -88,7 +93,7 @@ class Share(Base):
         data = { c.name: getattr(self, c.name) for c in self.__table__.columns }
         data['invites'] = self.invite_list()  # Special handling for invitees
         if full_metadata:
-            spawner = HubConfig.instance().spawner_info(self.owner, self.dir)
+            spawner = spawner_info(self.owner, self.dir)
             if spawner:
                 metadata = json.loads(spawner[2])
                 data['project'] = {

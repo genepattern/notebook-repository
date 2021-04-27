@@ -3,9 +3,10 @@ import os
 from tornado.escape import to_basestring
 from tornado.web import Application, RequestHandler, authenticated, addslash
 from jupyterhub.services.auth import HubAuthenticated
-
+from .config import Config
+from .emails import validate_token
 from .errors import ExistsError, PermissionError, SpecError, InvalidProjectError, InviteError
-from .hub import create_named_server, HubConfig
+from .hub import create_named_server, user_spawners
 from .project import Project, Tag, ProjectConfig
 from .sharing import Share, Invite
 
@@ -156,7 +157,7 @@ class ShareHandler(HubAuthenticated, RequestHandler):
     @authenticated
     def get(self, id=None):
         """Get the list of projects you are sharing or which are shared with you"""
-        if self._invite(): self._share_only()   # Return error is accessed with /invite/ url
+        if self._invite(): self._accept(id, redirect=True)  # Accepting invite with emailed link
         elif id is None: self._list_shared()    # List your shared projects
         else: self._sharing_info(id)            # List a shared project with the specified id
 
@@ -225,7 +226,7 @@ class ShareHandler(HubAuthenticated, RequestHandler):
                 raise InvalidProjectError                           # If not, throw an error
             share.validate_invites()                                # Validate the invitees
             resp = share.save()                                     # Save the share to the database
-            share.notify(new_users)                                 # Notify the invitees
+            share.notify(self._host_url(), new_users)               # Notify the invitees
             self.write(resp)                                        # Return the share json
         except ExistsError:                                         # Bad Request
             self.send_error(400, reason='Error creating share, already shared')
@@ -236,22 +237,37 @@ class ShareHandler(HubAuthenticated, RequestHandler):
         except PermissionError:                                     # Forbidden
             self.send_error(403, reason='You are not the owner of this project')
 
+    def _host_url(self):
+        return f'{self.request.protocol}://{self.request.host}'
+
     def _is_current_user(self, user):
         """Is the current user the owner of this share?"""
         return user == self.get_current_user()['name']
 
-    def _accept(self, id):
+    def _set_invite_user(self, invite):
+        """Associate the invite with the current user"""
+        invite.user = self.get_current_user()['name']
+
+    def _validate_token(self, invite):
+        """Validate the provided hash for the invite"""
+        token = self.get_argument('token', None, True)              # Get the provided token
+        if token is None: return False                              # Return false if no token provided
+        return validate_token(token, invite.id, invite.user)        # Validate the token
+
+    def _accept(self, id, redirect=False):
         """Accept a sharing invite that you have been sent"""
         try:
             invite = Invite.get(id=id)
             if invite is None:                                      # Ensure that an existing invite was found
                 raise ExistsError
             if not self._is_current_user(invite.user):              # Make sure you are the invitee
-                # TODO: Handle invited emails
-                raise PermissionError
+                if self._validate_token(invite):                    # If not, is a valid email hash provided?
+                    self._set_invite_user(invite)                   # Associate the invite with the user
+                else: raise PermissionError
             invite.accepted = True                                  # Remove the invite
             resp = invite.save()                                    # Save changes
-            self.write(resp)                                        # Return the invite json
+            if redirect: self.redirect('/hub/')                     # Redirect to the project
+            else: self.write(resp)                                  # Return the invite json
 
         except ExistsError:                                         # Bad Request
             self.send_error(400, reason='Unable to accept share, invite id not found')
@@ -280,7 +296,6 @@ class ShareHandler(HubAuthenticated, RequestHandler):
             if invite is None:  # Ensure that an existing invite was found
                 raise ExistsError
             if not self._is_current_user(invite.user):  # Make sure you are the invitee
-                # TODO: Handle invited emails
                 raise PermissionError
             share = Share.get(id=invite.share_id)
             if len(share.invites) == 1:                 # If this is the last invite
@@ -319,7 +334,7 @@ class UserHandler(HubAuthenticated, RequestHandler):
         username = user['name']
 
         # Load the user spawners and put them in the format needed for the endpoint
-        spawners = HubConfig.instance().user_spawners(username)
+        spawners = user_spawners(username)
         projects = []
         for s in spawners:
             if s[0] == '': continue  # Skip the user default spawner
@@ -358,10 +373,11 @@ class EndpointHandler(RequestHandler):
         })
 
 
-def make_app(db_path=None, user_dir=None, repo_dir=None, hub_db=None):
+def make_app(config_path):
+    # Init the config from the config file
+    config = Config.load_config(config_path)
     # Set arguments on handlers, if defined
-    ProjectConfig.set_config(f'sqlite:///{db_path}', user_dir, repo_dir)
-    HubConfig.set_config(f'sqlite:///{hub_db}', echo=True)
+    ProjectConfig.set_config(f'sqlite:///{config.DB_PATH}', config.USER_DIR, config.REPO_DIR)
 
     # Assign handlers to the URLs and return
     urls = [

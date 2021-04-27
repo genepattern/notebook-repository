@@ -296,7 +296,7 @@ class Project {
                 title: 'Share Project',
                 body: [{
                         info: true,
-                        value: "Enter the username of those you want to share the project with below."
+                        value: "Enter the username or email of those you want to share the project with below."
                     },
                     {
                         label: "Share With",
@@ -901,7 +901,7 @@ class SharedProject extends Project {
                 title: 'Update Sharing',
                 body: [{
                         info: true,
-                        value: "Enter the username of those you want to share the project with below."
+                        value: "Enter the username or email of those you want to share the project with below."
                     },
                     {
                         label: "Share With",

@@ -314,10 +314,12 @@ class ShareHandler(HubAuthenticated, RequestHandler):
             if share is None:                                                       # Ensure that the share exists
                 raise ExistsError
             # Update list of invitees
-            new_users, removed_users = share.update_invites(to_basestring(self.request.body))
+            new_users, removed_users, continuing_users = share.update_invites(to_basestring(self.request.body))
             # Validate and save the share
             self._validate_and_save(share, new_share=False, new_users=new_users)
             for i in removed_users: Invite.remove(i)                                # Remove old Invite DB entries
+            if len(new_users) == 0 and len(continuing_users) == 0:                  # Remove share if no invites left
+                share.delete()
         except SpecError as e:                                                      # Bad Request
             self.send_error(400, reason=f'Error updating share, bad specification in the request: {e}')
         except ExistsError:                                                         # Bad Request

@@ -1,6 +1,7 @@
 import hashlib
 import re
 import smtplib
+import threading
 import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -17,12 +18,12 @@ def is_email(email):
 def send_email(to_email, subject, message):
     config = Config.instance()
     email = create_email(config.FROM_EMAIL, to_email, subject, message)
-    attempts = 0
 
-    while attempts < 3:
+    attempts = 0
+    while attempts < 1:
         try:
             attempt_send(email)
-            break
+            return
         except:
             time.sleep(3)
             attempts += 1
@@ -30,7 +31,7 @@ def send_email(to_email, subject, message):
 
 def attempt_send(email):
     config = Config.instance()
-    server = smtplib.SMTP(config.EMAIL_SERVER, 25)
+    server = smtplib.SMTP(config.EMAIL_SERVER, 587, timeout=300)
     if hasattr(config, 'EMAIL_USERNAME'):
         server.login(config.EMAIL_USERNAME, config.EMAIL_PASSWORD)
     text = email.as_string()
@@ -74,5 +75,5 @@ def send_invite_email(id, email, host_url, share_dict):
     """Send a notebook sharing invite to the provided email address"""
     token = generate_token(id, email)                                           # Generate the invite token
     subject_line = 'Sharing Invite - GenePattern Notebook Workspace'            # Set the subject line
-    send_email(email, subject_line, generate_email_body(id, token,              # Send the email
-                                                        host_url, share_dict))
+    body = generate_email_body(id, token, host_url, share_dict)                 # Create the body
+    threading.Thread(target=send_email, args=(email, subject_line, body)).start()  # Send email in its own thread

@@ -59,7 +59,7 @@ class Share(Base):
             invite_objects = invite_objects + new_invites                       # Add new invites
             self.invites = invite_objects                                       # Set the list
 
-            return new_invites, removed_invites                                 # Return the new and removed lists
+            return new_invites, removed_invites, continuing_invites             # Return the new and removed lists
         except json.JSONDecodeError:
             raise SpecError('Error parsing json')
 

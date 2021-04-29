@@ -49,7 +49,7 @@ def create_email(from_email, to_email, subject, message):
     return msg
 
 
-def generate_email_body(invite_id, token, base_url, share_dict):
+def generate_invite_body(invite_id, token, base_url, share_dict):
     owner = share_dict['owner']
     project_name = share_dict['project']['display_name'] if 'project' in share_dict else share_dict['dir']
     return f"""
@@ -60,6 +60,13 @@ def generate_email_body(invite_id, token, base_url, share_dict):
         <p><a href="{base_url}/services/projects/sharing/invite/{invite_id}/?token={token}">
             {base_url}/services/projects/sharing/invite/{invite_id}/?token={token}</a></p>
         """
+
+
+def generate_published_body(base_url, project_id, project_name):
+    return f"""
+        <h4>{project_name}</h4>
+        <p>A new project has been published to the notebook workspace:</P
+        <p><a href="{base_url}/preview?id={project_id}">{base_url}/preview?id={project_id}</a></p>"""
 
 
 def generate_token(id, email):
@@ -75,5 +82,13 @@ def send_invite_email(id, email, host_url, share_dict):
     """Send a notebook sharing invite to the provided email address"""
     token = generate_token(id, email)                                           # Generate the invite token
     subject_line = 'Sharing Invite - GenePattern Notebook Workspace'            # Set the subject line
-    body = generate_email_body(id, token, host_url, share_dict)                 # Create the body
+    body = generate_invite_body(id, token, host_url, share_dict)                # Create the body
     threading.Thread(target=send_email, args=(email, subject_line, body)).start()  # Send email in its own thread
+
+
+def send_published_email(base_url, project_id, project_name):
+    """Send an email notification that a project was published"""
+    to_email = Config.instance().NOTIFY_EMAIL                                   # Get the config
+    subject_line = f'Project Published - {project_name}'                        # Set the subject line
+    body = generate_published_body(base_url, project_id, project_name)          # Create the body
+    threading.Thread(target=send_email, args=(to_email, subject_line, body)).start()  # Send email in its own thread

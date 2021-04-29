@@ -5,6 +5,7 @@ HUB_DB = '/data/jupyterhub.sqlite'
 
 DB_ECHO = True
 
+NOTIFY_EMAIL = 'to@email-address.com'
 FROM_EMAIL = 'from@email-address.com'
 EMAIL_SERVER = 'smtp-server.com'
 EMAIL_USERNAME = 'smtp-username'

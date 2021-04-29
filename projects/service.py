@@ -4,10 +4,10 @@ from tornado.escape import to_basestring
 from tornado.web import Application, RequestHandler, authenticated, addslash
 from jupyterhub.services.auth import HubAuthenticated
 from .config import Config
-from .emails import validate_token
+from .emails import send_published_email, validate_token
 from .errors import ExistsError, PermissionError, SpecError, InvalidProjectError, InviteError
 from .hub import create_named_server, user_spawners
-from .project import Project, Tag, ProjectConfig
+from .project import Project, Tag
 from .sharing import Share, Invite
 
 
@@ -88,12 +88,14 @@ class PublishHandler(HubAuthenticated, RequestHandler):
                 old_project = Project.get(owner=project.owner, dir=project.dir)
                 if old_project.deleted:                               # Check to see if it's deleted
                     self.put(old_project.id, 'Republishing project')  # If so, update it and un-delete
+                    send_published_email(self._host_url(), project.id, project.name)  # Send a notification email
                     return
                 else: raise ExistsError                               # Otherwise, throw an error
             if not self._owner(project):                              # Ensure the correct username is set
                 raise PermissionError
             project.zip()                                             # Bundle the project into a zip artifact
             resp = project.save()                                     # Save the project to the database
+            send_published_email(self._host_url(), project.id, project.name)  # Send a notification email
             self.write(resp)                                          # Return the project json
         except SpecError as e:                                        # Bad Request
             self.send_error(400, reason=f'Error creating project, bad specification in the request: {e}')
@@ -101,6 +103,9 @@ class PublishHandler(HubAuthenticated, RequestHandler):
             self.send_error(400, reason='Error creating project, already exists')
         except PermissionError:                                       # Forbidden
             self.send_error(403, reason='You are not the owner of this project')
+
+    def _host_url(self):
+        return f'{self.request.protocol}://{self.request.host}'
 
     @addslash
     @authenticated

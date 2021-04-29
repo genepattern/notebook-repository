@@ -690,7 +690,7 @@ class PublishedProject extends Project {
 
                                 if (!this.push_updates_dialog) {
                                     this.push_updates_dialog = new Modal('push-updates-dialog', {
-                                        title: 'Unpublish Project',
+                                        title: 'Update Private Project?',
                                         body: `<p>You have successfully updated the published project, ${form_data['name']}. Do you wish to 
                                                   push metadata updates (name, description, tags, etc.) to your 
                                                   associated private project as well?</p>`,
@@ -741,7 +741,10 @@ class PublishedProject extends Project {
                         method: 'DELETE',
                         url: this.publish_url(),
                         contentType: 'application/json',
-                        success: () => $(this.element).remove(),
+                        success: () => {
+                            $(this.element).remove();
+                            Library.redraw_library().then(() => MyProjects.redraw_projects());
+                        },
                         error: () => Messages.error_message('Unable to unpublish project.')
                     });
                 }

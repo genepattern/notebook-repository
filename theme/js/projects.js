@@ -1439,7 +1439,13 @@ class MyProjects {
     }
 
     initialize_refresh() {
-        setInterval(MyProjects.redraw_projects, 1000 * 60);     // Refresh the list every minute
+        setInterval(() => {
+            MyProjects.redraw_projects()
+                .then(() => Shares.redraw_shares()
+                    .then(() => MyProjects.link_shared()))
+                .then(() => Library.redraw_library()
+                    .then(() => MyProjects.link_published()));
+        }, 1000 * 60);     // Refresh the list every minute
     }
 }
 

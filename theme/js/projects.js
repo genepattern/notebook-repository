@@ -1084,6 +1084,7 @@ class Modal {
     body = null;
     footer = null;
     callback = null;
+    form_defaults = null;
     template = `
         <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-dialog">
@@ -1109,6 +1110,7 @@ class Modal {
         this.callback = callback;
         this.build();
         this.attach_callback();
+        this.form_defaults = this.gather_form_data();
     }
 
     build() {
@@ -1126,6 +1128,7 @@ class Modal {
         const attached = document.body.querySelector(`#${this.id}`);
         if (attached) attached.remove();                                        // Remove old dialog, if one exists
         document.body.append(this.element);                                     // Attach this modal dialog
+        this.set_form_defaults();                                               // Reset the form
         $(this.element).modal();                            // Display the modal dialog using JupyterHub's modal call
         this.activate_controls();                                               // Activate interactive elements
     }
@@ -1224,6 +1227,11 @@ class Modal {
         const inputs = this.element.querySelectorAll('input, select');
         inputs.forEach(i => form_data[i.getAttribute('name')] = i.value);
         return form_data;
+    }
+
+    set_form_defaults() {
+        const inputs = this.element.querySelectorAll('input, select');
+        inputs.forEach(i => i.value = this.form_defaults[i.getAttribute('name')]);
     }
 
     attach_callback() {

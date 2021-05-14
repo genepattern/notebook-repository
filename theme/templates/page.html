@@ -40,3 +40,11 @@
         {% endblock %}
     </li>
 {% endblock %}
+
+{% block script %}
+    {{ super() }}
+    <script type="text/javascript"> {# Username fix #}
+        document.querySelector('#logout').childNodes[2].textContent =
+            decodeURIComponent(document.querySelector('#logout').childNodes[2].textContent.replace(/-/g, '%'))
+    </script>
+{% endblock %}

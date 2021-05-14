@@ -4,7 +4,13 @@ import requests
 from jupyterhub.handlers import BaseHandler
 from sqlalchemy import create_engine
 from tornado.web import authenticated
+from urllib.parse import unquote
 from .config import Config
+
+
+def decode_username(encoded_name):
+    """Transforms JupyterHub-encoded username to GenePattern username"""
+    return unquote(encoded_name.replace('-', '%'))
 
 
 def create_named_server(hub_auth, user, server_name, spec):

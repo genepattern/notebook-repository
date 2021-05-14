@@ -6,7 +6,7 @@ from jupyterhub.services.auth import HubAuthenticated
 from .config import Config
 from .emails import send_published_email, validate_token
 from .errors import ExistsError, PermissionError, SpecError, InvalidProjectError, InviteError
-from .hub import create_named_server, user_spawners
+from .hub import create_named_server, user_spawners, decode_username
 from .project import Project, Tag
 from .sharing import Share, Invite
 
@@ -67,7 +67,7 @@ class PublishHandler(HubAuthenticated, RequestHandler):
         if project is None:             # Ensure that an existing project was found
             raise ExistsError
         # Check to see if the dir directory exists, if so find a good dir name
-        user = self.get_current_user()['name']
+        user = self._current_username()
         dir_name, count = Project.unused_dir(user, project.dir)
         # Unzip to the current user's dir directory
         project.unzip(user, dir_name)
@@ -106,6 +106,9 @@ class PublishHandler(HubAuthenticated, RequestHandler):
 
     def _host_url(self):
         return f'{self.request.protocol}://{self.request.host}'
+
+    def _current_username(self):
+        return decode_username(self.get_current_user()['name'])
 
     @addslash
     @authenticated
@@ -152,7 +155,7 @@ class PublishHandler(HubAuthenticated, RequestHandler):
 
     def _owner(self, project):
         """Is the current user the owner of this project?"""
-        return project.owner == self.get_current_user()['name']
+        return project.owner == self._current_username()
 
 
 class ShareHandler(HubAuthenticated, RequestHandler):
@@ -195,8 +198,8 @@ class ShareHandler(HubAuthenticated, RequestHandler):
         self.send_error(400, reason=f'Endpoint only valid with share id')
 
     def _list_shared(self):
-        shared_by_me = [p.json() for p in Share.shared_by_me(self.get_current_user()['name'])]
-        shared_with_me = [p.json() for p in Share.shared_with_me(self.get_current_user()['name'])]
+        shared_by_me = [p.json() for p in Share.shared_by_me(self._current_username())]
+        shared_with_me = [p.json() for p in Share.shared_with_me(self._current_username())]
         self.write({'shared_by_me': shared_by_me, 'shared_with_me': shared_with_me})
 
     def _sharing_info(self, id=None):
@@ -245,13 +248,16 @@ class ShareHandler(HubAuthenticated, RequestHandler):
     def _host_url(self):
         return f'{self.request.protocol}://{self.request.host}'
 
+    def _current_username(self):
+        return decode_username(self.get_current_user()['name'])
+
     def _is_current_user(self, user):
         """Is the current user the owner of this share?"""
-        return user == self.get_current_user()['name']
+        return user == self._current_username()
 
     def _set_invite_user(self, invite):
         """Associate the invite with the current user"""
-        invite.user = self.get_current_user()['name']
+        invite.user = self._current_username()
 
     def _validate_token(self, invite):
         """Validate the provided hash for the invite"""

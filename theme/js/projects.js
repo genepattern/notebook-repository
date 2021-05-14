@@ -1,6 +1,7 @@
 var GenePattern = GenePattern || {};
 GenePattern.projects = GenePattern.projects || {};
 GenePattern.projects.username = GenePattern.projects.username || '';
+GenePattern.projects.encoded_username = GenePattern.projects.encoded_username || '';
 GenePattern.projects.base_url = GenePattern.projects.base_url || '';
 GenePattern.projects.admin = GenePattern.projects.admin || false;
 GenePattern.projects.images = GenePattern.projects.images || [];
@@ -187,11 +188,11 @@ class Project {
     }
 
     get_url() {
-        return `/user/${GenePattern.projects.username}/${this.slug()}`;
+        return `/user/${GenePattern.projects.encoded_username}/${this.slug()}`;
     }
 
     api_url() {
-        return `${GenePattern.projects.base_url}api/users/${GenePattern.projects.username}/servers/${this.slug()}`;
+        return `${GenePattern.projects.base_url}api/users/${GenePattern.projects.encoded_username}/servers/${this.slug()}`;
     }
 
     publish_url() {
@@ -792,7 +793,7 @@ class SharedProject extends Project {
 
     slug() {
         if (this.model.sharing.owner === GenePattern.projects.username) return this.model.sharing.dir; // Shared by me
-        else return `${this.model.sharing.owner}.${this.model.sharing.dir}`;                           // Shared with me
+        else return `${ MyProjects.encode_username(this.model.sharing.owner) }.${this.model.sharing.dir}`;                           // Shared with me
     }
 
     invite_pending() {
@@ -1010,11 +1011,11 @@ class NewProject {
     }
 
     get_url() {
-        return `/user/${GenePattern.projects.username}/`;
+        return `/user/${GenePattern.projects.encoded_username}/`;
     }
 
     api_url() {
-        return `${GenePattern.projects.base_url}api/users/${GenePattern.projects.username}/servers/`;
+        return `${GenePattern.projects.base_url}api/users/${GenePattern.projects.encoded_username}/servers/`;
     }
 
     project_exists(slug) {
@@ -1321,6 +1322,19 @@ class MyProjects {
         this.initialize_refresh();                          // Begin the periodic refresh
     }
 
+    static decode_username(encoded_name) {
+        return decodeURIComponent(encoded_name.replace(/-/g, '%'));
+    }
+
+    static encode_username(username) {
+        return encodeURIComponent(username.toLowerCase())
+            .replaceAll('.', '%2e')
+            .replaceAll('-', '%2d')
+            .replaceAll('~', '%7e')
+            .replaceAll('_', '%5f')
+            .replaceAll('%', '-');
+    }
+
     static query_projects() {
         function sort(a, b) {
             // Basic case-insensitive alphanumeric sorting
@@ -1334,7 +1348,8 @@ class MyProjects {
         return fetch('/services/projects/user.json')
             .then(response => response.json())
             .then(response => {
-                GenePattern.projects.username = response['name'];
+                GenePattern.projects.username = MyProjects.decode_username(response['name']);
+                GenePattern.projects.encoded_username = response['name'];
                 GenePattern.projects.base_url = response['base_url'];
                 GenePattern.projects.admin = response['admin'];
                 GenePattern.projects.images = response['images'];

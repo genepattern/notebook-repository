@@ -652,7 +652,7 @@ class PublishedProject extends Project {
         if (!this.update_dialog)
             this.update_dialog = new Modal('update-project-dialog', {
                 title: 'Update Published Project',
-                body: Project.project_form_spec(this, [], ['name', 'image', 'author', 'quality', 'description'], {
+                body: Project.project_form_spec(this.linked, [], ['name', 'image', 'author', 'quality', 'description'], {
                     label: "Version Comment",
                     name: "comment",
                     required: true,

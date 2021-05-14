@@ -622,15 +622,16 @@ class PublishedProject extends Project {
         if (!this.info_dialog)
             this.info_dialog = new Modal('info-dialog', {
                 title: this.display_name(),
-                body: `<table class="table table-striped">
+                body: `<p>${ this.description() }</p>
+                        <p>${ this.tags().map(i => '<span class="badge">' + i + '</span>').join('&nbsp;') }</p>
+                       <table class="table table-striped">
                            <tr><th>Authors</th><td>${ this.author() }</td></tr>
                            <tr><th>Quality</th><td>${ this.quality() }</td></tr>
                            <tr><th>Environment</th><td>${ this.image() }</td></tr>
                            <tr><th>Owner</th><td>${ this.owner() }</td></tr>
                            <tr><th>Updated</th><td>${ this.updated().split(' ')[0] }</td></tr>
                            <tr><th>Comment</th><td>${ this.comment() }</td></tr>
-                       </table>
-                       <p>${ this.description() }</p>`,
+                       </table>`,
                 buttons: `
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-default" data-dismiss="modal">Preview</button>

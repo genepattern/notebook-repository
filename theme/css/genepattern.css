@@ -171,6 +171,8 @@ body > .navbar > .container-fluid {
     /* set position to right bottom corner of block */
     right: 15px;
     bottom: 2px;
+    font-weight: bold;
+    font-size: 1.1em;
 }
 
 /* hide ... if we have text, which is less than or equal to max lines */
@@ -182,7 +184,7 @@ body > .navbar > .container-fluid {
     /* set position to right bottom corner of text */
     right: 15px;
     /* set width and height */
-    width: 10px;
+    width: 12px;
     height: 1em;
     margin-top: 0.2em;
     /* bg color = bg color under block */

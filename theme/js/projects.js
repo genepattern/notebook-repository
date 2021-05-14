@@ -1087,6 +1087,7 @@ class Modal {
     footer = null;
     callback = null;
     form_defaults = null;
+    tagify = null;
     template = `
         <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-dialog">
@@ -1162,11 +1163,16 @@ class Modal {
 
     activate_tags() {
         const tags_input = this.element.querySelector('input[name=tags]');
-        const tagify = this.element.querySelector('tags');
-        const options = {};
-        options['pattern'] = /^[a-zA-Z0-9-]+$/;
-        if (!GenePattern.projects.admin) options['blacklist'] = GenePattern.projects.protected_tags;
-        if (tags_input && !tagify) new Tagify(tags_input, options);
+        if (tags_input && !this.tagify) {
+            const options = {};
+            options['pattern'] = /^[a-zA-Z0-9-]+$/;
+            if (!GenePattern.projects.admin) options['blacklist'] = GenePattern.projects.protected_tags;
+            this.tagify = new Tagify(tags_input, options);
+        }
+        else {
+            window.tagify = this.tagify;
+            this.tagify.loadOriginalValues(tags_input.value);
+        }
     }
 
     form_builder(body_spec) {

@@ -237,7 +237,7 @@ div.nb-project-new > .nb-img-top {
     color: white;
     border: transparent solid 1px;
     border-radius: 3px;
-    z-index: 1;
+    z-index: 3;
 }
 
 .nb-gear-menu > button {
@@ -261,7 +261,7 @@ div.nb-project-new > .nb-img-top {
 
 .nb-gear-menu:hover {
     border: rgba(255, 255, 255, 0.7) solid 1px;
-    z-index: 2;
+    z-index: 4;
 }
 
 .nb-project-icon {
@@ -372,7 +372,7 @@ div.nb-project-new > .nb-img-top {
     right: 0;
     top: 0;
     bottom: 0;
-    z-index: 2;
+    z-index: 3;
     cursor: auto;
 }
 

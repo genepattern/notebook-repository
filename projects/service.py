@@ -98,7 +98,7 @@ class PublishHandler(HubAuthenticated, RequestHandler):
             send_published_email(self._host_url(), project.id, project.name)  # Send a notification email
             self.write(resp)                                          # Return the project json
         except SpecError as e:                                        # Bad Request
-            self.send_error(400, reason=f'Error creating project, bad specification in the request: {e}')
+            self.send_error(400, reason=f'Error creating project: {e}')
         except ExistsError:                                           # Bad Request
             self.send_error(400, reason='Error creating project, already exists')
         except PermissionError:                                       # Forbidden
@@ -218,7 +218,7 @@ class ShareHandler(HubAuthenticated, RequestHandler):
             share = Share(to_basestring(self.request.body))         # Create a share from the request body
             self._validate_and_save(share, new_users=True)          # Validate and save the share
         except SpecError as e:                                      # Bad Request
-            self.send_error(400, reason=f'Error creating share, bad specification in the request: {e}')
+            self.send_error(400, reason=f'Error creating share: {e}')
 
     def _validate_and_save(self, share, new_share=True, new_users=None):
         """Share a project with other users"""
@@ -326,7 +326,7 @@ class ShareHandler(HubAuthenticated, RequestHandler):
             if len(new_users) == 0 and len(continuing_users) == 0:                  # Remove share if no invites left
                 share.delete()
         except SpecError as e:                                                      # Bad Request
-            self.send_error(400, reason=f'Error updating share, bad specification in the request: {e}')
+            self.send_error(400, reason=f'Error updating share: {e}')
         except ExistsError:                                                         # Bad Request
             self.send_error(400, reason='Unable to updating share, share id not found')
 

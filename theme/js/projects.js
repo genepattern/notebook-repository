@@ -1155,10 +1155,14 @@ class Modal {
 
     activate_invites() {
         const invite_input = this.element.querySelector('input[name=invites]');
-        const tagify = this.element.querySelector('invites');
-        const options = {};
-        options['blacklist'] = [GenePattern.projects.username];
-        if (invite_input && !tagify) new Tagify(invite_input, options);
+        if (invite_input && !this.tagify) {
+            const options = {};
+            options['blacklist'] = [GenePattern.projects.username];
+            this.tagify = new Tagify(invite_input, options);
+        }
+        else if (invite_input) {
+            this.tagify.loadOriginalValues(invite_input.value);
+        }
     }
 
     activate_tags() {
@@ -1169,8 +1173,7 @@ class Modal {
             if (!GenePattern.projects.admin) options['blacklist'] = GenePattern.projects.protected_tags;
             this.tagify = new Tagify(tags_input, options);
         }
-        else {
-            window.tagify = this.tagify;
+        else if (tags_input) {
             this.tagify.loadOriginalValues(tags_input.value);
         }
     }

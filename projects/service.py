@@ -11,7 +11,20 @@ from .project import Project, Tag
 from .sharing import Share, Invite
 
 
-class PublishHandler(HubAuthenticated, RequestHandler):
+class BaseHandler(RequestHandler):
+    """A base handler that allows CORS requests"""
+
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, PUT, GET, OPTIONS, DELETE')
+
+    def options(self):
+        self.set_status(204)
+        self.finish()
+
+
+class PublishHandler(HubAuthenticated, BaseHandler):
     """Endpoint for publishing, editing and deleting notebook projects"""
 
     @addslash
@@ -158,7 +171,7 @@ class PublishHandler(HubAuthenticated, RequestHandler):
         return project.owner == self._current_username()
 
 
-class ShareHandler(HubAuthenticated, RequestHandler):
+class ShareHandler(HubAuthenticated, BaseHandler):
     """Endpoint for sharing and accepting notebook projects"""
 
     @addslash
@@ -337,7 +350,7 @@ class ShareHandler(HubAuthenticated, RequestHandler):
             self.send_error(400, reason='Unable to updating share, share id not found')
 
 
-class UserHandler(HubAuthenticated, RequestHandler):
+class UserHandler(HubAuthenticated, BaseHandler):
     """Notebook projects information about the current user
        This has been engineered as a replacement for the user.json template"""
 
@@ -374,7 +387,7 @@ class UserHandler(HubAuthenticated, RequestHandler):
                     'projects': projects})
 
 
-class EndpointHandler(RequestHandler):
+class EndpointHandler(BaseHandler):
     """A list of all notebook project endpoints"""
 
     @addslash

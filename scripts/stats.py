@@ -11,7 +11,6 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import urllib.request
-import requests
 
 # Environment configuration
 server_name = "GenePattern Notebook"  # Name of the repo server to report
@@ -221,7 +220,7 @@ def get_nb_count():
     """
 
     # Gather a list of all running containers
-    cmd_out = subprocess.getstatusoutput(sudo_req + 'docker ps')[1]
+    # cmd_out = subprocess.getstatusoutput(sudo_req + 'docker ps')[1]
 
     # For each container, get the count
     nb_count = {'week': 0,
@@ -444,35 +443,32 @@ def get_nb_usage():
     Query repo for notebook usage
     :return:
     """
-    request = urllib.request.Request('https://notebook.genepattern.org/services/sharing/notebooks/stats/')
-    response = urllib.request.urlopen(request)
-    json_str = response.read().decode('utf-8')
-    usage_json = json.loads(json_str)
+    cmd_out = subprocess.getstatusoutput(f"sqlite3 {data_dir}/projects.sqlite 'select name, copied from projects'")[1]
+    lines = cmd_out.split('\n')
+    nb_tuples = {}
+    for l in lines:
+        name, usage = l.split('|')
+        nb_tuples[name] = int(usage)
 
     # Sort notebooks by copied
-    sorted_nb_tuples = sorted(usage_json.items(), key=lambda kv: kv[1]['copied'], reverse=True)
+    sorted_nb_tuples = sorted(nb_tuples.items(), key=lambda kv: kv[1], reverse=True)
 
     # Create the HTML row list for top 20 notebooks
     nb_rows = ''
     for i in range(len(sorted_nb_tuples[:20])):
-        nb_rows += f'<tr><td>{sorted_nb_tuples[i][0]}</td><td>{sorted_nb_tuples[i][1]["copied"]}</td><td>{sorted_nb_tuples[i][1]["launched"]}</td></tr>'
+        nb_rows += f'<tr><td>{sorted_nb_tuples[i][0]}</td><td>{sorted_nb_tuples[i][1]}</td></tr>'
 
     return nb_rows
 
 
 def get_nb_updates():
-    now = datetime.datetime.now()
-    week = datetime.timedelta(weeks=1)
-    week_ago = now - week
+    cmd_out = subprocess.getstatusoutput(f"sqlite3 {data_dir}/projects.sqlite \"select p.name, u.updated, u.comment from projects p, updates u where p.id = u.project_id and u.updated > (SELECT DATETIME('now', '-7 day'))\"")[1]
+    lines = cmd_out.split('\n')
+
     nb_updates = ''
-    response = requests.get("https://notebook.genepattern.org/services/sharing/notebooks/")
-    try: response.raise_for_status()
-    except requests.HTTPError: return '<tr><td>Unable to Query Notebook Library</td></tr>'
-    response_json = response.json()
-    for nb_json in response_json['results']:
-        modified = datetime.datetime.strptime(nb_json['publication'], '%Y-%m-%d')
-        if modified > week_ago:
-            nb_updates += f"<tr><td>{nb_json['name']}</td></tr>"
+    for l in lines:
+        name, updated, comment = l.split('|')
+        nb_updates += f"<tr><td>{name}</td><td>{comment}</td></tr>"
     return nb_updates
 
 
@@ -691,7 +687,7 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb
     body = body + f"""
                             <h3>Public Notebooks Created or Updated This Week</h3>
                             <table border="1">
-                            <tr><th>Name</th></tr>
+                            <tr><th>Name</th><th>Comment</th></tr>
                             {nb_updates}
                             </table>
 
@@ -700,7 +696,6 @@ def send_mail(users, logins, disk, nb_count, weekly_jobs, docker, total_jobs, nb
                                 <tr>
                                     <th>Notebook</th>
                                     <th>Copies</th>
-                                    <th>Launches</th>
                                 </tr>
                                 {nb_usage}
                             </table>

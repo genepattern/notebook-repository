@@ -5,6 +5,7 @@ from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 from .config import Config
+from .hub import encode_username
 from .errors import SpecError
 from .zip import zip_dir, unzip_dir, list_files
 
@@ -75,7 +76,8 @@ class Project(Base):
 
     def zip(self):
         if not self.min_metadata(): raise SpecError('Missing required attributes')
-        project_dir = os.path.join(Config.instance().USERS_PATH, self.owner, self.dir)  # Path to the source project
+        hub_user = encode_username(self.owner)                                  # Encoded JupyterHub username
+        project_dir = os.path.join(Config.instance().USERS_PATH, hub_user, self.dir)  # Path to the source project
         zip_path = self.zip_path()                                              # Path to the zipped project
         os.makedirs(os.path.dirname(zip_path), mode=0o777, exist_ok=True)       # Lazily create directories
         if os.path.exists(zip_path): os.remove(zip_path)                        # Remove the old copy if one exists
@@ -87,7 +89,8 @@ class Project(Base):
 
     def unzip(self, target_user, dir):
         zip_path = self.zip_path()                                              # Path to the zipped project
-        target_dir = os.path.join(Config.instance().USERS_PATH, target_user, dir)   # Path in which to unzip
+        hub_user = encode_username(target_user)                                 # Encoded JupyterHub username
+        target_dir = os.path.join(Config.instance().USERS_PATH, hub_user, dir)  # Path in which to unzip
         os.makedirs(os.path.dirname(target_dir), mode=0o777, exist_ok=True)     # Lazily create directories
         unzip_dir(zip_path, target_dir)                                         # Unzip to directory
 
@@ -156,7 +159,8 @@ class Project(Base):
         count = 1
         checked_name = dir_name
         while True:
-            project_dir = os.path.join(Config.instance().USERS_PATH, user, checked_name)  # Path to check
+            hub_user = encode_username(user)                            # Encoded JupyterHub username
+            project_dir = os.path.join(Config.instance().USERS_PATH, hub_user, checked_name)  # Path to check
             if os.path.exists(project_dir):                             # If it exists, append a number and try again
                 checked_name = f'{dir_name}{count}'
                 count += 1

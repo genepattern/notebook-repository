@@ -4,7 +4,7 @@ import requests
 from jupyterhub.handlers import BaseHandler
 from sqlalchemy import create_engine
 from tornado.web import authenticated
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 from .config import Config
 
 
@@ -13,11 +13,21 @@ def decode_username(encoded_name):
     return unquote(encoded_name.replace('-', '%'))
 
 
+def encode_username(username):
+    return quote(username.lower(), safe='') \
+        .replace('.', '%2e') \
+        .replace('-', '%2d') \
+        .replace('~', '%7e') \
+        .replace('_', '%5f') \
+        .replace('%', '-')
+
+
 def create_named_server(hub_auth, user, server_name, spec):
     base_api_url = hub_auth.api_url
     token = hub_auth.api_token
+    hub_user = encode_username(user)
     # Make the request to the JupyterHub API
-    response = requests.post(f'{base_api_url}/users/{user}/servers/{server_name}',
+    response = requests.post(f'{base_api_url}/users/{hub_user}/servers/{server_name}',
           headers={ 'Authorization': 'token %s' % token },
           data=json.dumps({
               'image': spec['image'],
@@ -25,7 +35,7 @@ def create_named_server(hub_auth, user, server_name, spec):
               'description': spec['description']
           }))
     response.raise_for_status()
-    return f'/user/{user}/{server_name}'
+    return f'/user/{hub_user}/{server_name}'
 
 
 def user_spawners(username):

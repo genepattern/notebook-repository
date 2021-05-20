@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 from .config import Config
 from .emails import is_email, send_invite_email
 from .errors import SpecError, InviteError
-from .hub import spawner_info
+from .hub import spawner_info, encode_username
 from .project import ProjectConfig, Base
 
 
@@ -82,7 +82,7 @@ class Share(Base):
         return Share.get(owner=self.owner, dir=self.dir) is not None
 
     def dir_exists(self):
-        return os.path.exists(os.path.join(Config.instance().USERS_PATH, self.owner, self.dir))
+        return os.path.exists(os.path.join(Config.instance().USERS_PATH, encode_username(self.owner), self.dir))
 
     def min_metadata(self):
         return self.dir and self.owner and len(self.invites)
@@ -107,7 +107,7 @@ class Share(Base):
                     'author': metadata['author'] if 'author' in metadata else '',
                     'quality': metadata['quality'] if 'quality' in metadata else '',
                     'tags': metadata['tags'] if 'tags' in metadata else '',
-                    'status': json.loads(spawner[1])
+                    'status': json.loads(spawner[1] if spawner[1] is not None else '')
             }
         return data
 

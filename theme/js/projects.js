@@ -1432,7 +1432,7 @@ class MyProjects {
                 project = $(project);
 
                 // Matching notebook
-                if (project.text().toLowerCase().includes(search)) project.removeClass('hidden');
+                if (project.find("div:not(.dropdown)").text().toLowerCase().includes(search)) project.removeClass('hidden');
 
                 // Not matching notebook
                 else project.addClass('hidden');
@@ -1553,7 +1553,7 @@ class Library {
             const projects = $('#library').find('.nb-project');
             projects.each(function(i, project) {
                 // Matching notebook
-                if ($(project).text().toLowerCase().includes(search)) project.style.display = 'inline-block';
+                if ($(project).find("div:not(.dropdown)").text().toLowerCase().includes(search)) project.style.display = 'inline-block';
 
                 // Not matching notebook
                 else project.style.display = 'none';

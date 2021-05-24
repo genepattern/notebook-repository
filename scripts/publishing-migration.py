@@ -220,6 +220,12 @@ community = Tag.get(label='community')
 community.pinned = True
 community.save()
 
+workshop = Tag.get(label='workshop')
+if workshop is None: workshop = Tag('workshop')
+workshop.pinned = True
+workshop.protected = True
+workshop.save()
+
 print('Done migrating publishing')
 
 ##########################################

@@ -197,6 +197,7 @@ for nb in old_repo['results']:
         config = Config.load_config('/data/projects_config.py')
         project = Project(user_options)  # Create a project from the request body
         project.created = datetime.strptime(nb["publication"], '%Y-%m-%d')
+        project.id = nb["id"]
         project.zip()  # Bundle the project into a zip artifact
         resp = project.save()  # Save the project to the database
     except Exception as e:

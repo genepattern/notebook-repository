@@ -66,7 +66,7 @@ def generate_published_body(base_url, project_id, project_name):
     return f"""
         <h4>{project_name}</h4>
         <p>A new project has been published to the notebook workspace:</P
-        <p><a href="{base_url}/preview?id={project_id}">{base_url}/preview?id={project_id}</a></p>"""
+        <p><a href="{base_url}/hub/preview?id={project_id}">{base_url}/hub/preview?id={project_id}</a></p>"""
 
 
 def generate_token(id, email):

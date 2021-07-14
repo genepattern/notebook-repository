@@ -1,12 +1,13 @@
 import os
 import shutil
+import threading
 import zipfile
 from datetime import datetime
 
 
 def zip_dir(src_path, dest_path):
     if dest_path.endswith('.zip'): dest_path = dest_path[:-4]
-    shutil.make_archive(dest_path, 'zip', src_path)
+    threading.Thread(target=shutil.make_archive, args=(dest_path, 'zip', src_path)).start()  # Zip dir in its own thread
 
 
 def unzip_dir(src_path, dest_path):

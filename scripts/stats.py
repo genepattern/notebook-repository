@@ -15,9 +15,9 @@ import urllib.request
 # Environment configuration
 server_name = "GenePattern Notebook"  # Name of the repo server to report
 include_extension = True              # Include the right column that polls GP server?
-data_dir = '/data/users'              # The dir where user data is stored
+user_dir = '/data/users'              # The dir where user data is stored
 stats_dir = '/data/counters/'         # Where to save the stats state
-user_dir = '/data/'                   # Directory with JupyterHub database
+data_dir = '/data/'                   # Directory with JupyterHub database
 sudo_req = 'sudo '                    # Make blank if sudo is not required
 test_email = 'user@domain.org'        # Email to send to when run with --test
 admin_login = 'username:password'     # Admin login credentials for GP server
@@ -166,7 +166,7 @@ def get_user_disk():
     if not test_run:
         # Get the amount of disk usage per user
 
-        cmd_out = subprocess.getstatusoutput(sudo_req + 'du -h --max-depth=1 ' + data_dir + ' | sort -hr')[1]
+        cmd_out = subprocess.getstatusoutput(sudo_req + 'du -h --max-depth=1 ' + user_dir + ' | sort -hr')[1]
         cmd_lines = cmd_out.split('\n')
 
         # Iterate over each user's line
@@ -174,7 +174,7 @@ def get_user_disk():
             cmd_parts = line.split('\t')
 
             # Clean the username
-            cleaned_name = cmd_parts[1][len(data_dir):]
+            cleaned_name = cmd_parts[1][len(user_dir):]
 
             # Ignore the base directory
             if cleaned_name == '':
@@ -230,22 +230,22 @@ def get_nb_count():
 
     if not test_run:
         # Weekly query
-        cmd_out = subprocess.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
+        cmd_out = subprocess.getstatusoutput("find " + user_dir + " -type f -not -path '*/\.*' -mtime -7 -name *.ipynb | wc -l")[1]
         user_week = int(cmd_out.strip())
         nb_count['week'] += user_week
 
         # Total query
-        cmd_out = subprocess.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
+        cmd_out = subprocess.getstatusoutput("find " + user_dir + " -type f -not -path '*/\.*' -name *.ipynb | wc -l")[1]
         user_total = int(cmd_out.strip())
         nb_count['total'] += user_total
 
         # All files query, weekly
-        cmd_out = subprocess.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
+        cmd_out = subprocess.getstatusoutput("find " + user_dir + " -type f -not -path '*/\.*' -mtime -7 | wc -l")[1]
         files_week = int(cmd_out.strip())
         nb_count['files_week'] += files_week - user_week
 
         # All files query, total
-        cmd_out = subprocess.getstatusoutput("find " + data_dir + " -type f -not -path '*/\.*' | wc -l")[1]
+        cmd_out = subprocess.getstatusoutput("find " + user_dir + " -type f -not -path '*/\.*' | wc -l")[1]
         files_total = int(cmd_out.strip())
         nb_count['files_total'] += files_total - user_total
 
@@ -339,7 +339,7 @@ def get_returning_users(returning_count):
         exclusion_list = []
 
     # Read the user database
-    cmd_out = subprocess.getstatusoutput("sqlite3 " + user_dir + "jupyterhub.sqlite \"select name from users order by last_activity\"")[1]
+    cmd_out = subprocess.getstatusoutput("sqlite3 " + data_dir + "jupyterhub.sqlite \"select name from users order by last_activity\"")[1]
     all_users = cmd_out.split('\n')
 
     # Exclude members of the lab
@@ -361,7 +361,7 @@ def get_users():
 
     # Gather a list of all running containers
     cmd_out = subprocess.getstatusoutput(
-            "sqlite3 " + user_dir + "jupyterhub.sqlite \"select name from users where last_activity > (SELECT DATETIME('now', '-7 day'));\"")[1]
+            "sqlite3 " + data_dir + "jupyterhub.sqlite \"select name from users where last_activity > (SELECT DATETIME('now', '-7 day'));\"")[1]
     containers = cmd_out.split('\n')
 
     # Get a list of all new users
@@ -411,7 +411,7 @@ def get_logins():
     logins = {}
 
     # Count the number of logins in the weekly log
-    cmd_out = subprocess.getstatusoutput('cat ' + user_dir + 'jupyterhub.log | grep -c "User logged in"')[1]
+    cmd_out = subprocess.getstatusoutput('cat ' + data_dir + 'jupyterhub.log | grep -c "User logged in"')[1]
     logins['week'] = int(cmd_out.strip())
 
     # Read the total number of logins
@@ -432,8 +432,8 @@ def get_logins():
 
     # Move the log to backup
     if not test_run:
-        shutil.copyfileobj(open(user_dir + 'jupyterhub.log', 'r'), open(stats_dir + 'jupyterhub.log.old', 'w'))
-        subprocess.getstatusoutput('> ' + user_dir + 'jupyterhub.log')
+        shutil.copyfileobj(open(data_dir + 'jupyterhub.log', 'r'), open(stats_dir + 'jupyterhub.log.old', 'w'))
+        subprocess.getstatusoutput('> ' + data_dir + 'jupyterhub.log')
 
     return logins
 

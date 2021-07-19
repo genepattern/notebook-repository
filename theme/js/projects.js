@@ -153,27 +153,27 @@ class Project {
     }
 
     display_name() {
-        return this.model.display_name || this.model.slug;
+        return (this.model.display_name || this.model.slug).toString();
     }
 
     description() {
-        return this.model.description || this.model.last_activity;
+        return (this.model.description || this.model.last_activity).toString();
     }
 
     slug() {
-        return this.model.slug;
+        return this.model.slug.toString();
     }
 
     image() {
-        return this.model.image;
+        return this.model.image.toString();
     }
 
     author() {
-        return this.model.author || '';
+        return this.model.author.toString() || '';
     }
 
     quality() {
-        return this.model.quality || '';
+        return this.model.quality.toString() || '';
     }
 
     tags(str=false) {

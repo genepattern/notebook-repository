@@ -55,15 +55,18 @@ def user_spawners(username):
 
 
 def spawner_info(username, dir):
-    """Read the user spawners from the database"""
+    """Read the user spawners from the database - use the unencoded username"""
     config = Config.instance()
+
+    # Encode the username
+    encoded_username = encode_username(username)
 
     # Establish a connection to the database
     engine = create_engine(f'sqlite:///{config.HUB_DB}', echo=config.DB_ECHO)
     session = engine.connect()
 
     # Query for the list of user spawners
-    result = session.execute(f"SELECT s.name, s.state, s.user_options, s.last_activity, s.started FROM spawners s, users u WHERE s.name = '{dir}' AND s.user_id = u.id AND u.name = '{username}'").first()
+    result = session.execute(f"SELECT s.name, s.state, s.user_options, s.last_activity, s.started FROM spawners s, users u WHERE s.name = '{dir}' AND s.user_id = u.id AND u.name = '{encoded_username}'").first()
 
     # Close the connection to the database and return
     session.close()

@@ -2,6 +2,7 @@ import json
 import os
 from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
+from .backup import backup_database
 from .config import Config
 from .emails import is_email, send_invite_email
 from .errors import SpecError, InviteError
@@ -139,6 +140,7 @@ class Share(Base):
         session.commit()
         d = share.json()
         session.close()
+        backup_database()
         return d  # Return the json representation
 
     @staticmethod
@@ -147,6 +149,7 @@ class Share(Base):
         session.delete(share)
         session.commit()
         session.close()
+        backup_database()
 
     @staticmethod
     def shared_by_me(owner):

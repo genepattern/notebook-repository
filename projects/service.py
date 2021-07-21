@@ -3,6 +3,7 @@ import os
 from tornado.escape import to_basestring
 from tornado.web import Application, RequestHandler, authenticated, addslash
 from jupyterhub.services.auth import HubAuthenticated
+from .backup import database_from_backup
 from .config import Config
 from .emails import send_published_email, validate_token
 from .errors import ExistsError, PermissionError, SpecError, InvalidProjectError, InviteError
@@ -400,8 +401,9 @@ class EndpointHandler(BaseHandler):
 
 
 def make_app(config_path):
-    # Init the config from the config file
-    config = Config.load_config(config_path)
+    # Init the config from the config file and load the database
+    Config.load_config(config_path)
+    database_from_backup()
 
     # Assign handlers to the URLs and return
     urls = [

@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
+from .backup import backup_database
 from .config import Config
 from .hub import encode_username
 from .errors import SpecError
@@ -185,6 +186,7 @@ class Project(Base):
         session.commit()
         d = project.json()
         session.close()
+        backup_database()
         return d  # Return the json representation
 
     @staticmethod

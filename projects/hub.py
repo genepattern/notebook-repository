@@ -1,6 +1,7 @@
 import json
 import os
 import requests
+from dockerspawner import SwarmSpawner
 from jupyterhub.handlers import BaseHandler
 from sqlalchemy import create_engine
 from tornado.web import authenticated
@@ -108,6 +109,11 @@ def pre_spawn_hook(spawner, userdir=''):
     else:                               # Otherwise, lazily create the project directory
         os.makedirs(project_dir, 0o777, exist_ok=True)
     os.chmod(project_dir, 0o777)
+
+
+def spawner_escape(text):
+    """Escape usernames and server names for SwarmSpawner - necessary to prevent DNS issues with Docker Swarm"""
+    return SwarmSpawner._escape(unquote(text.replace('-', '%')))[:25]
 
 
 def shared_with_me(name):

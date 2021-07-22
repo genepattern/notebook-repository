@@ -419,6 +419,7 @@ class Project {
         let running = !this.element.classList.contains('nb-stopped');
         if (running) { // If running, just open a new tab
             callback(this);
+            Messages.hide_loading();
         }
         else { // Otherwise, launch the server
             Messages.show_loading();
@@ -601,6 +602,7 @@ class PublishedProject extends Project {
 
     copy_project() {
         // Make the call to copy the project
+        Messages.show_loading();
         $.ajax({
             method: 'POST',
             url: this.publish_url(),

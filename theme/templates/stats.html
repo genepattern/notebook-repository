@@ -1,0 +1,33 @@
+{% extends "page.html" %}
+
+{% block main %}
+    <div class="container">
+        <div id="messages"></div>
+        <h1>Top 100 Copied Projects</h1>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Project</th>
+                    <th># Copied</th>
+                </tr>
+            </thead>
+            <tbody id="nb-most-copied"></tbody>
+        </table>
+        <h1>Latest 1000 Updates</h1>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Project</th>
+                    <th>Comment</th>
+                    <th>Updated</th>
+                </tr>
+            </thead>
+            <tbody id="nb-latest-updates"></tbody>
+        </table>
+    </div>
+{% endblock %}
+
+{% block script %}
+    {{ super() }}
+    <script type="text/javascript" src="/hub/static/js/stats.js"></script>
+{% endblock %}

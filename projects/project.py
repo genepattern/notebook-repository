@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean, ForeignKey, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 from .backup import backup_database
@@ -190,10 +190,11 @@ class Project(Base):
         return d  # Return the json representation
 
     @staticmethod
-    def all(include_deleted=False):
+    def all(include_deleted=False, sort_by_copied=False):
         session = ProjectConfig.instance().Session()
         query = session.query(Project)
         if not include_deleted: query = query.filter(Project.deleted == False)
+        if sort_by_copied: query = query.order_by(desc(Project.copied))
         results = query.all()
         session.close()
         return results
@@ -276,7 +277,7 @@ class Update(Base):
 
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey('projects.id'))
-    project = relationship('Project', back_populates='updates')
+    project = relationship('Project', lazy='subquery', back_populates='updates')
     updated = Column(DateTime, default=datetime.utcnow)
     comment = Column(String(255), default='')
 
@@ -284,6 +285,23 @@ class Update(Base):
         self.project = project
         self.project_id = project.id
         self.comment = comment
+
+    def json(self):
+        return {
+            'updated': str(self.updated),
+            'comment': self.comment,
+            'project': self.project.name if self.project else None,  # Protect against None
+            'project_id': self.project_id,
+            'project_deleted': self.project.deleted if self.project else None
+        }
+
+    @staticmethod
+    def all():
+        session = ProjectConfig.instance().Session()
+        query = session.query(Update).order_by(desc(Update.updated))
+        results = query.all()
+        session.close()
+        return results
 
 
 # Set database configuration

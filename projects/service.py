@@ -8,7 +8,7 @@ from .config import Config
 from .emails import send_published_email, validate_token
 from .errors import ExistsError, PermissionError, SpecError, InvalidProjectError, InviteError
 from .hub import create_named_server, user_spawners, decode_username
-from .project import Project, Tag
+from .project import Project, Tag, Update
 from .sharing import Share, Invite
 
 
@@ -388,6 +388,18 @@ class UserHandler(HubAuthenticated, BaseHandler):
                     'projects': projects})
 
 
+class StatsHandler(HubAuthenticated, BaseHandler):
+    """Endpoint for reporting notebook workspace usage stats and related information"""
+
+    @addslash
+    def get(self):
+        all_updates = [p.json() for p in Update.all()][:1000]
+        copied_projects = [p.json() for p in Project.all(sort_by_copied=True)][:100]
+
+        self.write({'updates': all_updates,
+                    'usage': copied_projects})
+
+
 class EndpointHandler(BaseHandler):
     """A list of all notebook project endpoints"""
 
@@ -417,5 +429,6 @@ def make_app(config_path):
         (r"/services/projects/sharing/", ShareHandler),
         (r"/services/projects/sharing/(?P<id>\w+)/", ShareHandler),
         (r"/services/projects/sharing/invite/(?P<id>\w+)/", ShareHandler),
+        (r"/services/projects/stats/", StatsHandler),
     ]
     return Application(urls, debug=True)

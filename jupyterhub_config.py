@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 from distutils.dir_util import copy_tree
-from projects.hub import UserHandler, PreviewHandler, pre_spawn_hook
+from projects.hub import UserHandler, PreviewHandler, StatsHandler, pre_spawn_hook
 
 c = get_config()
 
@@ -38,7 +38,7 @@ copy_tree('./theme/js/', os.path.join(static_path, 'js'), update=1)
 # Named server config
 c.JupyterHub.allow_named_servers = True
 c.JupyterHub.default_url = '/home'
-c.JupyterHub.extra_handlers = [('user.json', UserHandler), ('preview', PreviewHandler)]
+c.JupyterHub.extra_handlers = [('user.json', UserHandler), ('preview', PreviewHandler), ('stats', StatsHandler)]
 c.DockerSpawner.name_template = "{prefix}-{username}-{servername}"
 
 # Ensure that JupyterHub can connect to the singleuser images

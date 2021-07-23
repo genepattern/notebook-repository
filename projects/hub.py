@@ -91,6 +91,14 @@ class PreviewHandler(BaseHandler):
         self.write(template)
 
 
+class StatsHandler(BaseHandler):
+    """Serve the stats from its template: theme/templates/stats.html"""
+
+    async def get(self):
+        template = await self.render_template('stats.html')
+        self.write(template)
+
+
 # OLDER VERSIONS OF JUPYTERHUB MAY REQUIRE NON-ASYNC:
 #
 # class UserHandler(BaseHandler):

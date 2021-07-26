@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 from distutils.dir_util import copy_tree
-from projects.hub import UserHandler, PreviewHandler, StatsHandler, pre_spawn_hook
+from projects.hub import UserHandler, PreviewHandler, StatsHandler, pre_spawn_hook, spawner_escape
 
 c = get_config()
 
@@ -20,10 +20,11 @@ c.DockerSpawner.image_whitelist = {
     'Legacy': 'genepattern/lab',
     'R 3.6': 'genepattern/notebook-r36:20.10'
 }
+c.DockerSpawner.escape = spawner_escape
 
 c.DockerSpawner.pre_spawn_hook = lambda spawner: pre_spawn_hook(spawner, userdir='./data/users')
 c.DockerSpawner.volumes = {
-    os.path.join(os.getcwd(), './data/users/{raw_username}/{servername}'): '/home/jovyan',  # Mount users directory
+    os.path.join(os.getcwd(), './data/users/{raw_username}/{raw_servername}'): '/home/jovyan',  # Mount users directory
 }
 
 # Template config

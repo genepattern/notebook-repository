@@ -1,4 +1,5 @@
-DB_PATH = '/data/projects.sqlite'
+DB_PATH = '/other/path/projects.sqlite'
+DB_BACKUP_PATH = '/data/projects.sqlite'
 USERS_PATH = '/data/users/'
 REPO_PATH = '/data/repository/'
 HUB_DB = '/data/jupyterhub.sqlite'

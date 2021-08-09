@@ -376,7 +376,8 @@
                         'username': registration_form.find('input[name=username]').val(),
                         'password': registration_form.find('input[name=password]').val(),
                         'email': registration_form.find('input[name=email]').val(),
-                        'client_id': 'GenePattern Notebook Repository'
+                        'client_id': 'GenePattern Notebook Repository',
+                        'g-recaptcha-response': registration_form.find('[name=g-recaptcha-response]').val(),
                     };
 
                     // Submit the form
@@ -391,6 +392,7 @@
                         crossDomain: true,
                         data: JSON.stringify(formData),
                         dataType: 'json',
+                        xhrFields: { 'withCredentials': true },
                         success: function (data) {
                             var username = registration_form.find('input[name=username]').val();
                             var password = registration_form.find('input[name=password]').val();

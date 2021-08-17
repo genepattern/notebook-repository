@@ -567,7 +567,7 @@ class PublishedProject extends Project {
             .append($('<li><a href="#" class="dropdown-item nb-copy">Run</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-preview">Preview</a></li>'));
 
-        if (this.owner() === GenePattern.projects.username)
+        if (this.owner() === GenePattern.projects.username || GenePattern.projects.admin)
             $(this.element).find('.dropdown-menu')
                 .append($('<li><a href="#" class="dropdown-item nb-update">Update</a></li>'))
                 .append($('<li><a href="#" class="dropdown-item nb-unpublish">Unpublish</a></li>'));
@@ -654,7 +654,7 @@ class PublishedProject extends Project {
         if (!this.update_dialog)
             this.update_dialog = new Modal('update-project-dialog', {
                 title: 'Update Published Project',
-                body: Project.project_form_spec(this.linked, [], ['name', 'image', 'author', 'quality', 'description'], {
+                body: Project.project_form_spec(this.linked || this, [], ['name', 'image', 'author', 'quality', 'description'], {
                     label: "Version Comment",
                     name: "comment",
                     required: true,
@@ -691,6 +691,9 @@ class PublishedProject extends Project {
                             success: () => {
                                 Library.redraw_library(`Successfully updated ${form_data['name']}`);
                                 if (this.linked.running()) this.linked.stop_project();  // Stop the linked project
+
+                                // If admin (not owner), skip updating personal project
+                                if (this.owner() !== GenePattern.projects.username) return;
 
                                 if (!this.push_updates_dialog) {
                                     this.push_updates_dialog = new Modal('push-updates-dialog', {

@@ -69,6 +69,9 @@ class PublishHandler(HubAuthenticated, BaseHandler):
     def _copy_and_redirect(self, id):
         self._copy(id, redirect=True)
 
+    def _is_admin(self):
+        return self.hub_auth.get_user(self)['admin']
+
     @addslash
     @authenticated
     def post(self, id=None):
@@ -132,8 +135,8 @@ class PublishHandler(HubAuthenticated, BaseHandler):
             project = Project.get(id=id)        # Get the project
             if project is None:                 # Ensure that an existing project was found
                 raise ExistsError
-            if not self._owner(project):        # Protect against deleting projects that are not your own
-                raise PermissionError
+            if not self._owner(project) and not self._is_admin():
+                raise PermissionError           # Protect against deleting projects that are not your own
             project.delete_zip()                # Delete the zip bundle
             project.delete()                    # Mark the database entry as deleted
             self.write(project.json())          # Return the project json one final time
@@ -150,14 +153,15 @@ class PublishHandler(HubAuthenticated, BaseHandler):
             project = Project.get(id=id)        # Load the project from the database
             if project is None:                 # Ensure that an existing project was found
                 raise ExistsError
-            if not self._owner(project):        # Protect against updating projects that are not your own
-                raise PermissionError
+            if not self._owner(project) and not self._is_admin():
+                raise PermissionError           # Protect against updating projects that are not your own
             # Update the project ORM object with the contents of the request
             update_json = json.loads(to_basestring(self.request.body))
             if comment: update_json['comment'] = comment  # Override the comment if one is provided
             project.update(update_json)                   # (usually occurs if republishing a deleted project)
             # Bundle the zip, save the project and return the JSON in the response
-            project.zip()                       # Bundle the project into a zip artifact
+            if self._owner(project):            # Skip updating the project zip if only an admin editing metadata
+                project.zip()                   # Bundle the project into a zip artifact
             resp = project.save()               # Save the project to the database
             self.write(resp)                    # Return the project json
         except SpecError as e:                  # Bad Request

@@ -438,3 +438,7 @@ div.nb-project-new > .nb-img-top {
 #nb-preview-files .fa {
     margin-right: 10px;
 }
+
+#nb-preview.container {
+    margin-bottom: 50px;
+}

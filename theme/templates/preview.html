@@ -1,7 +1,7 @@
 {% extends "page.html" %}
 
 {% block main %}
-    <div class="container">
+    <div id="nb-preview" class="container">
         <div id="messages"></div>
         <h1 id="nb-preview-name"></h1>
         <p id="nb-preview-description" class="lead"></p>
@@ -30,6 +30,12 @@
             </thead>
             <tbody id="nb-preview-files"></tbody>
         </table>
+        <hr/>
+        <h2>Citing This Notebook</h2>
+        <ol id="nb-citation">
+            <li id="nb-citation-notebook"></li>
+            <li>Reich M., Tabor T., Liefeld T., Thorvaldsdóttir H., Hill B., Tamayo P., Mesirov J.P., "The GenePattern notebook environment", <em>Cell Systems</em> 2017;5:149–151.e1.</li>
+        </ol>
     </div>
 {% endblock %}
 

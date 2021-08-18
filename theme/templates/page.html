@@ -45,7 +45,8 @@
 {% block script %}
     {{ super() }}
     <script type="text/javascript"> {# Username fix #}
-        document.querySelector('#logout').childNodes[2].textContent =
-            decodeURIComponent(document.querySelector('#logout').childNodes[2].textContent.replace(/-/g, '%'))
+        const logout = document.querySelector('#logout');
+        if (logout) logout.childNodes[2].textContent =
+            decodeURIComponent(document.querySelector('#logout').childNodes[2].textContent.replace(/-/g, '%'));
     </script>
 {% endblock %}

@@ -38,6 +38,18 @@ class Preview {
         // Add files to the table
         GenePattern.preview.project.files
             .forEach(f => $('#nb-preview-files').append($(`<tr><td>${Preview.icon(f.filename)} ${f.filename}</td><td>${f.modified}</td><td>${f.size}</td></tr>`)));
+
+        // Add the citation
+        $('#nb-citation-notebook').text(Preview.generate_citation());
+    }
+
+    static generate_citation() {
+        // If a project has a custom citation provided, return it
+        if (GenePattern.preview.project.citation) return GenePattern.preview.project.citation;
+
+        // Otherwise, generate a project citation
+        const now = (new Date()).toDateString();
+        return `${GenePattern.preview.project.author}, "${GenePattern.preview.project.name}", GenePattern Notebook Workspace, ${location.href}, accessed ${now}.`;
     }
 
     static icon(filename) {

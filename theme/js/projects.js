@@ -176,6 +176,10 @@ class Project {
         return this.model.quality.toString() || '';
     }
 
+    citation() {
+        return this.model.citation || '';
+    }
+
     tags(str=false) {
         const clean_text = $('<textarea />').html(this.model.tags).text();  // Fix HTML encoding issues
         if (str) return clean_text;
@@ -255,6 +259,7 @@ class Project {
                             "description": form_data['description'],
                             "author": form_data['author'],
                             "quality": form_data['quality'],
+                            "citation": form_data['citation'],
                             "tags": Project.tags_to_string(form_data['tags']),
                             "owner": GenePattern.projects.username
                         }),
@@ -272,6 +277,7 @@ class Project {
                                     "description": form_data['description'],
                                     "author": form_data['author'],
                                     "quality": form_data['quality'],
+                                    "citation": form_data['citation'],
                                     "tags": Project.tags_to_string(form_data['tags'])
                                 }),
                                 success: () => MyProjects.redraw_projects(),
@@ -339,7 +345,7 @@ class Project {
         if (!this.edit_dialog)
             this.edit_dialog = new Modal('edit-project-dialog', {
                 title: 'Edit Project',
-                body: Project.project_form_spec(this, ['author', 'quality', 'tags']),
+                body: Project.project_form_spec(this, ['author', 'quality', 'citation', 'tags']),
                 button_label: 'Save',
                 button_class: 'btn-warning edit-button',
                 callback: (form_data, e) => {
@@ -357,6 +363,7 @@ class Project {
                             "description": form_data['description'],
                             "author": form_data['author'],
                             "quality": form_data['quality'],
+                            "citation": form_data['citation'],
                             "tags": Project.tags_to_string(form_data['tags'])
                         }),
                         success: () => MyProjects.redraw_projects(),
@@ -517,6 +524,13 @@ class Project {
                 advanced: advanced.includes("quality"),
                 value: project ? project.quality() : '',
                 options: ["", "Development", "Beta", "Release"]
+            },
+            {
+                label: "Citation",
+                name: "citation",
+                required: required.includes("citation"),
+                advanced: advanced.includes("citation"),
+                value: project ? project.citation() : ''
             },
             {
                 label: "Tags",
@@ -685,6 +699,7 @@ class PublishedProject extends Project {
                                 "description": form_data['description'],
                                 "author": form_data['author'],
                                 "quality": form_data['quality'],
+                                "citation": form_data['citation'],
                                 "tags": Project.tags_to_string(form_data['tags']),
                                 "comment": form_data['comment']
                             }),
@@ -715,6 +730,7 @@ class PublishedProject extends Project {
                                                     "description": form_data['description'],
                                                     "author": form_data['author'],
                                                     "quality": form_data['quality'],
+                                                    "citation": form_data['citation'],
                                                     "tags": Project.tags_to_string(form_data['tags'])
                                                 }),
                                                 success: () => MyProjects.redraw_projects(),
@@ -1039,7 +1055,7 @@ class NewProject {
         if (!this.project_dialog)
             this.project_dialog = new Modal('new-project-dialog', {
                 title: 'Create New Project',
-                body: Project.project_form_spec(null, ['author', 'quality', 'tags']),
+                body: Project.project_form_spec(null, ['author', 'quality', 'citation', 'tags']),
                 button_label: 'Create Project',
                 button_class: 'btn-success create-button',
                 callback: (form_data, e) => {
@@ -1067,6 +1083,7 @@ class NewProject {
                             "description": form_data['description'],
                             "author": form_data['author'],
                             "quality": form_data['quality'],
+                            "citation": form_data['citation'],
                             "tags": Project.tags_to_string(form_data['tags'])
                         }),
                         success: () => {
@@ -1507,17 +1524,22 @@ class Library {
 
     static redraw_pinned() {
         const pinned_block = $('#pinned-tags');
+        const current_selection = pinned_block.find('.active > a').data('tag');
         const featured_exists = GenePattern.projects.pinned_tags.includes("featured");
 
         pinned_block.empty();                                                               // Empty the pinned div
         if (featured_exists) {                                                              // Special case for featured
-            pinned_block.prepend($('<li class="active"><a href="#" data-tag="featured">featured</a></li>'));
+            pinned_block.prepend($('<li><a href="#" data-tag="featured">featured</a></li>'));
         }
         GenePattern.projects.pinned_tags.forEach(tag => {                                   // Add each pinned tag
             if (tag !== 'featured') pinned_block.prepend($(`<li><a href="#" data-tag="${tag}">${tag}</a></li>`));
         });
         pinned_block.prepend($('<li><a href="#" data-tag="-all">all projects</a></li>'));   // Add "all projects"
-        if (!featured_exists) pinned_block.find('li:first-child').addClass('active');
+
+        // Set the active tab
+        if (!!current_selection) pinned_block.find(`[data-tag='${current_selection}']`).parent().addClass('active');
+        else if (featured_exists) pinned_block.find(`[data-tag='featured']`).parent().addClass('active');
+        else pinned_block.find('li:first-child').addClass('active');
 
         pinned_block.find('a').click(e => {
             const tag = $(e.target).attr("data-tag");                                 // Get the tag
@@ -1542,7 +1564,7 @@ class Library {
             e.preventDefault();                                                             // Don't scroll to top
             return false;
         });
-        if (featured_exists) pinned_block.find('a[data-tag=featured]').click();     // Filter for featured
+        pinned_block.find('.active > a').click()     // Filter again for the current tag
     }
 
     initialize_search() {

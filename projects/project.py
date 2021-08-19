@@ -25,6 +25,7 @@ class Project(Base):
     description = Column(String(255), default='')
     author = Column(String(255), default='')
     quality = Column(String(255), default='')
+    citation = Column(String(511), default='')
 
     tags = relationship('Tag', secondary='project_tags', lazy='subquery', backref=backref('projects', lazy=True))
     updates = relationship('Update', lazy='subquery')
@@ -115,6 +116,7 @@ class Project(Base):
         if 'author' in merge: self.author = merge['author'].strip()
         if 'quality' in merge: self.quality = merge['quality'].strip()
         if 'image' in merge: self.image = merge['image'].strip()
+        if 'citation' in merge: self.citation = merge['citation'].strip()
         if 'tags' in merge: self.lazily_create_tags(merge['tags'].strip())
         if 'comment' in merge: Update(self, merge['comment'].strip())       # Create the Update object
         self.updated = datetime.now()                                       # Set last updated

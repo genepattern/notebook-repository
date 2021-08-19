@@ -379,6 +379,7 @@ class UserHandler(HubAuthenticated, BaseHandler):
                 'description': metadata['description'] if 'description' in metadata else '',
                 'author': metadata['author'] if 'author' in metadata else '',
                 'quality': metadata['quality'] if 'quality' in metadata else '',
+                'citation': metadata['citation'] if 'citation' in metadata else '',
                 'tags': metadata['tags'] if 'tags' in metadata else '',
                 'status': json.loads(s[1]),
                 'name': s[0],                   # Retained for backwards compatibility with 21.02 release

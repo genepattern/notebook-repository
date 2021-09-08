@@ -72,6 +72,20 @@ c.JupyterHub.services = [
         'command': ['python', 'start-projects.py',
                     '--config=/Users/tmtabor/workspace/notebook-repository/data/projects_config.py']
     },
+    {
+        'name': 'sharing',
+        'admin': True,
+        'url': 'http://127.0.0.1:3001/',
+        'cwd': './scripts',
+        'command': ['python', 'redirect_preview.py'],
+    },
+    {
+        'name': 'download',
+        'admin': True,
+        'url': 'http://127.0.0.1:3002/',
+        'cwd': './scripts',
+        'command': ['python', 'download_endpoint.py']
+    },
 ]
 
 # Configuration file for jupyterhub.

@@ -439,7 +439,11 @@ class Project {
                 data: JSON.stringify({
                     "name": this.display_name(),
                     "image": this.image(),
-                    "description": this.description()
+                    "description": this.description(),
+                    "author": this.author(),
+                    "quality": this.quality(),
+                    "citation": this.citation(),
+                    "tags": this.tags(true)
                 }),
                 success: () => Messages.hide_loading(),
                 error: () => Messages.error_message('Unable to edit project.')
@@ -617,7 +621,7 @@ class PublishedProject extends Project {
     }
 
     publish_url() {
-        return `/services/projects/library/${this.model.id}/`
+        return `/services/projects/library/${this.model.id}/`;
     }
 
     copy_project() {

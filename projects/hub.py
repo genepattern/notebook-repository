@@ -56,7 +56,7 @@ def user_spawners(username):
 
 
 def spawner_info(username, dir):
-    """Read the user spawners from the database - use the unencoded username"""
+    """Read a spawner info's from the database - use the unencoded username"""
     config = Config.instance()
 
     # Encode the username
@@ -72,6 +72,17 @@ def spawner_info(username, dir):
     # Close the connection to the database and return
     session.close()
     return result
+
+
+def write_manifest(project_dir, username, dir, spawner):
+    if not os.path.exists(project_dir): return                              # Ensure project directory exists
+    if not os.path.isdir(project_dir): return                               # Ensure it is a directory
+    if not os.access(project_dir, os.R_OK): return                          # Ensure it is writable
+    if not spawner.user_options: return                                     # Ensure the metadata is valid
+    metadata = json.dumps(spawner.user_options, sort_keys=True, indent=4)   # Encode the metadata
+    manifest_path = os.path.join(project_dir, '.project_manifest')          # Get the manifest path
+    with open(manifest_path, 'w') as f:                                     # Write the manifest file
+        f.write(metadata)
 
 
 class UserHandler(BaseHandler):
@@ -117,6 +128,7 @@ def pre_spawn_hook(spawner, userdir=''):
     else:                               # Otherwise, lazily create the project directory
         os.makedirs(project_dir, 0o777, exist_ok=True)
     os.chmod(project_dir, 0o777)
+    write_manifest(project_dir, spawner.user.name, spawner.name, spawner)  # Lazily update the project manifest
 
 
 def spawner_escape(text):

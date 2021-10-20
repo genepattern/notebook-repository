@@ -579,6 +579,7 @@ class PublishedProject extends Project {
     build_gear_menu() {
         $(this.element).find('.dropdown-menu')
             .append($('<li><a href="#" class="dropdown-item nb-copy">Run</a></li>'))
+            .append($('<li><a href="#" class="dropdown-item nb-download">Download</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-preview">Preview</a></li>'));
 
         if (this.owner() === GenePattern.projects.username || GenePattern.projects.admin)
@@ -588,6 +589,7 @@ class PublishedProject extends Project {
 
         // Handle menu clicks
         $(this.element).find('.nb-copy').click(e => Project.not_disabled(e,() => this.copy_project()));
+        $(this.element).find('.nb-download').click(e => Project.not_disabled(e,() => this.download_project()));
         $(this.element).find('.nb-preview').click(e => Project.not_disabled(e,() => this.preview_project()));
         $(this.element).find('.nb-update').click(e => Project.not_disabled(e,() => this.update_project()));
         $(this.element).find('.nb-unpublish').click(e => Project.not_disabled(e,() => this.unpublish_project()));
@@ -605,6 +607,10 @@ class PublishedProject extends Project {
      * @returns {boolean}
      */
     running() { return false; }
+
+    download_url() {
+        return `/services/projects/library/${this.model.id}/download/`;
+    }
 
     preview_url() {
         return `/hub/preview?id=${this.model.id}`;
@@ -628,6 +634,10 @@ class PublishedProject extends Project {
             },
             error: () => Messages.error_message('Unable to copy project.')
         });
+    }
+
+    download_project() {
+        window.open(this.download_url());
     }
 
     preview_project() {

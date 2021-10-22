@@ -79,6 +79,8 @@ def write_manifest(project_dir, username, dir, spawner):
     if not os.path.isdir(project_dir): return                               # Ensure it is a directory
     if not os.access(project_dir, os.R_OK): return                          # Ensure it is writable
     if not spawner.user_options: return                                     # Ensure the metadata is valid
+    try: spawner.user_options['container'] = spawner.image_whitelist[spawner.user_options['image']]
+    except KeyError: pass                                                   # Add docker container to the metadata
     metadata = json.dumps(spawner.user_options, sort_keys=True, indent=4)   # Encode the metadata
     manifest_path = os.path.join(project_dir, '.project_manifest')          # Get the manifest path
     with open(manifest_path, 'w') as f:                                     # Write the manifest file

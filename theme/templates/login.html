@@ -419,7 +419,8 @@
                                     display_error(JSON.parse(xhr.responseText).error);
                                 }
                                 catch(e) {
-                                    display_error(xhr.responseText);
+                                    if (xhr.responseText) display_error(xhr.responseText);
+                                    else display_error("Unable to register user. Try a different usernamer or password.");
                                 }
                             }
                         }

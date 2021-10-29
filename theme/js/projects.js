@@ -84,6 +84,7 @@ class Project {
             .append($('<li><a href="#" class="dropdown-item nb-edit">Edit</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-publish">Publish</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-share">Share</a></li>'))
+            .append($('<li><a href="#" class="dropdown-item nb-duplicate">Duplicate</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-stop">Stop</a></li>'))
             .append($('<li><a href="#" class="dropdown-item nb-delete">Delete</a></li>'));
 
@@ -91,6 +92,7 @@ class Project {
         $(this.element).find('.nb-stop').click(e => Project.not_disabled(e,() => this.stop_project()));
         $(this.element).find('.nb-delete').click(e => Project.not_disabled(e,() => this.delete_project()));
         $(this.element).find('.nb-edit').click(e => Project.not_disabled(e,() => this.edit_project()));
+        $(this.element).find('.nb-duplicate').click(e => Project.not_disabled(e,() => this.duplicate_project()));
         $(this.element).find('.nb-publish').click(e => Project.not_disabled(e,() => this.publish_project()));
         $(this.element).find('.nb-share').click(e => Project.not_disabled(e,() => this.share_project()));
 
@@ -113,6 +115,8 @@ class Project {
                 .attr('title', 'You must stop this project before it may be published.');
             $(this.element).find('.nb-share').parent().addClass('disabled')
                 .attr('title', 'You must stop this project before it may be shared.');
+            $(this.element).find('.nb-duplicate').parent().addClass('disabled')
+                .attr('title', 'You must stop this project before it may be duplicated.');
             $(this.element).find('.nb-stop').parent().removeClass('disabled')
                 .removeAttr('title');
             $(this.element).find('.nb-delete').parent().addClass('disabled')
@@ -124,6 +128,8 @@ class Project {
             $(this.element).find('.nb-publish').parent().removeClass('disabled')
                 .removeAttr('title');
             $(this.element).find('.nb-share').parent().removeClass('disabled')
+                .removeAttr('title');
+            $(this.element).find('.nb-duplicate').parent().removeClass('disabled')
                 .removeAttr('title');
             $(this.element).find('.nb-stop').parent().addClass('disabled')
                 .attr('title', 'This project is already stopped.');
@@ -231,6 +237,44 @@ class Project {
             tag.innerHTML = t;
             tag_box.append(tag);
         });
+    }
+
+    duplicate_project() {
+        // Lazily create the duplicate dialog
+        if (!this.duplicate_dialog) {
+            this.duplicate_dialog = new Modal('duplicate-project-dialog', {
+                title: 'Duplicate Project',
+                body: '<p>Are you sure that you want to duplicate this project? Doing so will make an exact copy of the project, but may take several minutes.</p>',
+                button_label: 'Duplicate',
+                button_class: 'btn-warning duplicate-button',
+                callback: () => {
+                    Messages.show_loading();
+                    // Make the call to duplicate the project
+                    $.ajax({
+                        method: 'PUT',
+                        url: `/services/projects/project/${this.slug()}/duplicate/`, // TODO: After refactor, use this.api_url()
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            "dir": this.slug(),
+                            "name": this.display_name(),
+                            "image": this.image(),
+                            "description": this.description(),
+                            "author": this.author(),
+                            "quality": this.quality(),
+                            "citation": this.citation(),
+                            "tags": this.tags(true),
+                            "owner": GenePattern.projects.username
+                        }),
+                        success: () => MyProjects.redraw_projects(),
+                        error: () => Messages.error_message('Unable to duplicate project.'),
+                        complete: () => Messages.hide_loading()
+                    });
+                }
+            });
+        }
+
+        // Show the duplicate dialog
+        this.duplicate_dialog.show();
     }
 
     publish_project() {

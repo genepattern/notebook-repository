@@ -8,7 +8,8 @@ from .config import Config
 from .emails import send_published_email, validate_token
 from .errors import ExistsError, PermissionError, SpecError, InvalidProjectError, InviteError
 from .hub import create_named_server, user_spawners, decode_username
-from .project import Project, Tag, Update
+from .project import Project, unused_dir
+from .publish import Publish, Tag, Update
 from .sharing import Share, Invite
 
 
@@ -25,8 +26,87 @@ class BaseHandler(RequestHandler):
         self.finish()
 
 
+class ProjectHandler(HubAuthenticated, BaseHandler):
+    """Endpoint for starting, stopping, editing and deleting notebook projects"""
+
+    @addslash
+    def get(self, id=None):
+        """Get the project's metadata or list of projects"""
+        if id is None: self._list_projects()        # List all personal projects
+        else: self._project_info(id)                # List a single project with the specified id
+
+    def _list_projects(self):
+        self.send_error(501, reason='Endpoint not yet implemented')  # TODO: Implement
+
+    def _project_info(self, id):
+        self.send_error(501, reason='Endpoint not yet implemented')  # TODO: Implement
+
+    @addslash
+    def post(self, id=None):
+        """Start or create a project"""
+        if id is None: self._create_project()       # Create a new project
+        else: self._start_project(id)               # Start the specified project
+
+    def _create_project(self):
+        self.send_error(501, reason='Endpoint not yet implemented')  # TODO: Implement
+
+    def _start_project(self, id):
+        self.send_error(501, reason='Endpoint not yet implemented')  # TODO: Implement
+
+    @addslash
+    def put(self, id=None, directive=None):
+        """Edit or duplicate the project"""
+        if not id:                      # No id, return error
+            self.send_error(400, reason='Project id not specified')
+        elif not directive:             # By default, edit a project
+            self._edit_project(id)
+        elif directive == 'duplicate':  # Duplicate the specified project
+            self._duplicate_project(id)
+        else:                           # Directive not recognized
+            self.send_error(400, reason='Unknown directive')
+
+    def _edit_project(self, id):
+        self.send_error(501, reason='Endpoint not yet implemented')  # TODO: Implement
+
+    def _duplicate_project(self, dir):  # TODO: Use id after refactor
+        user = self._current_username()
+        project = Project.get(owner=user, dir=dir)  # Get the project
+        if project is None:             # Ensure that an existing project was found
+            raise ExistsError
+        # Check to see if the dir directory exists, if so find a good dir name
+        dir_name, count = unused_dir(user, project.dir)
+        # Copy the project directory
+        project.duplicate(dir_name)
+        # Call JupyterHub API to create a new named server
+        spec = project.json()
+        if count: spec['name'] += f' (copy {count})'
+        url = create_named_server(self.hub_auth, user, dir_name, spec)
+        self.write({'url': url, 'dir': dir, 'slug': dir_name})
+
+    def _current_username(self):
+        return decode_username(self.get_current_user()['name'])
+
+    @addslash
+    def delete(self, id=None, directive=None):
+        """Stop or delete the project"""
+        if not id:                      # No id, return error
+            self.send_error(400, reason='Project id not specified')
+        elif not directive:             # By default, stop a project
+            self._stop_project(id)
+        elif directive == 'delete':     # delete the specified project
+            self._delete_project(id)
+        else:                           # Directive not recognized
+            self.send_error(400, reason='Unknown directive')
+
+    def _stop_project(self, id):
+        self.send_error(501, reason='Endpoint not yet implemented')  # TODO: Implement
+
+    def _delete_project(self, id):
+        self.send_error(501, reason='Endpoint not yet implemented')  # TODO: Implement
+
+
 class PublishHandler(HubAuthenticated, BaseHandler):
-    """Endpoint for publishing, editing and deleting notebook projects"""
+    """Endpoint for publishing, editing and deleting published projects"""
 
     @addslash
     def get(self, id=None, directive=None):
@@ -43,18 +123,18 @@ class PublishHandler(HubAuthenticated, BaseHandler):
             self.send_error(400, reason='Unknown directive')
 
     def _list_projects(self):
-        all_projects = [p.json() for p in Project.all()]
+        all_projects = [p.json() for p in Publish.all()]
         all_pinned = [t.label for t in Tag.all_pinned()]
         all_protected = [t.label for t in Tag.all_protected()]
         self.write({'projects': all_projects, 'pinned': all_pinned, 'protected': all_protected})
 
     def _project_info(self, id):
-        project = Project.get(id=id)
+        project = Publish.get(id=id)
         include_files = self.get_argument("files", None, True)
         self.write(project.json(include_files=include_files))
 
     def _download_project(self, id):
-        project = Project.get(id=id)
+        project = Publish.get(id=id)
         buf_size = 4096
         self.set_header('Content-Type', 'application/zip, application/octet-stream')
         self.set_header('Content-Disposition', f'attachment; filename={project.dir}.zip')
@@ -80,12 +160,12 @@ class PublishHandler(HubAuthenticated, BaseHandler):
         else: self._copy(id)                          # Copy a public project
 
     def _copy(self, id, redirect=False):
-        project = Project.get(id=id)    # Get the project
+        project = Publish.get(id=id)    # Get the project
         if project is None:             # Ensure that an existing project was found
             raise ExistsError
         # Check to see if the dir directory exists, if so find a good dir name
         user = self._current_username()
-        dir_name, count = Project.unused_dir(user, project.dir)
+        dir_name, count = unused_dir(user, project.dir)
         # Unzip to the current user's dir directory
         project.unzip(user, dir_name)
         # Call JupyterHub API to create a new named server
@@ -100,9 +180,9 @@ class PublishHandler(HubAuthenticated, BaseHandler):
 
     def _create(self):
         try:
-            project = Project(to_basestring(self.request.body))       # Create a project from the request body
+            project = Publish(to_basestring(self.request.body))       # Create a project from the request body
             if project.exists():                                      # If the project already exists
-                old_project = Project.get(owner=project.owner, dir=project.dir)
+                old_project = Publish.get(owner=project.owner, dir=project.dir)
                 if old_project.deleted:                               # Check to see if it's deleted
                     self.put(old_project.id, 'Republishing project')  # If so, update it and un-delete
                     send_published_email(self._host_url(), project.id, project.name)  # Send a notification email
@@ -132,7 +212,7 @@ class PublishHandler(HubAuthenticated, BaseHandler):
     def delete(self, id=None):
         """Delete a project"""
         try:
-            project = Project.get(id=id)        # Get the project
+            project = Publish.get(id=id)        # Get the project
             if project is None:                 # Ensure that an existing project was found
                 raise ExistsError
             if not self._owner(project) and not self._is_admin():
@@ -150,7 +230,7 @@ class PublishHandler(HubAuthenticated, BaseHandler):
         try:
             if id is None:                      # Ensure that a project id was included in the request
                 raise SpecError('project id')
-            project = Project.get(id=id)        # Load the project from the database
+            project = Publish.get(id=id)        # Load the project from the database
             if project is None:                 # Ensure that an existing project was found
                 raise ExistsError
             if not self._owner(project) and not self._is_admin():
@@ -399,7 +479,7 @@ class StatsHandler(HubAuthenticated, BaseHandler):
     @addslash
     def get(self):
         all_updates = [p.json() for p in Update.all()][:1000]
-        copied_projects = [p.json() for p in Project.all(sort_by_copied=True)][:100]
+        copied_projects = [p.json() for p in Publish.all(sort_by_copied=True)][:100]
 
         self.write({'updates': all_updates,
                     'usage': copied_projects})
@@ -426,14 +506,22 @@ def make_app(config_path):
     urls = [
         (r"/services/projects/", EndpointHandler),
         (r"/services/projects/user.json", UserHandler),
+
+        (r"/services/projects/project", ProjectHandler),
+        (r"/services/projects/project/", ProjectHandler),
+        (r"/services/projects/project/(?P<id>\w+)/", ProjectHandler),
+        (r"/services/projects/project/(?P<id>\w+)/(?P<directive>\w+)/", ProjectHandler),
+
         (r"/services/projects/library", PublishHandler),
         (r"/services/projects/library/", PublishHandler),
         (r"/services/projects/library/(?P<id>\w+)/", PublishHandler),
         (r"/services/projects/library/(?P<id>\w+)/(?P<directive>\w+)/", PublishHandler),
+
         (r"/services/projects/sharing", ShareHandler),
         (r"/services/projects/sharing/", ShareHandler),
         (r"/services/projects/sharing/(?P<id>\w+)/", ShareHandler),
         (r"/services/projects/sharing/invite/(?P<id>\w+)/", ShareHandler),
+
         (r"/services/projects/stats/", StatsHandler),
     ]
     return Application(urls, debug=True)

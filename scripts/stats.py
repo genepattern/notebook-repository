@@ -467,7 +467,8 @@ def get_nb_updates():
 
     nb_updates = ''
     for l in lines:
-        name, updated, comment = l.split('|')
+        if l.strip(): name, updated, comment = l.split('|')
+        else: name, comment = ['None', 'None']
         nb_updates += f"<tr><td>{name}</td><td>{comment}</td></tr>"
     return nb_updates
 

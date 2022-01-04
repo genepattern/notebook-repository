@@ -4,6 +4,7 @@ import requests
 from dockerspawner import SwarmSpawner
 from jupyterhub.handlers import BaseHandler
 from sqlalchemy import create_engine
+from tornado.gen import coroutine
 from tornado.web import authenticated
 from urllib.parse import quote, unquote
 from .config import Config
@@ -90,8 +91,8 @@ def write_manifest(project_dir, username, dir, spawner):
 class UserHandler(BaseHandler):
     """Serve the user info from its template: theme/templates/user.json"""
 
-    @authenticated
-    async def get(self):
+    @coroutine
+    def get(self):
         template = await self.render_template('user.json')
         self.write(template)
 
@@ -99,7 +100,8 @@ class UserHandler(BaseHandler):
 class PreviewHandler(BaseHandler):
     """Serve the preview from its template: theme/templates/preview.html"""
 
-    async def get(self):
+    @coroutine
+    def get(self):
         template = await self.render_template('preview.html')
         self.write(template)
 
@@ -107,7 +109,8 @@ class PreviewHandler(BaseHandler):
 class StatsHandler(BaseHandler):
     """Serve the stats from its template: theme/templates/stats.html"""
 
-    async def get(self):
+    @coroutine
+    def get(self):
         template = await self.render_template('stats.html')
         self.write(template)
 

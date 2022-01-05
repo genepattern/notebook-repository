@@ -91,35 +91,33 @@ class UserHandler(BaseHandler):
     """Serve the user info from its template: theme/templates/user.json"""
 
     @authenticated
-    async def get(self):
-        template = await self.render_template('user.json')
-        self.write(template)
+    def get(self):
+        self.write(self.render_template('user.json'))
 
 
 class PreviewHandler(BaseHandler):
     """Serve the preview from its template: theme/templates/preview.html"""
 
-    async def get(self):
-        template = await self.render_template('preview.html')
-        self.write(template)
+    def get(self):
+        self.write(self.render_template('preview.html'))
 
 
 class StatsHandler(BaseHandler):
     """Serve the stats from its template: theme/templates/stats.html"""
 
-    async def get(self):
-        template = await self.render_template('stats.html')
-        self.write(template)
+    def get(self):
+        self.write(self.render_template('stats.html'))
 
 
-# OLDER VERSIONS OF JUPYTERHUB MAY REQUIRE NON-ASYNC:
+# SOME VERSIONS OF JUPYTERHUB MAY REQUIRE ASYNC:
 #
 # class UserHandler(BaseHandler):
 #     """Serve the user info from its template: theme/templates/user.json"""
 #
 #     @authenticated
-#     def get(self):
-#         self.write(self.render_template('user.json'))
+#     async def get(self):
+#         template = await self.render_template('user.json')
+#         self.write(template)
 
 
 def pre_spawn_hook(spawner, userdir=''):

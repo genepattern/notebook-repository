@@ -1,5 +1,5 @@
-DB_PATH = '/srv/notebook-repository/projects.sqlite'
-DB_BACKUP_PATH = '/data/projects.sqlite'
+DB_PROTOCOL = 'sqlite'
+DB_PATH = '/data/projects.sqlite'
 USERS_PATH = '/data/users/'
 REPO_PATH = '/data/repository/'
 HUB_DB = '/data/jupyterhub.sqlite'

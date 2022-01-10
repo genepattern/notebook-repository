@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, desc
 from sqlalchemy.orm import relationship, backref
-from .backup import backup_database
 from .config import Config
 from .hub import encode_username
 from .errors import SpecError
@@ -173,7 +172,6 @@ class Publish(Base):
         session.commit()
         d = project.json()
         session.close()
-        backup_database()
         return d  # Return the json representation
 
     @staticmethod

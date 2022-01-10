@@ -92,7 +92,7 @@ class ProjectConfig:
 
     def __init__(self):
         config = Config.instance()
-        self.db = create_engine(f'sqlite:///{config.DB_PATH}', echo=config.DB_ECHO)
+        self.db = create_engine(f'{config.DB_PROTOCOL}://{config.DB_PATH}', echo=config.DB_ECHO)
         self.Session = sessionmaker(bind=self.db)
         Base.metadata.create_all(self.db)
 

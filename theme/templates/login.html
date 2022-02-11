@@ -53,8 +53,14 @@
             overflow-y: auto;
         }
 
+        #doc-button {
+            width: 175px !important;
+            margin-top: 16px;
+            float: left
+        }
+
         #forgot-password {
-            width: auto !important;
+            width: 175px !important;
             margin-top: 16px;
             float: right;
         }
@@ -67,6 +73,19 @@
             z-index: 60000;
             left: 50%;
             transform: translateX(-50%);
+        }
+
+        .globus_link {
+            display: inline-block;
+            height: 30px;
+            position: relative;
+            top: 8px;
+            text-align: right;
+            width: 250px;
+        }
+
+        .globus_link > img {
+            height: 27px;
         }
 
         @media all and (min-width: 992px) {
@@ -154,7 +173,11 @@
 
                                 <input type="submit" id="login_submit" class='btn btn-jupyter' value='Sign In' tabindex="3" />
 
-                                <button id="forgot-password" type="button" class="btn btn-default" onclick="JavaScript:toggle_forgot_password()">Forgot Password?</button>
+                                <a class="globus_link" href="http://localhost:8080/gp/oauthglobus?forward=http%3A%2F%2Flocalhost%3A8000%2Fhub%2Flogin">
+                                    or
+                                    <img src="https://cloud.genepattern.org/gp/images/i_logo-globus.png" alt="Globus">
+                                    Sign in using Globus
+                                </a>
                             </div>
                         </form>
                     </div>
@@ -175,8 +198,9 @@
                                 server</a> username and password. If you do not have an account, click the <a onclick="JavaScript:toggle_registration()" href="#">Register
                                 Account</a> button below.<br><br>
                                 <button class="btn btn-default" onclick="JavaScript:toggle_registration()">Register a New GenePattern Account</button>
-                                <br><br> Documentation is available on the <a target="_BLANK" href="http://notebook.genepattern.org">GenePattern Notebook
-                                    website</a>.
+                                <a id="doc-button" class="btn btn-default" target="_BLANK" href="http://notebook.genepattern.org">Documentation</a>
+                                <button id="forgot-password" type="button" class="btn btn-default" onclick="JavaScript:toggle_forgot_password()">Forgot Password?</button>
+
                             </div>
                         </div>
                     </div>

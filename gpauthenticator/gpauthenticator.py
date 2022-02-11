@@ -73,6 +73,9 @@ class GenePatternAuthenticator(Authenticator):
         # Handle form submission, if included with the request
         if data: return self.login_from_form(handler, data)
 
+        # Handle Globus auth, if included with the request
+        if self.includes_globus(handler): return self.login_from_globus(handler)
+
         # Otherwise, attempt to log in via session cookie
         return self.login_from_cookie(handler)
 
@@ -127,6 +130,20 @@ class GenePatternAuthenticator(Authenticator):
             .replace('~', '%7e') \
             .replace('_', '%5f') \
             .replace('%', '-')
+
+    @staticmethod
+    def includes_globus(handler):
+        return 'globus' in handler.request.query_arguments
+
+    def login_from_globus(self, handler):
+        """Handle login from Globus oauth2 then return user and auth state"""
+        try:
+            globus_str = handler.request.query_arguments['globus'][0].decode("utf-8")
+            data = json.loads(globus_str)
+            username = data['globus.identity']
+            return {"name": username, "auth_state": {"access_token": None, "globus": data}}
+        except json.JSONDecodeError: return
+        except TypeError: return
 
     def login_from_cookie(self, handler, redirect=True):
         """Handle login via the GenePattern session cookie"""

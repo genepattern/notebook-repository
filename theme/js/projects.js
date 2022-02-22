@@ -1465,6 +1465,9 @@ class MyProjects {
 
             // Link to shared projects
             MyProjects.link_shared();
+
+            // Apply any existing search filter
+            $('#nb-project-search').trigger('keyup');
         });
     }
 
@@ -1577,6 +1580,9 @@ class Library {
             GenePattern.projects.library.forEach((p) =>                         // Add the project widgets
                 document.querySelector('#library').append(p.element));
             Library.redraw_pinned();                                                // Redraw the pinned tags
+
+            // Apply any existing search filter
+            $('#nb-library-search').trigger('keyup');
         });
     }
 
@@ -1680,6 +1686,9 @@ class Shares {
             if (GenePattern.projects.shared_with_me.length === 0)
                 document.querySelector('#nb-sharing-header').style.display = 'none';
             else document.querySelector('#nb-sharing-header').style.display = 'block';
+
+            // Apply any existing search filter
+            $('#nb-project-search').trigger('keyup');
         });
     }
 }

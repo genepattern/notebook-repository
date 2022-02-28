@@ -39,6 +39,22 @@ def create_named_server(hub_auth, user, server_name, spec):
     return f'/user/{hub_user}/{server_name}'
 
 
+def user_data(username):
+    """Read the user spawners from the database"""
+    config = Config.instance()
+
+    # Establish a connection to the database
+    engine = create_engine(f'sqlite:///{config.HUB_DB}', echo=config.DB_ECHO)
+    session = engine.connect()
+
+    # Query for the list of user spawners
+    results = [r for r in session.execute(f"SELECT u.name, u.admin FROM users u WHERE u.name = '{username}'")]
+
+    # Close the connection to the database and return
+    session.close()
+    return results
+
+
 def user_spawners(username):
     """Read the user spawners from the database"""
     config = Config.instance()
@@ -91,22 +107,22 @@ class UserHandler(BaseHandler):
     """Serve the user info from its template: theme/templates/user.json"""
 
     @authenticated
-    def get(self):
-        self.write(self.render_template('user.json'))
+    async def get(self):
+        self.write(await self.render_template('user.json'))
 
 
 class PreviewHandler(BaseHandler):
     """Serve the preview from its template: theme/templates/preview.html"""
 
-    def get(self):
-        self.write(self.render_template('preview.html'))
+    async def get(self):
+        self.write(await self.render_template('preview.html'))
 
 
 class StatsHandler(BaseHandler):
     """Serve the stats from its template: theme/templates/stats.html"""
 
-    def get(self):
-        self.write(self.render_template('stats.html'))
+    async def get(self):
+        self.write(await self.render_template('stats.html'))
 
 
 # SOME VERSIONS OF JUPYTERHUB MAY REQUIRE ASYNC:

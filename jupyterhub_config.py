@@ -59,6 +59,36 @@ c.JupyterHub.tornado_settings = {
 }
 
 # Services
+c.JupyterHub.load_roles = [
+    {
+        "name": "projects",
+        "scopes": [
+            "self",
+        ],
+        "services": ["projects"],
+    },
+    {
+        'name': 'sharing',
+        "scopes": [],
+        "services": ["sharing"],
+    },
+    {
+        'name': 'download',
+        "scopes": ["self"],
+        "services": ["download"],
+    },
+    {
+        "name": "jupyterhub-idle-culler-role",
+        "scopes": [
+            "list:users",
+            "read:users:activity",
+            "read:servers",
+            "delete:servers",
+        ],
+        # assignment of role's permissions to:
+        "services": ["jupyterhub-idle-culler-service"],
+    }
+]
 
 c.JupyterHub.services = [
     {
@@ -85,6 +115,10 @@ c.JupyterHub.services = [
         'url': 'http://127.0.0.1:3002/',
         'cwd': './scripts',
         'command': ['python', 'download_endpoint.py']
+    },
+    {
+        "name": "jupyterhub-idle-culler-service",
+        "command": [sys.executable, "-m", "jupyterhub_idle_culler", "--timeout=3600"],
     },
 ]
 

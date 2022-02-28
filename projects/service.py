@@ -1,19 +1,33 @@
+import functools
 import json
 import os
+from urllib.parse import urlencode, urlsplit
 from tornado.escape import to_basestring
-from tornado.web import Application, RequestHandler, authenticated, addslash
+from tornado.web import Application, RequestHandler, addslash, HTTPError
 from jupyterhub.services.auth import HubAuthenticated
 from .config import Config
 from .emails import send_published_email, validate_token
 from .errors import ExistsError, PermissionError, SpecError, InvalidProjectError, InviteError
-from .hub import create_named_server, user_spawners, decode_username
+from .hub import create_named_server, user_spawners, user_data, decode_username
 from .project import Project, unused_dir
 from .publish import Publish, Tag, Update
 from .sharing import Share, Invite
 
 
+def authenticated(method):
+    """Decorate methods with this to require that the user be logged in."""
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        if not BaseHandler.get_current_user(self):
+            raise HTTPError(403)
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
 class BaseHandler(RequestHandler):
     """A base handler that allows CORS requests"""
+    _user_cache = {}
 
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -23,6 +37,30 @@ class BaseHandler(RequestHandler):
     def options(self):
         self.set_status(204)
         self.finish()
+
+    def get_username_from_cookie(self):
+        cookie = self.get_cookie('GenePattern', None)
+        if not cookie: return None
+        return cookie.split('|')[0]
+
+    def get_current_user(self):
+        username = self.get_username_from_cookie()
+        if not username: return None
+        # Only look up in db if not in cache
+        if username not in BaseHandler._user_cache:
+            user = user_data(username)
+            if not len(user): return None
+            BaseHandler._user_cache[username] = {
+                'name': user[0][0],
+                'admin': user[0][1]
+            }
+        return BaseHandler._user_cache[username]
+
+    def is_admin(self):
+        return BaseHandler.get_current_user(self)['admin']
+
+    def current_username(self):
+        return decode_username(BaseHandler.get_current_user(self)['name'])
 
 
 class ProjectHandler(HubAuthenticated, BaseHandler):
@@ -68,7 +106,7 @@ class ProjectHandler(HubAuthenticated, BaseHandler):
         self.send_error(501, reason='Endpoint not yet implemented')  # TODO: Implement
 
     def _duplicate_project(self, dir):  # TODO: Use id after refactor
-        user = self._current_username()
+        user = self.current_username()
         project = Project.get(owner=user, dir=dir)  # Get the project
         if project is None:             # Ensure that an existing project was found
             raise ExistsError
@@ -81,9 +119,6 @@ class ProjectHandler(HubAuthenticated, BaseHandler):
         if count: spec['name'] += f' (copy {count})'
         url = create_named_server(self.hub_auth, user, dir_name, spec)
         self.write({'url': url, 'dir': dir, 'slug': dir_name})
-
-    def _current_username(self):
-        return decode_username(self.get_current_user()['name'])
 
     @addslash
     def delete(self, id=None, directive=None):
@@ -148,9 +183,6 @@ class PublishHandler(HubAuthenticated, BaseHandler):
     def _copy_and_redirect(self, id):
         self._copy(id, redirect=True)
 
-    def _is_admin(self):
-        return self.hub_auth.get_user(self)['admin']
-
     @addslash
     @authenticated
     def post(self, id=None):
@@ -163,7 +195,7 @@ class PublishHandler(HubAuthenticated, BaseHandler):
         if project is None:             # Ensure that an existing project was found
             raise ExistsError
         # Check to see if the dir directory exists, if so find a good dir name
-        user = self._current_username()
+        user = self.current_username()
         dir_name, count = unused_dir(user, project.dir)
         # Unzip to the current user's dir directory
         project.unzip(user, dir_name)
@@ -203,9 +235,6 @@ class PublishHandler(HubAuthenticated, BaseHandler):
     def _host_url(self):
         return f'{self.request.protocol}://{self.request.host}'
 
-    def _current_username(self):
-        return decode_username(self.get_current_user()['name'])
-
     @addslash
     @authenticated
     def delete(self, id=None):
@@ -214,7 +243,7 @@ class PublishHandler(HubAuthenticated, BaseHandler):
             project = Publish.get(id=id)        # Get the project
             if project is None:                 # Ensure that an existing project was found
                 raise ExistsError
-            if not self._owner(project) and not self._is_admin():
+            if not self._owner(project) and not self.is_admin():
                 raise PermissionError           # Protect against deleting projects that are not your own
             project.delete_zip()                # Delete the zip bundle
             project.delete()                    # Mark the database entry as deleted
@@ -232,7 +261,7 @@ class PublishHandler(HubAuthenticated, BaseHandler):
             project = Publish.get(id=id)        # Load the project from the database
             if project is None:                 # Ensure that an existing project was found
                 raise ExistsError
-            if not self._owner(project) and not self._is_admin():
+            if not self._owner(project) and not self.is_admin():
                 raise PermissionError           # Protect against updating projects that are not your own
             # Update the project ORM object with the contents of the request
             update_json = json.loads(to_basestring(self.request.body))
@@ -252,7 +281,7 @@ class PublishHandler(HubAuthenticated, BaseHandler):
 
     def _owner(self, project):
         """Is the current user the owner of this project?"""
-        return project.owner == self._current_username()
+        return project.owner == self.current_username()
 
 
 class ShareHandler(HubAuthenticated, BaseHandler):
@@ -295,8 +324,8 @@ class ShareHandler(HubAuthenticated, BaseHandler):
         self.send_error(400, reason=f'Endpoint only valid with share id')
 
     def _list_shared(self):
-        shared_by_me = [p.json() for p in Share.shared_by_me(self._current_username())]
-        shared_with_me = [p.json() for p in Share.shared_with_me(self._current_username())]
+        shared_by_me = [p.json() for p in Share.shared_by_me(self.current_username())]
+        shared_with_me = [p.json() for p in Share.shared_with_me(self.current_username())]
         self.write({'shared_by_me': shared_by_me, 'shared_with_me': shared_with_me})
 
     def _sharing_info(self, id=None):
@@ -345,16 +374,13 @@ class ShareHandler(HubAuthenticated, BaseHandler):
     def _host_url(self):
         return f'{self.request.protocol}://{self.request.host}'
 
-    def _current_username(self):
-        return decode_username(self.get_current_user()['name'])
-
     def _is_current_user(self, user):
         """Is the current user the owner of this share?"""
-        return user == self._current_username()
+        return user == self.current_username()
 
     def _set_invite_user(self, invite):
         """Associate the invite with the current user"""
-        invite.user = self._current_username()
+        invite.user = self.current_username()
 
     def _validate_token(self, invite):
         """Validate the provided hash for the invite"""
@@ -440,7 +466,7 @@ class UserHandler(HubAuthenticated, BaseHandler):
 
     @authenticated
     def get(self):
-        user = self.hub_auth.get_user(self)
+        user = BaseHandler.get_current_user(self)
         username = user['name']
 
         # Load the user spawners and put them in the format needed for the endpoint
@@ -467,7 +493,7 @@ class UserHandler(HubAuthenticated, BaseHandler):
 
         self.write({'name': username,
                     'base_url': self.hub_auth.hub_prefix,
-                    'admin': self.hub_auth.get_user(self)['admin'],
+                    'admin': user['admin'],
                     'images': os.getenv('IMAGE_WHITELIST').split(','),
                     'projects': projects})
 

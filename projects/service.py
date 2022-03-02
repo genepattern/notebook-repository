@@ -1,33 +1,19 @@
-import functools
 import json
 import os
-from urllib.parse import urlencode, urlsplit
 from tornado.escape import to_basestring
-from tornado.web import Application, RequestHandler, addslash, HTTPError
-from jupyterhub.services.auth import HubAuthenticated
+from tornado.web import Application, RequestHandler, authenticated, addslash
+from jupyterhub.services.auth import HubOAuthenticated, HubOAuthCallbackHandler
 from .config import Config
 from .emails import send_published_email, validate_token
 from .errors import ExistsError, PermissionError, SpecError, InvalidProjectError, InviteError
-from .hub import create_named_server, user_spawners, user_data, decode_username
+from .hub import create_named_server, user_spawners, decode_username
 from .project import Project, unused_dir
 from .publish import Publish, Tag, Update
 from .sharing import Share, Invite
 
 
-def authenticated(method):
-    """Decorate methods with this to require that the user be logged in."""
-    @functools.wraps(method)
-    def wrapper(self, *args, **kwargs):
-        if not BaseHandler.get_current_user(self):
-            raise HTTPError(403)
-        return method(self, *args, **kwargs)
-
-    return wrapper
-
-
 class BaseHandler(RequestHandler):
     """A base handler that allows CORS requests"""
-    _user_cache = {}
 
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -38,32 +24,14 @@ class BaseHandler(RequestHandler):
         self.set_status(204)
         self.finish()
 
-    def get_username_from_cookie(self):
-        cookie = self.get_cookie('GenePattern', None)
-        if not cookie: return None
-        return cookie.split('|')[0]
-
-    def get_current_user(self):
-        username = self.get_username_from_cookie()
-        if not username: return None
-        # Only look up in db if not in cache
-        if username not in BaseHandler._user_cache:
-            user = user_data(username)
-            if not len(user): return None
-            BaseHandler._user_cache[username] = {
-                'name': user[0][0],
-                'admin': user[0][1]
-            }
-        return BaseHandler._user_cache[username]
-
     def is_admin(self):
-        return BaseHandler.get_current_user(self)['admin']
+        return self.get_current_user()['admin']
 
     def current_username(self):
-        return decode_username(BaseHandler.get_current_user(self)['name'])
+        return decode_username(self.get_current_user()['name'])
 
 
-class ProjectHandler(HubAuthenticated, BaseHandler):
+class ProjectHandler(HubOAuthenticated, BaseHandler):
     """Endpoint for starting, stopping, editing and deleting notebook projects"""
 
     @addslash
@@ -139,7 +107,7 @@ class ProjectHandler(HubAuthenticated, BaseHandler):
         self.send_error(501, reason='Endpoint not yet implemented')  # TODO: Implement
 
 
-class PublishHandler(HubAuthenticated, BaseHandler):
+class PublishHandler(HubOAuthenticated, BaseHandler):
     """Endpoint for publishing, editing and deleting published projects"""
 
     @addslash
@@ -284,7 +252,7 @@ class PublishHandler(HubAuthenticated, BaseHandler):
         return project.owner == self.current_username()
 
 
-class ShareHandler(HubAuthenticated, BaseHandler):
+class ShareHandler(HubOAuthenticated, BaseHandler):
     """Endpoint for sharing and accepting notebook projects"""
 
     @addslash
@@ -460,13 +428,13 @@ class ShareHandler(HubAuthenticated, BaseHandler):
             self.send_error(400, reason='Unable to updating share, share id not found')
 
 
-class UserHandler(HubAuthenticated, BaseHandler):
+class UserHandler(HubOAuthenticated, BaseHandler):
     """Notebook projects information about the current user
        This has been engineered as a replacement for the user.json template"""
 
     @authenticated
     def get(self):
-        user = BaseHandler.get_current_user(self)
+        user = self.get_current_user()
         username = user['name']
 
         # Load the user spawners and put them in the format needed for the endpoint
@@ -498,7 +466,7 @@ class UserHandler(HubAuthenticated, BaseHandler):
                     'projects': projects})
 
 
-class StatsHandler(HubAuthenticated, BaseHandler):
+class StatsHandler(HubOAuthenticated, BaseHandler):
     """Endpoint for reporting notebook workspace usage stats and related information"""
 
     @addslash
@@ -530,6 +498,7 @@ def make_app(config_path):
     urls = [
         (r"/services/projects/", EndpointHandler),
         (r"/services/projects/user.json", UserHandler),
+        (r"/services/projects/oauth_callback", HubOAuthCallbackHandler),
 
         (r"/services/projects/project", ProjectHandler),
         (r"/services/projects/project/", ProjectHandler),
@@ -548,4 +517,4 @@ def make_app(config_path):
 
         (r"/services/projects/stats/", StatsHandler),
     ]
-    return Application(urls, debug=True)
+    return Application(urls, cookie_secret=os.urandom(32), debug=True)

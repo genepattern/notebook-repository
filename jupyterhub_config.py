@@ -61,6 +61,10 @@ c.JupyterHub.tornado_settings = {
 # Services
 c.JupyterHub.load_roles = [
     {
+        "name": "user",
+        "scopes": ["access:services", "self"],  # grant all users access to all services
+    },
+    {
         "name": "projects",
         "scopes": [
             "self",
@@ -96,10 +100,11 @@ c.JupyterHub.services = [
         'admin': True,
         'url': 'http://127.0.0.1:3000/',
         'cwd': '.',
+        'oauth_no_confirm': True,
         'environment': {
             'IMAGE_WHITELIST': ','.join(c.DockerSpawner.image_whitelist.keys())
         },
-        'command': ['python', 'start-projects.py',
+        'command': [sys.executable, 'start-projects.py',
                     '--config=/Users/tmtabor/workspace/notebook-repository/data/projects_config.py']
     },
     {

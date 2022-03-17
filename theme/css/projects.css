@@ -1,0 +1,330 @@
+
+/** Projects Page **/
+
+.nb-project {
+    display: inline-block;
+    width: 272px;
+    vertical-align: top;
+    height: 220px;
+    margin-bottom: 10px;
+    margin-right: 10px;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 3px 3px rgba(0, 0, 0, .24);
+    border: lightgray 1px solid;
+    position: relative;
+}
+
+.nb-project .nb-img-top {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-bottom: 1px solid rgba(0, 0, 0, .125);
+}
+
+.nb-project > .panel-body > .panel-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 263px;
+    display: block;
+    margin: 0 0 10px;
+}
+
+.nb-project > .panel-body {
+    padding: 5px;
+}
+
+.nb-project > .panel-body > .panel-text {
+    font-size: 0.9em;
+    line-height: 1.2em;
+    overflow: hidden;
+    /* for set '...' in absolute position */
+    position: relative;
+    /* max-height = line-height (1.2) * lines max number (3) */
+    max-height: 3.6em;
+    /* place for '...' */
+    margin-right: -1em;
+    padding-right: 1em;
+}
+
+/* create the ... */
+.nb-project > .panel-body > .panel-text:before {
+    /* points in the end */
+    content: '...';
+    /* absolute position */
+    position: absolute;
+    /* set position to right bottom corner of block */
+    right: 15px;
+    bottom: 2px;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* hide ... if we have text, which is less than or equal to max lines */
+.nb-project > .panel-body > .panel-text:after {
+    /* points in the end */
+    content: '';
+    /* absolute position */
+    position: absolute;
+    /* set position to right bottom corner of text */
+    right: 15px;
+    /* set width and height */
+    width: 12px;
+    height: 1em;
+    margin-top: 0.2em;
+    /* bg color = bg color under block */
+    background: white;
+}
+
+.nb-project > .panel-body > .nb-tags {
+    position: absolute;
+    bottom: 5px;
+    width: 100%;
+    overflow: hidden;
+    height: 18px;
+}
+
+.nb-project > .panel-body > .nb-tags > .badge {
+    display: inline-block;
+    margin-right: 3px;
+}
+
+div.nb-project-new {
+    border: lightgray 2px dashed;
+    box-shadow: none;
+}
+
+div.nb-project-new > .nb-img-top {
+    background: rgba(0, 0, 0, 0.05) none repeat scroll 0 0;
+}
+
+.nb-icon-space {
+    position: absolute;
+    top: 8px;
+    right: 60px;
+    width: 100px;
+    text-align: right;
+    color: white;
+    padding: 0;
+    margin: 0;
+    z-index: 1;
+}
+
+.nb-published-icon,
+.nb-shared-icon {
+    width: 30px;
+}
+
+.nb-gear-menu {
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: white;
+    border: transparent solid 1px;
+    border-radius: 3px;
+    z-index: 3;
+}
+
+.nb-gear-menu > button {
+    color: white;
+    background-color: transparent;
+    border: none;
+}
+
+.nb-gear-menu > button.dropdown-toggle:hover,
+.nb-gear-menu > button.dropdown-toggle:focus,
+.nb-gear-menu.open > button.dropdown-toggle:hover,
+.nb-gear-menu.open > button.dropdown-toggle:focus {
+    color: white;
+    background-color: transparent;
+}
+
+.nb-gear-menu.open > button.dropdown-toggle {
+    color: white;
+    background-color: transparent;
+}
+
+.nb-gear-menu:hover {
+    border: rgba(255, 255, 255, 0.7) solid 1px;
+    z-index: 4;
+}
+
+.nb-project-icon {
+    display: block;
+    opacity: 20%;
+    line-height: 100%;
+    font-size: 70px;
+    text-align: center;
+    padding-top: 15px;
+}
+
+.nb-stopped > img {
+    filter: grayscale(100%) brightness(150%);
+}
+
+#nb-header {
+    position: relative;
+}
+
+#nb-project-search, #nb-library-search {
+    width: 25%;
+    right: 25px;
+    position: absolute;
+    top: 0;
+}
+
+#nb-new {
+    width: 25%;
+    right: 25px;
+    position: absolute;
+    top: 50px;
+}
+
+#nb-library-container, #nb-share-container {
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+.modal-body .form-control {
+    height: auto;
+}
+
+.nb-image {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    color: white;
+    z-index: 1;
+    font-weight: 700;
+}
+
+.nb-advanced {
+    display: none;
+}
+
+#pinned-tags {
+    position: absolute;
+    top: 42px;
+    right: 22px;
+    width: 50%;
+
+}
+
+#pinned-tags > li {
+    float: right;
+}
+
+#nb-preview-tags > span.badge {
+    font-size: 1em;
+}
+
+.nb-preview-buttons {
+    padding: 20px;
+}
+
+.nb-preview-buttons > a {
+    display: inline-block;
+    width: 150px;
+}
+
+.nb-spinner {
+    margin-right: auto;
+    margin-left: auto;
+    width: 100%;
+    font-size: 30vh;
+}
+
+#nb-sharing-header {
+    display: none;
+}
+
+.nb-owner {
+    position: absolute;
+    top: 72px;
+    right: 10px;
+    color: white;
+    z-index: 0;
+    font-weight: 500;
+    max-width: 252px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nb-invite {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 3;
+    cursor: auto;
+}
+
+.nb-invite > .nb-img-top {
+    background: rgb(242, 242, 242) none repeat scroll 0 0;
+    padding: 10px;
+    position: relative;
+}
+
+.nb-invite-line {
+    font-size: 1em;
+    line-height: 1.2em;
+    overflow: hidden;
+    max-height: 27px;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    font-weight: bold;
+    text-overflow: ellipsis;
+    padding: 5px;
+    text-align: center;
+    white-space: nowrap;
+    background: rgb(242, 242, 242) none repeat scroll 0 0;
+    border-top: 1px solid rgba(0, 0, 0, .125);
+}
+
+.nb-invite-buttons {
+    line-height: 100%;
+    text-align: center;
+}
+
+.nb-invite-accept,
+.nb-invite-reject {
+    opacity: 0.8;
+    padding: 0;
+    border: none;
+    font-size: 0.9em;
+    background: transparent;
+}
+
+.nb-invite-accept:hover,
+.nb-invite-reject:hover {
+    opacity: 1;
+}
+
+.nb-invite-accept {
+    color: #3c763d;
+    margin-right: 20px;
+}
+
+.nb-invite-reject {
+    color: #a94442;
+    margin-left: 20px;
+}
+
+.nb-invite-accept > i.fa,
+.nb-invite-reject > i.fa {
+    font-size: 60px;
+}
+
+/** Preview Page **/
+
+#nb-preview-files .fa {
+    margin-right: 10px;
+}
+
+#nb-preview.container {
+    margin-bottom: 50px;
+}

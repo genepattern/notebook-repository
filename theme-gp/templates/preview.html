@@ -1,0 +1,45 @@
+{% extends "page.html" %}
+
+{% block main %}
+    <div id="nb-preview" class="container">
+        <div id="messages"></div>
+        <h1 id="nb-preview-name"></h1>
+        <p id="nb-preview-description" class="lead"></p>
+        <p id="nb-preview-tags"></p>
+        <div class="nb-preview-buttons">
+            <a id="nb-preview-download" class="btn btn-default btn-lg">Download</a>
+            <a id="nb-preview-run" class="btn btn-primary btn-lg">Run</a>
+        </div>
+        <table class="table table-striped">
+            <tr><th>Authors</th><td id="nb-preview-author"></td></tr>
+            <tr><th>Quality</th><td id="nb-preview-quality"></td></tr>
+            <tr><th>Environment</th><td id="nb-preview-image"></td></tr>
+            <tr><th>Owner</th><td id="nb-preview-owner"></td></tr>
+            <tr><th>Updated</th><td id="nb-preview-updated"></td></tr>
+            <tr><th>Comment</th><td id="nb-preview-comment"></td></tr>
+        </table>
+        <hr/>
+        <h2>Project Contents</h2>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Modified</th>
+                    <th>Size</th>
+                </tr>
+            </thead>
+            <tbody id="nb-preview-files"></tbody>
+        </table>
+        <hr/>
+        <h2>Citing This Notebook</h2>
+        <ol id="nb-citation">
+            <li id="nb-citation-notebook"></li>
+            <li>Reich M., Tabor T., Liefeld T., Thorvaldsdóttir H., Hill B., Tamayo P., Mesirov J.P., "The GenePattern notebook environment", <em>Cell Systems</em> 2017;5:149–151.e1.</li>
+        </ol>
+    </div>
+{% endblock %}
+
+{% block script %}
+    {{ super() }}
+    <script type="text/javascript" src="/hub/static/js/preview.js"></script>
+{% endblock %}

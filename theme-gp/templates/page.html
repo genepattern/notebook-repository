@@ -1,16 +1,8 @@
 {% extends "templates/page.html" %}
-{% block title %}g2nb Workspace{% endblock %}
+{% block title %}GenePattern Notebook{% endblock %}
 {% block stylesheet %}
     {{ super() }}
-    <link rel="stylesheet" href="{{ static_url("css/g2nb.css") }}" type="text/css"/>
-    <link rel="stylesheet" href="{{ static_url("css/projects.css") }}" type="text/css"/>
-{% endblock %}
-
-{% block logo %}
-    <span id="jupyterhub-logo" class="pull-left">
-        <a href="{{logo_url or base_url}}"><img src='{{base_url}}logo' alt='g2nb' class='jpy-logo' title='Home'/>
-            <span class="logo-text">g2nb</span></a>
-    </span>
+    <link rel="stylesheet" href="{{ static_url("css/genepattern.css") }}" type="text/css"/>
 {% endblock %}
 
 {% block nav_bar_left_items %}

@@ -1,0 +1,77 @@
+{% extends "templates/not_running.html" %}
+
+{% block meta %}
+    {% if not server_name and not user.admin %}
+        <meta http-equiv="refresh" content="0;URL='/hub/home'" />
+    {% endif %}
+{% endblock %}
+
+{% block main %}
+    <div class="container">
+        <div class="row">
+            <div class="text-center">
+                <p>Your server is not running. It will be restarted automatically. If you are not redirected in a few
+                    seconds, click below to launch your server.</p>
+                {% block start_button %}
+                    <button id="start" role="button" class="btn btn-lg btn-primary">
+                        {% if failed %}Relaunch{% else %}Launch{% endif %} Server
+                    </button>
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    {{ super () }}
+    <script type="text/javascript">
+        var GenePattern = GenePattern || {};
+        GenePattern.relaunch = GenePattern.relaunch || {};
+        GenePattern.relaunch.username = GenePattern.relaunch.username || '';
+        GenePattern.relaunch.base_url = GenePattern.relaunch.base_url || '';
+        GenePattern.relaunch.my_projects = GenePattern.relaunch.my_projects || [];
+
+        function query_projects() {
+            return fetch('/services/projects/user.json')
+                .then(response => response.json())
+                .then(response => {
+                    GenePattern.relaunch.username = response['name'];
+                    GenePattern.relaunch.base_url = response['base_url'];
+                    GenePattern.relaunch.my_projects = response['projects'];
+                })
+        }
+
+        function get_metadata(slug) {
+            let match = null;
+            GenePattern.relaunch.my_projects.forEach(project => {
+                if (project.slug === slug) match = project;
+            });
+            return match;
+        }
+
+        function launch_project(slug) {
+            const project = get_metadata(slug);
+            if (!project) window.location.href = "/hub/home";
+
+            $.ajax({
+                method: 'POST',
+                url: `${GenePattern.relaunch.base_url}api/users/${GenePattern.relaunch.username}/servers/${project.slug}`,
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    "name": project.display_name,
+                    "image": project.image,
+                    "description": project.description,
+                    "author": project.author,
+                    "quality": project.quality,
+                    "citation": project.citation,
+                    "tags": project.tags
+                }),
+                success: () => window.location.href = "{{ spawn_url }}",
+                error: () => window.location.href = "/hub/home"
+            });
+        }
+
+        query_projects().then(() => launch_project("{{ server_name }}"));
+        $("#start").click(() => launch_project("{{ server_name }}"));
+    </script>
+{% endblock script %}

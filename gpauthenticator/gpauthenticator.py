@@ -81,6 +81,7 @@ class GenePatternAuthenticator(Authenticator):
 
     def get_handlers(self, app):
         genepattern_handlers = [
+            (r'/login', LoginHandler),
             (r'/login/form', LoginHandler),
             (r'/logout', LogoutHandler),
             # (r'/signup', SignUpHandler),

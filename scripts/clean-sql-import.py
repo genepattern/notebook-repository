@@ -22,7 +22,7 @@
 #  mysql -u projects -p projects < projects.sql
 
 # Read in the file
-with open('../data/projects.sql', 'r') as file :
+with open('/data/projects.sql', 'r') as file:
     filedata = file.read()
 
 # Remove non-"insert into" lines
@@ -50,5 +50,5 @@ for line in cleandata.splitlines():
         filedata += line + '\n'
 
 # Write the file out again
-with open('../data/projects.sql', 'w') as file:
+with open('/data/projects.sql', 'w') as file:
     file.write(filedata)

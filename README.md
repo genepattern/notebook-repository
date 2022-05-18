@@ -1,5 +1,10 @@
 # GenePattern Notebook Repository
 
+> ### Deprecated
+> Most of the functionality once found in this project has been migrated to new repositories. See the following:
+> * [**gpauthenticator:**](https://github.com/genepattern/gpauthenticator) Authenticate a JupyterHu instance using GenePattern.
+> * [**notebook projects**](https://github.com/g2nb/notebook-projects): Encapsulate notebooks in their own sharable directories.
+
 This repository contains a webservice used to share, publish and preview Jupyter Notebooks.
 It is intended for use with with [JupyterHub's Services API](http://jupyterhub.readthedocs.io/en/latest/api/).
 Also contained in this repository is an nbextensions which provides a front end for this
